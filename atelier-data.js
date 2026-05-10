@@ -5,6 +5,7 @@
 // ============================================================
 
 import { sb, logSupabaseClientDebug } from './atelier-supabase.js'
+import { sanitizeCourseRichText } from './atelier-sanitize.js'
 import {
   isEnrolled,
   registerRerenderers,
@@ -376,6 +377,15 @@ function setupTabResumeRefresh() {
 }
 
 function renderAll() { renderKalendar(); renderKurzy() }
+
+/** Veřejný detail: HTML jen po projítí DOMPurify; prostý text zachovat s řádky (legacy data před editorem). */
+function _formatCourseDetailLong(raw) {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  if (/<[a-z][\s\S]*>/i.test(s))
+    return `<div class="course-rich-text">${sanitizeCourseRichText(s)}</div>`
+  return `<div class="course-rich-text course-rich-text--plain">${_escHtml(s)}</div>`
+}
 
 function _escHtml(s) {
   return String(s ?? '')
@@ -1366,6 +1376,7 @@ async function renderCourseDetail(courseId) {
   const title     = loc(course.title)
   const descShort = loc(course.description_short)
   const descLong  = loc(course.description_long)
+  const descLongBlock = _formatCourseDetailLong(descLong)
   const imageUrls = courseImageUrls(course)
   const ownerName = Array.isArray(course.owner) ? course.owner[0]?.name : course.owner?.name
   const upcoming  = window.AppState.upcomingLessons.filter(l => l.course_id === courseId).slice(0, 3)
@@ -1439,8 +1450,8 @@ async function renderCourseDetail(courseId) {
         <span style="font-size:12px;padding:5px 10px;border-radius:99px;background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${lang === 'cs' ? 'vstup' : 'entry'}</span>
       </div>
 
-      ${descShort ? `<p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:${descLong ? '10' : '16'}px;">${descShort}</p>` : ''}
-      ${descLong  ? `<div style="font-size:14px;line-height:1.75;margin-bottom:${descLong ? '20' : '16'}px;white-space:pre-line;">${descLong}</div>` : ''}
+      ${descShort ? `<p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:${descLongBlock ? '10' : '16'}px;">${descShort}</p>` : ''}
+      ${descLongBlock ? `<div style="font-size:14px;line-height:1.75;margin-bottom:${descLongBlock ? '20' : '16'}px;">${descLongBlock}</div>` : ''}
 
       ${galleryThumbUrls.length ? `
         <div class="detail-gallery-section">

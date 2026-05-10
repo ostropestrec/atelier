@@ -4,6 +4,7 @@
 
 import { sb } from './atelier-supabase.js'
 import { currentUser } from './atelier_auth.js'
+import { sanitizeCourseRichText } from './atelier-sanitize.js'
 
 // ── Konstanty ─────────────────────────────────────────────────
 const PRESET_COLORS = [
@@ -24,6 +25,110 @@ let _mwNewFiles       = []
 const MAX_COURSE_PHOTOS = 4
 const MAX_PHOTO_UPLOAD_BYTES = 10 * 1024 * 1024
 const COMPRESS_OVER_BYTES = 5 * 1024 * 1024
+
+/** WYSIWYG (Quill ze &lt;script&gt; v index.html — ne React-Quill) */
+let _quillMcLong = null
+let _quillMwLong = null
+
+function _getQuillCtor() {
+  const Q = typeof window !== 'undefined' ? window.Quill : null
+  return typeof Q === 'function' ? Q : null
+}
+
+function _destroyMcLongQuill() {
+  const wrap = document.getElementById('mc-long-wrap')
+  _quillMcLong = null
+  if (!wrap) return
+  wrap.innerHTML = '<div id="mc-long-editor"></div>'
+}
+
+function _destroyMwLongQuill() {
+  const wrap = document.getElementById('mw-long-wrap')
+  _quillMwLong = null
+  if (!wrap) return
+  wrap.innerHTML = '<div id="mw-long-editor"></div>'
+}
+
+function _ensureMcLongQuill() {
+  const Q = _getQuillCtor()
+  if (!Q || !document.getElementById('mc-long-editor')) return null
+  if (_quillMcLong) return _quillMcLong
+  _quillMcLong = new Q('#mc-long-editor', {
+    theme: 'snow',
+    modules: {
+      toolbar: [['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
+    },
+    placeholder: 'Podrobný popis pro stránku detailu kurzu…',
+  })
+  return _quillMcLong
+}
+
+function _ensureMwLongQuill() {
+  const Q = _getQuillCtor()
+  if (!Q || !document.getElementById('mw-long-editor')) return null
+  if (_quillMwLong) return _quillMwLong
+  _quillMwLong = new Q('#mw-long-editor', {
+    theme: 'snow',
+    modules: {
+      toolbar: [['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
+    },
+    placeholder: 'Podrobný popis programu workshopu…',
+  })
+  return _quillMwLong
+}
+
+function _pasteSanitizedIntoQuill(q, sanitizedHtml) {
+  const Q = _getQuillCtor()
+  if (!q || !Q) return
+  const inner = sanitizedHtml.trim() ? sanitizedHtml : '<p><br></p>'
+  const Delta = Q.import('delta')
+  try {
+    q.setContents(new Delta(), 'silent')
+    q.clipboard.dangerouslyPasteHTML(0, inner, 'silent')
+  } catch (e) {
+    console.warn('[Admin] Quill paste selhalo:', e)
+  }
+}
+
+function _setMcLongHtml(html) {
+  _destroyMcLongQuill()
+  const q = _ensureMcLongQuill()
+  if (!q) {
+    console.warn('[Admin] Quill není dostupný (chybí skript v index.html).')
+    return
+  }
+  _pasteSanitizedIntoQuill(q, sanitizeCourseRichText(html))
+}
+
+function _setMwLongHtml(html) {
+  _destroyMwLongQuill()
+  const q = _ensureMwLongQuill()
+  if (!q) {
+    console.warn('[Admin] Quill není dostupný (chybí skript v index.html).')
+    return
+  }
+  _pasteSanitizedIntoQuill(q, sanitizeCourseRichText(html))
+}
+
+function _normalizeStoredRichHtml(sanitized) {
+  const t = String(sanitized ?? '').trim()
+  if (!t) return ''
+  const c = t.replace(/\s/g, '').toLowerCase()
+  if (c === '<p><br></p>' || c === '<p></p>' || c === '<br>' || c === '<p><br/></p>') return ''
+  return t
+}
+
+function _getMcLongHtml() {
+  if (!_quillMcLong || !_getQuillCtor()) return ''
+  const raw = _quillMcLong.root.innerHTML
+  return _normalizeStoredRichHtml(sanitizeCourseRichText(raw))
+}
+
+function _getMwLongHtml() {
+  if (!_quillMwLong || !_getQuillCtor()) return ''
+  const raw = _quillMwLong.root.innerHTML
+  return _normalizeStoredRichHtml(sanitizeCourseRichText(raw))
+}
 
 /** Dříve 3000 ms — při pomalejší síti / vytíženém API končilo vše „TIMEOUT:admin-kurzy“ místo reálné chyby. */
 // const ADMIN_FETCH_DEADLINE_MS = 3000
@@ -740,8 +845,7 @@ function buildWorkshopModal() {
 
           <div style="margin-bottom:12px;">
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Obsah workshopu <span style="font-weight:400;opacity:.7;">(detailní popis)</span></label>
-            <textarea id="mw-long" rows="4" placeholder="Podrobný popis programu workshopu…"
-              style="${INP}resize:vertical;min-height:88px;"></textarea>
+            <div id="mw-long-wrap" class="admin-quill-wrap"><div id="mw-long-editor"></div></div>
           </div>
 
           <div style="margin-bottom:14px;">
@@ -818,11 +922,12 @@ window.adminNewWorkshop = () => {
   document.getElementById('mw-save-btn').textContent = 'Uložit workshop'
   const errEl = document.getElementById('mw-error')
   if (errEl) errEl.style.display = 'none'
-  ;['mw-name','mw-desc','mw-long','mw-price','mw-date'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
+  ;['mw-name','mw-desc','mw-price','mw-date'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
   document.getElementById('mw-capacity').value  = '12'
   document.getElementById('mw-time-from').value = '09:00'
   document.getElementById('mw-time-to').value   = '12:00'
   window._wsPickColor?.(PRESET_COLORS[0])
+  _setMwLongHtml('')
   document.getElementById('modal-workshop').style.display = 'flex'
 }
 
@@ -844,7 +949,6 @@ window.adminEditWorkshop = async (courseId) => {
   if (course) {
     document.getElementById('mw-name').value     = loc(course.title)
     document.getElementById('mw-desc').value     = loc(course.description_short)
-    document.getElementById('mw-long').value     = loc(course.description_long)
     document.getElementById('mw-price').value    = course.price_single
     document.getElementById('mw-capacity').value = course.capacity_default
     if (course.color_code) {
@@ -867,10 +971,12 @@ window.adminEditWorkshop = async (courseId) => {
     document.getElementById('mw-time-to').value   = `${pad(end.getHours())}:${pad(end.getMinutes())}`
   }
 
+  _setMwLongHtml(course ? loc(course.description_long) : '')
   document.getElementById('modal-workshop').style.display = 'flex'
 }
 
 window.closeWorkshopModal = () => {
+  _destroyMwLongQuill()
   const m = document.getElementById('modal-workshop')
   if (m) m.style.display = 'none'
 }
@@ -884,7 +990,8 @@ window.saveNewWorkshop = async () => {
   const lessonId = document.getElementById('mw-lesson-id')?.value || null
   const name     = document.getElementById('mw-name')?.value.trim()
   const desc     = document.getElementById('mw-desc')?.value.trim()
-  const descLong = document.getElementById('mw-long')?.value.trim()
+  if (!_getQuillCtor()) { showErr(errEl, 'Editor není načtený. Obnovte stránku.'); return }
+  const descLong = _getMwLongHtml()
   const price    = Number(document.getElementById('mw-price')?.value)
   const capacity = Number(document.getElementById('mw-capacity')?.value)
   const date     = document.getElementById('mw-date')?.value
@@ -1150,11 +1257,10 @@ function buildCourseModal() {
               style="${INP}resize:vertical;min-height:60px;"></textarea>
           </div>
 
-          <!-- Obsah kurzu (dlouhý popis) -->
+          <!-- Obsah kurzu (dlouhý popis) — Quill editor -->
           <div style="margin-bottom:12px;">
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Obsah kurzu <span style="font-weight:400;opacity:.7;">(detailní popis na stránce kurzu)</span></label>
-            <textarea id="mc-long" rows="5" placeholder="Podrobný popis pro stránku detailu kurzu…"
-              style="${INP}resize:vertical;min-height:100px;"></textarea>
+            <div id="mc-long-wrap" class="admin-quill-wrap"><div id="mc-long-editor"></div></div>
           </div>
 
           <!-- Barva -->
@@ -1287,7 +1393,7 @@ async function _openCourseModal(courseId = null) {
   window._ncPickColor?.(PRESET_COLORS[0])
 
   // Reset fields
-  ;['mc-name','mc-desc','mc-long','mc-price'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
+  ;['mc-name','mc-desc','mc-price'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
   document.getElementById('mc-capacity').value  = '12'
   document.getElementById('mc-cancel').value    = '24'
   document.getElementById('mc-time-from').value = '09:00'
@@ -1327,7 +1433,6 @@ async function _openCourseModal(courseId = null) {
   if (course) {
     document.getElementById('mc-name').value     = loc(course.title)
     document.getElementById('mc-desc').value     = loc(course.description_short)
-    document.getElementById('mc-long').value     = loc(course.description_long)
     document.getElementById('mc-price').value    = course.price_single
     document.getElementById('mc-capacity').value = course.capacity_default
     document.getElementById('mc-cancel').value   = course.cancellation_hours
@@ -1381,6 +1486,7 @@ async function _openCourseModal(courseId = null) {
     }
   }
 
+  _setMcLongHtml(course ? loc(course.description_long) : '')
   document.getElementById('modal-course').style.display = 'flex'
 }
 
@@ -1388,6 +1494,7 @@ window.adminNewCourse  = () => _openCourseModal(null)
 window.adminEditCourse = (id) => _openCourseModal(id)
 
 window.closeNewCourseModal = () => {
+  _destroyMcLongQuill()
   const m = document.getElementById('modal-course')
   if (m) m.style.display = 'none'
 }
@@ -1400,7 +1507,8 @@ window.saveNewCourse = async () => {
   const courseId    = document.getElementById('mc-id')?.value || null
   const name        = document.getElementById('mc-name')?.value.trim()
   const desc        = document.getElementById('mc-desc')?.value.trim()
-  const descLong    = document.getElementById('mc-long')?.value.trim()
+  if (!_getQuillCtor()) { showErr(errEl, 'Editor není načtený. Obnovte stránku.'); return }
+  const descLong    = _getMcLongHtml()
   const price       = Number(document.getElementById('mc-price')?.value)
   const capacity    = Number(document.getElementById('mc-capacity')?.value)
   const cancelH     = Number(document.getElementById('mc-cancel')?.value)
