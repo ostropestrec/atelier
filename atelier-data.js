@@ -1569,7 +1569,7 @@ async function renderCourseDetail(courseId) {
         <span style="font-size:12px;padding:5px 10px;border-radius:99px;background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${lang === 'cs' ? 'vstup' : 'entry'}</span>
       </div>
 
-      ${descShort ? `<p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:${descLongBlock ? '10' : '16'}px;">${descShort}</p>` : ''}
+      ${descShort ? `<p style="font-size:13px;color:var(--course-detail-anno);line-height:1.7;margin-bottom:${descLongBlock ? '10' : '16'}px;">${descShort}</p>` : ''}
       ${descLongBlock ? `<div style="font-size:14px;line-height:1.75;margin-bottom:${descLongBlock ? '20' : '16'}px;">${descLongBlock}</div>` : ''}
 
       ${galleryThumbUrls.length ? `
