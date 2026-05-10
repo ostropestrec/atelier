@@ -20,7 +20,7 @@
       --border: rgba(17,24,39,.10);
       --text: #111111;
       --anno: #292929;
-      --course-detail-anno: #6B6B6B;
+      --course-detail-anno: #8A8C90;
       --rail-label: #8a8c90;
       --muted: var(--anno);
       --avatar-guest-fg: #9ca3af;
@@ -28,6 +28,8 @@
       --primary-100: rgba(40,84,185,.10);
       --shadow: 0 10px 30px rgba(17,24,39,.08);
       --radius: 14px;
+      /* Pilulkové tlačítka = stejné zaoblení jako položky sidebaru */
+      --btn-radius: 999px;
       --page-bg-desktop: #e6ede3;
       --shell-max: 1000px;
       --shell-radius: 24px;
@@ -163,7 +165,7 @@
         width:100%; text-align:left; box-sizing: border-box;
         border: 1px solid transparent;
         background: transparent;
-        padding: 7px 12px; border-radius: 999px;
+        padding: 7px 12px; border-radius: var(--btn-radius);
         font-size: 14px; font-weight: 500;
         letter-spacing: 0;
         color: var(--text);
@@ -243,7 +245,7 @@
         width: 100%; text-align: left; box-sizing: border-box;
         border: 1px solid transparent;
         background: transparent;
-        padding: 7px 12px; border-radius: 999px;
+        padding: 7px 12px; border-radius: var(--btn-radius);
         font-size: 14px; font-weight: 500;
         line-height: 1.22;
         color: var(--text);
@@ -396,7 +398,7 @@
       font-size: 13px;
       font-weight: 600;
       padding: 10px 18px;
-      border-radius: 10px;
+      border-radius: var(--btn-radius);
       cursor: pointer;
       box-shadow: 0 4px 24px rgba(0,0,0,.35);
       pointer-events: auto;
@@ -451,12 +453,12 @@
     .detail-info-row .lbl { color:var(--muted); }
     .detail-info-row .val { font-weight:600; text-align:right; }
     .blbl { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #9b9b9b; margin-bottom: 6px; }
-    .bo { border: 0.5px solid rgba(0,0,0,.12); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; }
+    .bo { border: 0.5px solid rgba(0,0,0,.12); border-radius: var(--btn-radius); padding: 10px 12px; margin-bottom: 6px; cursor: pointer; }
     .brow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
     .bnm { font-size: 12px; font-weight: 500; }
     .bsb { font-size: 10px; color: #9b9b9b; }
     .btn-detail, .btn-res {
-      width: 100%; padding: 9px; border-radius: 8px; border: none;
+      width: 100%; padding: 9px; border-radius: var(--btn-radius); border: none;
       font-size: 12px; font-weight: 500; cursor: pointer; margin-top: 4px;
     }
     .btn-detail { background: #F8F8F8; color: #1a1a1a; border: 0.5px solid rgba(0,0,0,.12); }
@@ -465,7 +467,7 @@
     .bk-opt {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 12px; border: 0.5px solid rgba(0,0,0,.12);
-      border-radius: 8px; cursor: pointer; margin-bottom: 6px; user-select: none;
+      border-radius: var(--btn-radius); cursor: pointer; margin-bottom: 6px; user-select: none;
     }
     .bk-opt-sel { border-color: var(--primary); }
     .bk-opt-radio {
@@ -487,7 +489,7 @@
       cursor: pointer;
       padding: 6px 10px;
       color: var(--muted);
-      border-radius: 12px;
+      border-radius: var(--btn-radius);
     }
     .pt { font-size: 13px; font-weight: 600; color: var(--text); }
 
@@ -576,7 +578,7 @@
     .pop-body { padding: 16px; }
     .pop-close {
       width: 100%; padding: 10px; border: 0.5px solid rgba(0,0,0,.12);
-      border-radius: 8px; background: transparent; font-size: 12px; cursor: pointer; margin-top: 8px;
+      border-radius: var(--btn-radius); background: transparent; font-size: 12px; cursor: pointer; margin-top: 8px;
     }
 
     /* ── Nástěnka ── */
@@ -625,14 +627,14 @@
     .bk-sub{ font-size: 12px; color: var(--muted); margin-top: 2px; }
     .pill{
       font-size: 12px; font-weight: 600;
-      padding: 7px 10px; border-radius: 999px;
+      padding: 7px 10px; border-radius: var(--btn-radius);
       background: rgba(17,24,39,.06); color: var(--muted);
       border: 1px solid var(--border);
       white-space: nowrap;
     }
     .pill.ok{ background: rgba(40,84,185,.10); color: var(--primary); border-color: rgba(40,84,185,.18); }
     .btn-small{
-      padding: 9px 12px; border-radius: 12px; border: 1px solid var(--border);
+      padding: 9px 12px; border-radius: var(--btn-radius); border: 1px solid var(--border);
       background: transparent; cursor:pointer; font-size: 13px; font-weight:600;
       white-space: nowrap;
     }
@@ -662,7 +664,7 @@
       display:inline-flex; align-items:center; justify-content:center;
       gap:8px;
       padding: 11px 16px;
-      border-radius: 12px;
+      border-radius: var(--btn-radius);
       border: 1px solid var(--border);
       background: #fff;
       font-size: 14px;
@@ -745,7 +747,7 @@
     .menu-item {
       display: flex; align-items: center; justify-content: space-between;
       background: #fff; border: 0.5px solid rgba(0,0,0,.08);
-      border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+      border-radius: var(--btn-radius); padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
     }
     .menu-item span { font-size: 12px; }
     .menu-item .arr { color: #9b9b9b; font-size: 14px; }
@@ -1040,7 +1042,7 @@
       </div>
       <!-- Tlačítka pro nepřihlášeného -->
       <div id="kal-btns-free" style="display:grid;gap:6px;">
-        <button id="kal-rez-btn" class="btn-res" style="padding:11px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;">Rezervovat</button>
+        <button id="kal-rez-btn" class="btn-res" style="padding:11px;border:none;font-size:13px;font-weight:500;cursor:pointer;">Rezervovat</button>
       </div>
       <button class="pop-close" onclick="document.getElementById('pop-kal').style.display='none'">Zavřít</button>
     </div>
@@ -1068,7 +1070,7 @@
       <div id="bk-payment-opts" style="margin-bottom:16px;"></div>
 
       <button id="bk-confirm-btn" class="btn-res"
-        style="width:100%;padding:11px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;"
+        style="width:100%;padding:11px;border:none;font-size:13px;font-weight:500;cursor:pointer;"
         onclick="window.confirmBooking?.()">
         Potvrdit rezervaci
       </button>
@@ -1234,7 +1236,7 @@
     Nepodařilo se načíst aplikaci.<br>Zkontrolujte připojení k internetu.
   </div>
   <button onclick="location.reload()"
-    style="padding:10px 28px;background:#2854B9;color:#fff;border:none;border-radius:8px;
+    style="padding:10px 28px;background:#2854B9;color:#fff;border:none;border-radius:var(--btn-radius);
            font-size:13px;font-weight:500;cursor:pointer;">
     Zkusit znovu
   </button>

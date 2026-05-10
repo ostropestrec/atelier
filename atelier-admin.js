@@ -731,7 +731,7 @@ window.openPassModal = async (passId = null) => {
     listEl.innerHTML = courses.map(c => {
       const color = c.color_code ?? '#2854B9'
       return `
-        <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;
+        <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--btn-radius);
           border:1px solid var(--border);margin-bottom:6px;cursor:pointer;user-select:none;">
           <input type="checkbox" value="${esc(c.id)}" ${existingIds.includes(c.id)?'checked':''}
             style="width:16px;height:16px;accent-color:${color};cursor:pointer;flex-shrink:0;" />
@@ -865,6 +865,14 @@ function buildWorkshopModal() {
           </div>
 
           <div style="margin-bottom:12px;">
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Minimální počet účastníků</label>
+            <input id="mw-min-p" type="number" min="1" value="1" style="${INP}" />
+            <div style="font-size:11px;color:#6b6b6b;margin-top:4px;line-height:1.45;">
+              Stejná logika upozornění jako u běžného kurzu (cron + fronta e‑mailů).
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px;">
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Datum</label>
             <input id="mw-date" type="date" style="${INP}" />
           </div>
@@ -883,7 +891,7 @@ function buildWorkshopModal() {
           <div style="margin-bottom:14px;">
             <div id="mw-photos-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
             <label id="mw-photos-add" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
-              border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;font-size:12px;color:var(--muted);">
+              border:1.5px dashed var(--border);border-radius:var(--btn-radius);cursor:pointer;font-size:12px;color:var(--muted);">
               + Přidat foto
               <input type="file" id="mw-photo-input" accept="image/*" multiple style="display:none;"
                 onchange="window._mwHandlePhotos(this)" />
@@ -924,6 +932,7 @@ window.adminNewWorkshop = () => {
   if (errEl) errEl.style.display = 'none'
   ;['mw-name','mw-desc','mw-price','mw-date'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
   document.getElementById('mw-capacity').value  = '12'
+  document.getElementById('mw-min-p').value     = '1'
   document.getElementById('mw-time-from').value = '09:00'
   document.getElementById('mw-time-to').value   = '12:00'
   window._wsPickColor?.(PRESET_COLORS[0])
@@ -951,6 +960,7 @@ window.adminEditWorkshop = async (courseId) => {
     document.getElementById('mw-desc').value     = loc(course.description_short)
     document.getElementById('mw-price').value    = course.price_single
     document.getElementById('mw-capacity').value = course.capacity_default
+    document.getElementById('mw-min-p').value    = Math.max(1, Number(course.min_participants ?? 1))
     if (course.color_code) {
       _wsSelectedColor = course.color_code
       window._wsPickColor?.(course.color_code)
@@ -994,6 +1004,7 @@ window.saveNewWorkshop = async () => {
   const descLong = _getMwLongHtml()
   const price    = Number(document.getElementById('mw-price')?.value)
   const capacity = Number(document.getElementById('mw-capacity')?.value)
+  const minPart  = Number(document.getElementById('mw-min-p')?.value)
   const date     = document.getElementById('mw-date')?.value
   const timeFrom = document.getElementById('mw-time-from')?.value
   const timeTo   = document.getElementById('mw-time-to')?.value
@@ -1001,6 +1012,9 @@ window.saveNewWorkshop = async () => {
   if (!name)                      { showErr(errEl, 'Vyplňte název workshopu.'); return }
   if (isNaN(price) || price < 0)  { showErr(errEl, 'Zadejte platnou cenu.'); return }
   if (!capacity || capacity < 1)  { showErr(errEl, 'Zadejte kapacitu (min. 1 místo).'); return }
+  if (!minPart || minPart < 1 || minPart > capacity) {
+    showErr(errEl, 'Minimální počet účastníků musí být 1–kapacita.'); return
+  }
   if (!date)                      { showErr(errEl, 'Vyberte datum workshopu.'); return }
   if (!timeFrom || !timeTo)       { showErr(errEl, 'Zadejte čas od a čas do.'); return }
   if (timeFrom >= timeTo)         { showErr(errEl, 'Čas do musí být po čase od.'); return }
@@ -1021,6 +1035,7 @@ window.saveNewWorkshop = async () => {
       color_code: _wsSelectedColor,
       price_single: price,
       capacity_default: capacity,
+      min_participants: minPart,
       cancellation_hours: 24,
       is_active: true,
       is_workshop: true,
@@ -1222,7 +1237,7 @@ function buildCourseModal() {
 
   const dayBtns = DAYS_CS.map((d, i) => `
     <button type="button" data-day="${i}" onclick="window._ncToggleDay?.(${i},this)"
-      style="flex:1;padding:9px 2px;border-radius:10px;border:1px solid var(--border);
+      style="flex:1;padding:9px 2px;border-radius:var(--btn-radius);border:1px solid var(--border);
         background:transparent;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s;">
       ${d}
     </button>`).join('')
@@ -1280,6 +1295,13 @@ function buildCourseModal() {
               <input id="mc-capacity" type="number" min="1" value="12" style="${INP}" />
             </div>
           </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Minimální počet účastníků</label>
+            <input id="mc-min-p" type="number" min="1" value="1" style="${INP}" />
+            <div style="font-size:11px;color:#6b6b6b;margin-top:4px;line-height:1.45;">
+              Pokud bude méně přihlášených, lektor dostane e‑mail cca 24 h před začátkem lekce (vyžaduje cron + odesílání fronty).
+            </div>
+          </div>
 
           <!-- Storno -->
           <div style="margin-bottom:14px;">
@@ -1313,7 +1335,7 @@ function buildCourseModal() {
           <div style="margin-bottom:14px;">
             <div id="mc-photos-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
             <label id="mc-photos-add" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
-              border:1.5px dashed var(--border);border-radius:10px;cursor:pointer;font-size:12px;color:var(--muted);">
+              border:1.5px dashed var(--border);border-radius:var(--btn-radius);cursor:pointer;font-size:12px;color:var(--muted);">
               + Přidat foto
               <input type="file" id="mc-photo-input" accept="image/*" multiple style="display:none;"
                 onchange="window._ncHandlePhotos(this)" />
@@ -1395,6 +1417,7 @@ async function _openCourseModal(courseId = null) {
   // Reset fields
   ;['mc-name','mc-desc','mc-price'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
   document.getElementById('mc-capacity').value  = '12'
+  document.getElementById('mc-min-p').value    = '1'
   document.getElementById('mc-cancel').value    = '24'
   document.getElementById('mc-time-from').value = '09:00'
   document.getElementById('mc-time-to').value   = '10:30'
@@ -1435,6 +1458,7 @@ async function _openCourseModal(courseId = null) {
     document.getElementById('mc-desc').value     = loc(course.description_short)
     document.getElementById('mc-price').value    = course.price_single
     document.getElementById('mc-capacity').value = course.capacity_default
+    document.getElementById('mc-min-p').value    = Math.max(1, Number(course.min_participants ?? 1))
     document.getElementById('mc-cancel').value   = course.cancellation_hours
     if (course.schedule_time_start) document.getElementById('mc-time-from').value = course.schedule_time_start.slice(0,5)
     if (course.schedule_time_end)   document.getElementById('mc-time-to').value   = course.schedule_time_end.slice(0,5)
@@ -1473,7 +1497,7 @@ async function _openCourseModal(courseId = null) {
       passesListEl.innerHTML = passes.map(p => {
         const name = loc(p.name) || 'Permanentka'
         return `
-        <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;
+        <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--btn-radius);
           border:1px solid var(--border);margin-bottom:6px;cursor:pointer;user-select:none;">
           <input type="checkbox" value="${esc(p.id)}" ${linkedPassIds.includes(p.id)?'checked':''}
             style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;" />
@@ -1511,6 +1535,7 @@ window.saveNewCourse = async () => {
   const descLong    = _getMcLongHtml()
   const price       = Number(document.getElementById('mc-price')?.value)
   const capacity    = Number(document.getElementById('mc-capacity')?.value)
+  const minPart     = Number(document.getElementById('mc-min-p')?.value)
   const cancelH     = Number(document.getElementById('mc-cancel')?.value)
   const timeFrom    = document.getElementById('mc-time-from')?.value
   const timeTo      = document.getElementById('mc-time-to')?.value
@@ -1520,6 +1545,9 @@ window.saveNewCourse = async () => {
   if (!name)              { showErr(errEl, 'Vyplňte název kurzu.'); return }
   if (!price || price<=0) { showErr(errEl, 'Zadejte platnou cenu vstupného.'); return }
   if (!capacity || capacity<1) { showErr(errEl, 'Zadejte kapacitu (min. 1 místo).'); return }
+  if (!minPart || minPart < 1 || minPart > capacity) {
+    showErr(errEl, 'Minimální počet účastníků musí být 1–kapacita.'); return
+  }
   if (selectedDays.length === 0) { showErr(errEl, 'Vyberte alespoň jeden den v týdnu.'); return }
   if (!timeFrom || !timeTo)       { showErr(errEl, 'Zadejte čas od a čas do.'); return }
   if (timeFrom >= timeTo)         { showErr(errEl, 'Čas do musí být po čase od.'); return }
@@ -1534,6 +1562,7 @@ window.saveNewCourse = async () => {
       color_code: _ncSelectedColor,
       price_single: price,
       capacity_default: capacity,
+      min_participants: minPart,
       cancellation_hours: cancelH,
       is_active: true,
       schedule_days: selectedDays,
@@ -1758,14 +1787,26 @@ window.adminOpenLessonDetail = async (lessonId) => {
 
 // ── Admin akce ───────────────────────────────────────────────
 window.adminCancelLesson = async (lessonId) => {
-  if (!lessonId || !confirm('Opravdu zrušit lekci? Všechny rezervace budou stornovány.')) return
+  if (!lessonId || !confirm('Opravdu zrušit lekci? Rezervace budou stornovány a účastníkům se může odeslat e‑mail.')) return
   try {
-    const [{ error: bErr }, { error: lErr }] = await Promise.all([
-      sb.from('bookings').update({ status:'cancelled' }).eq('lesson_id', lessonId).eq('status','booked'),
-      sb.from('lessons').update({ status:'cancelled' }).eq('id', lessonId),
-    ])
-    if (lErr) throw lErr
-    if (bErr) console.warn('[Admin] cancelLesson — bookings:', bErr)
+    const { error: rpcErr } = await sb.rpc('admin_cancel_lesson', { p_lesson_id: lessonId })
+    if (rpcErr) {
+      const missFn = rpcErr.code === 'PGRST202'
+        || rpcErr.message?.includes('Could not find the function')
+        || rpcErr.message?.includes('admin_cancel_lesson')
+      if (missFn) {
+        const [{ error: bErr }, { error: lErr }] = await Promise.all([
+          sb.from('bookings').update({ status: 'cancelled' }).eq('lesson_id', lessonId).eq('status', 'booked'),
+          sb.from('lessons').update({ status: 'cancelled' }).eq('id', lessonId),
+        ])
+        if (lErr) throw lErr
+        if (bErr) console.warn('[Admin] cancelLesson — bookings:', bErr)
+        window.showToast?.('Lekce zrušena (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).', 'ok')
+        renderAdminDashboard()
+        return
+      }
+      throw rpcErr
+    }
     window.showToast?.('Lekce byla zrušena.', 'ok')
     renderAdminDashboard()
   } catch (err) {

@@ -316,6 +316,7 @@ function normalizeCourseRecord(c) {
 const _COURSE_COLS = `
   id, title, description_short, description_long,
   color_code, price_single, capacity_default,
+  min_participants,
   cancellation_hours, images, is_workshop, owner_id,
   schedule_days, schedule_time_start, schedule_time_end
 `
@@ -870,7 +871,7 @@ function buildTermPills(upcoming, color, courseId) {
       data-lesson-id="${lid}"
       data-course-id="${courseId}"
       data-full="${full ? '1' : ''}"
-      style="font-size:10px;padding:3px 9px;border-radius:20px;
+      style="font-size:10px;padding:3px 9px;border-radius:var(--btn-radius);
              border:${sel ? `1.5px solid ${color}` : '0.5px solid rgba(0,0,0,.08)'};
              color:${sel ? color : '#6b6b6b'};
              cursor:${full ? 'default' : 'pointer'};
@@ -983,7 +984,7 @@ async function loadPassesForCourse(courseId) {
           <span>${p.entries_total} ${lang === 'cs' ? 'vstupů' : 'entries'} · ${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}</span>
           <button
             id="buy-btn-${p.id}"
-            style="font-size:10px;padding:3px 9px;border-radius:6px;
+            style="font-size:10px;padding:3px 9px;border-radius:var(--btn-radius);
                    border:1px solid ${color};color:${color};
                    background:transparent;cursor:pointer;white-space:nowrap;"
             onclick="event.stopPropagation();window.buyPass('${p.id}',${p.entries_total},${p.price},'${courseId}',this)">
@@ -1563,10 +1564,10 @@ async function renderCourseDetail(courseId) {
       </div>
 
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
-        ${durMin ? `<span style="font-size:12px;padding:5px 10px;border-radius:99px;background:var(--muted-surface);">${durMin} min</span>` : ''}
-        <span style="font-size:12px;padding:5px 10px;border-radius:99px;background:var(--muted-surface);">${course.capacity_default} ${lang === 'cs' ? 'míst' : 'spots'}</span>
-        ${upcoming.length ? `<span style="font-size:12px;padding:5px 10px;border-radius:99px;background:#eaf5ea;color:#085041;">${upcoming[0].available_spots} ${lang === 'cs' ? 'volných' : 'free'}</span>` : ''}
-        <span style="font-size:12px;padding:5px 10px;border-radius:99px;background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${lang === 'cs' ? 'vstup' : 'entry'}</span>
+        ${durMin ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${durMin} min</span>` : ''}
+        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${course.capacity_default} ${lang === 'cs' ? 'míst' : 'spots'}</span>
+        ${upcoming.length ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:#eaf5ea;color:#085041;">${upcoming[0].available_spots} ${lang === 'cs' ? 'volných' : 'free'}</span>` : ''}
+        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${lang === 'cs' ? 'vstup' : 'entry'}</span>
       </div>
 
       ${descShort ? `<p class="detail-course-annotation${descLongBlock ? ' is-before-long-desc' : ''}">${descShort}</p>` : ''}
@@ -1603,7 +1604,7 @@ async function renderCourseDetail(courseId) {
         </div>` : ''}
 
       ${upcoming.some(l => l.available_spots > 0)
-        ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
+        ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
              onclick="window.openBookingPopup?.('${courseId}')">
              ${lang === 'cs' ? 'Rezervovat' : 'Book'}
            </button>`

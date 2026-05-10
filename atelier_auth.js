@@ -632,7 +632,7 @@ const _GOOGLE_SVG = `<svg width="15" height="15" viewBox="0 0 18 18" fill="none"
 </svg>`
 
 const _INP  = 'width:100%;padding:8px 10px;border:0.5px solid rgba(0,0,0,.18);border-radius:8px;font-size:12px;margin-bottom:8px;box-sizing:border-box;'
-const _BTN  = 'width:100%;padding:10px;border-radius:8px;border:none;background:#2854B9;color:#fff;font-size:12px;font-weight:500;cursor:pointer;'
+const _BTN  = 'width:100%;padding:10px;border-radius:var(--btn-radius);border:none;background:#2854B9;color:#fff;font-size:12px;font-weight:500;cursor:pointer;'
 const _ERR  = 'display:none;font-size:11px;color:#791F1F;background:#FCEBEB;border-radius:6px;padding:8px 10px;margin-bottom:8px;'
 const _OK   = 'display:none;font-size:11px;color:#085041;background:#E1F5EE;border-radius:6px;padding:8px 10px;margin-bottom:8px;'
 const _LBL  = 'font-size:11px;color:#6b6b6b;display:block;margin-bottom:4px;'
@@ -672,7 +672,7 @@ function buildAuthPopup() {
 
           <!-- Google (sdílené) -->
           <button onclick="signInWithProvider('google')"
-            style="width:100%;padding:9px 12px;border-radius:8px;border:0.5px solid rgba(0,0,0,.18);
+            style="width:100%;padding:9px 12px;border-radius:var(--btn-radius);border:0.5px solid rgba(0,0,0,.18);
               background:transparent;display:flex;align-items:center;gap:8px;font-size:12px;
               font-weight:500;color:#1a1a1a;cursor:pointer;margin-bottom:2px;">
             ${_GOOGLE_SVG} Pokračovat přes Google
@@ -745,7 +745,7 @@ function buildAuthPopup() {
 
         <div style="padding:0 16px 12px;">
           <button onclick="closeAuthPopup()"
-            style="width:100%;padding:9px;border-radius:8px;border:0.5px solid rgba(0,0,0,.18);
+            style="width:100%;padding:9px;border-radius:var(--btn-radius);border:0.5px solid rgba(0,0,0,.18);
               background:transparent;font-size:11px;color:#1a1a1a;cursor:pointer;">
             Zavřít
           </button>

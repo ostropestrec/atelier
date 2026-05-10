@@ -37,6 +37,16 @@ alter table public.courses
   add column if not exists images             text[],
   add column if not exists cancellation_hours int not null default 24;
 
+alter table public.courses
+  add column if not exists min_participants int not null default 1;
+
+alter table public.lessons
+  add column if not exists min_capacity_notified_at timestamptz;
+
+alter table public.courses drop constraint if exists courses_min_participants_positive;
+alter table public.courses
+  add constraint courses_min_participants_positive check (min_participants >= 1);
+
 -- ============================================================
 -- TABULKY
 -- ============================================================
@@ -74,6 +84,7 @@ create table if not exists public.courses (
   is_workshop       boolean not null default false,
   cancellation_hours int not null default 24
                       check (cancellation_hours in (6,24,48)),
+  min_participants  int not null default 1,
   capacity_default  int not null default 12,
   price_single      numeric(10,2) not null,
   created_at        timestamptz not null default now(),
@@ -901,6 +912,324 @@ create policy "gdpr_log: jen service_role"
 --   12,
 --   450
 -- );
+
+-- ============================================================
+-- E‑MAILOVÉ NOTIFIKACE (fronta + DB logika)
+-- ============================================================
+-- Řádky se ukládají do tabulky, odesílá je samostatný proces —
+-- doporučení: Supabase Edge Function „process-email-queue“ + Resend
+-- (viz složka supabase/functions/process-email-queue).
+--
+-- 1) Spusťte Edge funkci na cronu (např. každých 5 min) se service role.
+-- 2) Nastavte env: RESEND_API_KEY, EMAIL_FROM (ověřený odesílatel v Resend).
+-- 3) Pro upozornění „nízká naplněnost 24 h předem“ zavítejte z cronu:
+--      select public.enqueue_min_capacity_warnings();
+--    (Supabase pg_cron, nebo externí cron s service role přes RPC).
+-- ============================================================
+
+create table if not exists public.email_notification_queue (
+  id           uuid primary key default gen_random_uuid(),
+  kind         text not null
+                 check (kind in ('min_capacity_below','lesson_cancelled','lesson_rescheduled')),
+  to_email     text not null,
+  subject      text not null,
+  body_plain   text not null,
+  lesson_id    uuid references public.lessons(id) on delete set null,
+  meta         jsonb not null default '{}'::jsonb,
+  dedupe_key   text unique,
+  created_at   timestamptz not null default now(),
+  processed_at timestamptz
+);
+
+create index if not exists idx_email_notification_queue_pending
+  on public.email_notification_queue (created_at asc)
+  where processed_at is null;
+
+alter table public.email_notification_queue enable row level security;
+
+grant select, insert, update, delete on public.email_notification_queue to service_role;
+
+-- Pomocná funkce: lokální název kurzu (cs → fallback raw json)
+create or replace function public._course_title_plain(p_title jsonb)
+returns text language sql immutable as $$
+  select coalesce(
+    nullif(trim(p_title ->> 'cs'), ''),
+    nullif(trim(p_title ->> 'en'), ''),
+    left(p_title::text, 200)
+  );
+$$;
+
+create or replace function public.trg_lessons_notify_reschedule()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  course_title text;
+begin
+  if tg_op <> 'UPDATE' then
+    return new;
+  end if;
+  if new.status <> 'active' or old.status <> 'active' then
+    return new;
+  end if;
+  if new.start_time is not distinct from old.start_time
+     and new.end_time is not distinct from old.end_time then
+    return new;
+  end if;
+
+  select public._course_title_plain(c.title) into course_title
+  from public.courses c where c.id = new.course_id;
+
+  insert into public.email_notification_queue (
+    kind, to_email, subject, body_plain, lesson_id, meta, dedupe_key
+  )
+  select
+    'lesson_rescheduled',
+    u.email,
+    case when coalesce(u.language_pref, 'cs') = 'en' then
+      'Lesson time updated — ' || left(coalesce(course_title, 'Lesson'), 100)
+    else
+      'Změna času lekce — ' || left(coalesce(course_title, 'Lekce'), 100)
+    end,
+    case when coalesce(u.language_pref, 'cs') = 'en' then
+      format(
+        e'Hello,\n%s was rescheduled:\nPreviously: %s – %s\nNew time: %s – %s (Europe/Prague)\n',
+        coalesce(course_title, 'Your lesson'),
+        to_char(old.start_time at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+        to_char(old.end_time   at time zone 'Europe/Prague', 'HH24:MI'),
+        to_char(new.start_time at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+        to_char(new.end_time   at time zone 'Europe/Prague', 'HH24:MI')
+      )
+    else
+      format(
+        e'Dobrý den,\npřesunuli jsme čas Vaší lekce „%s“.\nDříve: %s – %s\nNově: %s – %s (čas Europa/Praha)\n',
+        coalesce(course_title, 'lekce'),
+        to_char(old.start_time at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+        to_char(old.end_time   at time zone 'Europe/Prague', 'HH24:MI'),
+        to_char(new.start_time at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+        to_char(new.end_time   at time zone 'Europe/Prague', 'HH24:MI')
+      )
+    end,
+    new.id,
+    jsonb_build_object('user_id', u.id),
+    'lr:' || b.id::text || ':' || floor(extract(epoch from new.start_time))::text
+  from public.bookings b
+  join public.users u on u.id = b.user_id
+  where b.lesson_id = new.id and b.status = 'booked'
+  on conflict (dedupe_key) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_lessons_notify_reschedule on public.lessons;
+create trigger trg_lessons_notify_reschedule
+  after update of start_time, end_time, status on public.lessons
+  for each row
+  execute function public.trg_lessons_notify_reschedule();
+
+-- Atomické zrušení lekce + zařazení e‑mailů účastníkům (řeší paralelní HTTP volání klientů)
+create or replace function public.admin_cancel_lesson(p_lesson_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  course_title  text;
+  lesson_st     timestamptz;
+  has_single    boolean := false;
+  has_pass_book boolean := false;
+  tail_cs       text := '';
+  tail_en       text := '';
+  n_enqueue     int := 0;
+  n_bookings    int := 0;
+begin
+  if p_lesson_id is null then
+    return jsonb_build_object('ok', false, 'error', 'missing_lesson_id');
+  end if;
+
+  if not exists (
+    select 1
+    from public.lessons l
+    join public.courses c on c.id = l.course_id
+    where l.id = p_lesson_id
+      and (
+        public.is_admin()
+        or c.owner_id = public.current_user_id()
+      )
+  ) then
+    raise exception 'Nemáte oprávnění zrušit tuto lekci.';
+  end if;
+
+  select public._course_title_plain(c.title), l.start_time
+  into course_title, lesson_st
+  from public.lessons l
+  join public.courses c on c.id = l.course_id
+  where l.id = p_lesson_id;
+
+  select
+    exists (
+      select 1 from public.bookings bx
+      where bx.lesson_id = p_lesson_id and bx.status = 'booked' and bx.payment_type = 'single'
+    ),
+    exists (
+      select 1 from public.bookings bx
+      where bx.lesson_id = p_lesson_id and bx.status = 'booked' and bx.payment_type = 'pass'
+    )
+  into has_single, has_pass_book;
+
+  if has_single then
+    tail_cs := tail_cs || e'\nPokud jste platili jednorázově, domluvte prosím vrácení poplatku přímo s ateliérem.';
+    tail_en := tail_en || e'\nIf you paid for a single entry, contact the studio for refund details.';
+  end if;
+  if has_pass_book then
+    tail_cs := tail_cs || e'\nPři rezervaci permanentkou by se měl vstup automaticky vrátit na zůstatek permanentky.';
+    tail_en := tail_en || e'\nIf you booked with a pass, the entry should be restored to your pass balance.';
+  end if;
+
+  insert into public.email_notification_queue (
+    kind, to_email, subject, body_plain, lesson_id, meta, dedupe_key
+  )
+  select
+    'lesson_cancelled',
+    u.email,
+    case when coalesce(u.language_pref, 'cs') = 'en' then
+      'Lesson cancelled — ' || left(coalesce(course_title, 'Lesson'), 100)
+    else
+      'Zrušení lekce — ' || left(coalesce(course_title, 'Lekce'), 100)
+    end,
+    case when coalesce(u.language_pref, 'cs') = 'en' then
+      format(
+        e'Hello,\nyour lesson "%s" on %s was cancelled.%s\n',
+        coalesce(course_title, 'lesson'),
+        to_char(lesson_st at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+        tail_en
+      )
+    else
+      format(
+        e'Dobrý den,\nlekce „%s“ dne %s byla organizátorem zrušena.%s\n',
+        coalesce(course_title, 'lekce'),
+        to_char(lesson_st at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+        tail_cs
+      )
+    end,
+    p_lesson_id,
+    jsonb_build_object('user_id', u.id),
+    'lc:' || b.id::text
+  from public.bookings b
+  join public.users u on u.id = b.user_id
+  where b.lesson_id = p_lesson_id and b.status = 'booked'
+  on conflict (dedupe_key) do nothing;
+  get diagnostics n_enqueue = row_count;
+
+  update public.bookings
+  set status = 'cancelled',
+      cancelled_at = coalesce(cancelled_at, now())
+  where lesson_id = p_lesson_id and status = 'booked';
+  get diagnostics n_bookings = row_count;
+
+  update public.lessons
+  set status = 'cancelled'
+  where id = p_lesson_id and status <> 'cancelled';
+
+  return jsonb_build_object(
+    'ok', true,
+    'queued_emails', n_enqueue,
+    'bookings_cancelled', n_bookings
+  );
+end;
+$$;
+
+revoke all on function public.admin_cancel_lesson(uuid) from public;
+grant execute on function public.admin_cancel_lesson(uuid) to authenticated;
+
+-- Upozornění lektorovi: méně než min. účastníků, okno startu lekce za 23–25 h (volat z cronu každou hodinu)
+create or replace function public.enqueue_min_capacity_warnings()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r record;
+  n int := 0;
+  v_rows int;
+  course_title text;
+begin
+  for r in
+    select
+      l.id as lesson_id,
+      l.start_time,
+      c.min_participants,
+      c.capacity_default,
+      public._course_title_plain(c.title) as course_title,
+      own.email as owner_email,
+      coalesce(own.language_pref, 'cs') as owner_lang,
+      (select count(*)::int from public.bookings b
+       where b.lesson_id = l.id and b.status = 'booked') as booked
+    from public.lessons l
+    join public.courses c on c.id = l.course_id
+    join public.users own on own.id = c.owner_id
+    where l.status = 'active'
+      and l.min_capacity_notified_at is null
+      and l.start_time >= (now() + interval '23 hours')
+      and l.start_time <= (now() + interval '25 hours')
+  loop
+    if r.booked >= r.min_participants then
+      continue;
+    end if;
+    course_title := r.course_title;
+
+    insert into public.email_notification_queue (
+      kind, to_email, subject, body_plain, lesson_id, meta, dedupe_key
+    ) values (
+      'min_capacity_below',
+      r.owner_email,
+      case when r.owner_lang = 'en' then
+        'Low attendance — ' || left(coalesce(course_title, 'Lesson'), 100)
+      else
+        'Nízká naplněnost lekce — ' || left(coalesce(course_title, 'Lekce'), 100)
+      end,
+      case when r.owner_lang = 'en' then
+        format(
+          e'Hello,\nlesson "%s" on %s has only %s participant(s) (minimum %s, capacity %s).\n',
+          coalesce(course_title, 'lesson'),
+          to_char(r.start_time at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+          r.booked, r.min_participants, r.capacity_default
+        )
+      else
+        format(
+          e'Dobrý den,\nlekce „%s“ dne %s má zatím pouze %s přihlášených (minimum je %s, kapacita %s).\n',
+          coalesce(course_title, 'lekce'),
+          to_char(r.start_time at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+          r.booked, r.min_participants, r.capacity_default
+        )
+      end,
+      r.lesson_id,
+      jsonb_build_object('booked', r.booked, 'min_participants', r.min_participants),
+      'mincap:' || r.lesson_id::text
+    )
+    on conflict (dedupe_key) do nothing;
+
+    get diagnostics v_rows = row_count;
+    if v_rows > 0 then
+      update public.lessons
+      set min_capacity_notified_at = now()
+      where id = r.lesson_id;
+      n := n + v_rows;
+    end if;
+  end loop;
+
+  return n;
+end;
+$$;
+
+revoke all on function public.enqueue_min_capacity_warnings() from public;
+grant execute on function public.enqueue_min_capacity_warnings() to service_role;
+
 
 -- ============================================================
 -- SUPABASE STORAGE — bucket `course-images` (kurzové fotky)
