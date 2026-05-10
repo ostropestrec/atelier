@@ -933,10 +933,8 @@ function renderNavigation(user) {
       if (item.section) {
         const separated = sectionSeen
         sectionSeen = true
-        const extraStyle = separated
-          ? 'margin-top:28px;padding-top:18px;border-top:1px solid var(--border);'
-          : ''
-        return `<div class="side-section-label" style="${extraStyle}">${item.section}</div>`
+        const sepCls = separated ? ' side-section-label--sep' : ''
+        return `<div class="side-section-label${sepCls}">${item.section}</div>`
       }
       return `<button class="side-link${activeId === item.id ? ' active' : ''}" onclick="nav('${item.id}', this)">${item.label}</button>`
     }).join('')
