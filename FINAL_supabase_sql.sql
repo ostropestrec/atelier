@@ -302,9 +302,14 @@ create trigger trg_check_lesson_capacity
   for each row execute function public.check_lesson_capacity();
 
 -- ── Před rezervací přes permanentku: vstupy na účtu (nelze obejít z klienta) ──
+-- SECURITY DEFINER: SELECT … FOR UPDATE na user_passes by jinak pod RLS nevrátil řádek
+-- (chybí UPDATE politika pro zákazníka — správně), takže by vznikala falešná chyba
+-- „Permanentka neexistuje.“ Kontrola vlastníka níže drží bezpečnost.
 create or replace function public.check_pass_balance_before_booking()
 returns trigger
 language plpgsql
+security definer
+set search_path = public
 as $$
 declare
   rem           int;
