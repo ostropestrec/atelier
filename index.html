@@ -24,6 +24,10 @@
       --primary-100: rgba(40,84,185,.10);
       --shadow: 0 10px 30px rgba(17,24,39,.08);
       --radius: 14px;
+      --page-bg-desktop: #e6e9e1;
+      --shell-max: 1200px;
+      --shell-radius: 24px;
+      --shell-shadow: 0 20px 50px rgba(17,24,39,.08), 0 4px 16px rgba(17,24,39,.04);
     }
 
     body {
@@ -31,6 +35,56 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      transition: background-color .35s ease, padding .35s ease;
+    }
+
+    /* Obal aplikace: desktop = bílá karta na zeleném pláti, mobil = plná šířka bíle */
+    .layout-shell {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin: 0 auto;
+      background: var(--surface);
+      box-sizing: border-box;
+      min-height: 100vh;
+      transition: max-width .35s ease, margin .35s ease, border-radius .35s ease,
+        box-shadow .35s ease, min-height .35s ease, background-color .35s ease;
+    }
+
+    @media (min-width: 1024px) {
+      body {
+        background: var(--page-bg-desktop);
+        padding: 22px clamp(14px, 3vw, 28px);
+        box-sizing: border-box;
+        min-height: 100vh;
+      }
+      .layout-shell {
+        max-width: var(--shell-max);
+        border-radius: var(--shell-radius);
+        box-shadow: var(--shell-shadow);
+        min-height: calc(100vh - 44px);
+      }
+      .layout-shell > .topbar {
+        border-top-left-radius: var(--shell-radius);
+        border-top-right-radius: var(--shell-radius);
+      }
+      .layout-shell > .app {
+        border-bottom-left-radius: var(--shell-radius);
+        border-bottom-right-radius: var(--shell-radius);
+      }
+    }
+
+    @media (max-width: 1023px) {
+      body {
+        background: var(--bg);
+        padding: 0;
+        min-height: 100vh;
+      }
+      .layout-shell {
+        border-radius: 0;
+        box-shadow: none;
+        min-height: 100vh;
+      }
     }
 
     /* ── Topbar ── */
@@ -84,12 +138,17 @@
     #av-menu button:hover { background: var(--muted-surface); }
     #av-menu button.danger { color: #791F1F; }
 
-    /* ── Desktop layout: sidebar + content ───────────────────── */
-    .app{ display:block; }
+    /* ── Desktop layout: sidebar + content (≥1024px, spolu s rámem layout-shell) ── */
+    .app{ display:block; flex: 1; min-height: 0; }
     .sidebar{ display:none; }
     .content{ width:100%; }
-    @media (min-width: 980px){
-      .app{ display:flex; min-height: calc(100vh - 64px); }
+    @media (min-width: 1024px){
+      .app{
+        display:flex;
+        align-items: stretch;
+        flex: 1;
+        min-height: 0;
+      }
       .sidebar{
         display:block; width: 220px; flex: 0 0 220px;
         border-right: 1px solid var(--border);
@@ -101,7 +160,11 @@
         font-size: 14px; color: var(--muted); cursor:pointer;
       }
       .side-link.active{ color: var(--primary); background: rgba(40,84,185,.06); font-weight:600; }
-      .content{ padding: 18px 22px; max-width: 980px; }
+      .content{
+        flex: 1;
+        min-width: 0;
+        padding: 22px clamp(18px, 2.5vw, 28px) 28px;
+      }
       .nav{ display:none !important; }
     }
 
@@ -125,10 +188,14 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Screens ── */
-    .screen { display: none; padding: 12px 12px 24px; }
+    .screen { display: none; padding: 12px 0 28px; }
     .screen.active { display: block; }
-    @media (min-width: 980px){
+    @media (min-width: 1024px){
       .screen{ padding: 0; }
+    }
+    /* Na mobilu drobný vnitřní okraj jen u textu bez zeleného rámečku „stránky“ */
+    @media (max-width: 1023px) {
+      .screen { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
     }
 
     /* ── Hamburger button (mobile only) ── */
@@ -138,10 +205,10 @@
       border: 1px solid var(--border); border-radius: 10px;
       background: transparent; cursor: pointer; color: var(--text);
     }
-    @media (min-width: 980px) { .ham-btn { display: none; } }
+    @media (min-width: 1024px) { .ham-btn { display: none; } }
 
     /* ── Mobile sidebar: slide-in overlay ── */
-    @media (max-width: 979px) {
+    @media (max-width: 1023px) {
       .sidebar {
         position: fixed; top: 0; left: 0; bottom: 0;
         width: 260px; z-index: 300;
@@ -679,6 +746,8 @@
 </head>
 <body>
 
+<div class="layout-shell">
+
 <!-- Topbar -->
 <div class="topbar">
   <button class="ham-btn" id="ham-btn" onclick="window.toggleSidebar?.()">
@@ -885,6 +954,8 @@
 
   </main>
 </div>
+
+</div><!-- .layout-shell -->
 
 <!-- ── Bottom navigation (skrytá — navigace je v sidebaru) ── -->
 <nav class="nav" id="bottom-nav"></nav>
