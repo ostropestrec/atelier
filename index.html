@@ -303,9 +303,17 @@
     .detail-hero { width:100%; height:220px; object-fit:cover; border-radius:var(--radius); margin-bottom:8px; display:block; }
     .detail-hero-ph { width:100%; height:220px; background:var(--muted-surface); border-radius:var(--radius); margin-bottom:8px; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted); }
 
-    /* Dlouhý popis kurzu (HTML z Quill po sanitizaci) */
-    /* Popis/anotace na detailu kurzu (Quill + plain varianty) */
-    .course-rich-text { color: var(--course-detail-anno); }
+    /* Krátká anotace nad dlouhým popisem (detail kurzu) */
+    .detail-course-annotation {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--course-detail-anno);
+      margin: 0 0 16px;
+    }
+    .detail-course-annotation.is-before-long-desc { margin-bottom: 10px; }
+
+    /* Dlouhý popis (obsah / Quill) — základní barva jako hlavní text */
+    .course-rich-text { color: var(--text); }
     .course-rich-text p { margin: 0 0 0.85em 0; line-height: 1.75; }
     .course-rich-text p:last-child { margin-bottom: 0; }
     .course-rich-text ul,
@@ -313,7 +321,7 @@
     .course-rich-text ul { list-style-type: disc; }
     .course-rich-text ol { list-style-type: decimal; }
     .course-rich-text li { margin-bottom: 0.35em; padding-left: 0.2em; line-height: 1.65; }
-    .course-rich-text li::marker { color: var(--course-detail-anno); }
+    .course-rich-text li::marker { color: var(--anno); }
     .course-rich-text strong, .course-rich-text b { font-weight: 600; }
     .course-rich-text em, .course-rich-text i { font-style: italic; }
     .course-rich-text u { text-decoration: underline; text-underline-offset: 2px; }
