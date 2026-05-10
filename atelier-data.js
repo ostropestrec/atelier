@@ -23,6 +23,94 @@ const loc = obj => typeof obj === 'object' && obj ? (obj[lang] ?? obj.cs ?? '') 
 // umožní topbaru v index.html přepínat jazyk
 window.__setLang = setLang
 
+// ── Omezení výběru termínů podle zbývajících vstupů na permanentce ──
+const PASS_ENTRIES_LIMIT_HINT_CS =
+  'Dosáhli jste limitu své permanentky. Pro další lekce si prosím zakupte novou.'
+const PASS_ENTRIES_LIMIT_HINT_EN =
+  "You've reached your pass limit. Please purchase a new pass for more lessons."
+
+function _toastPassEntriesLimitReached() {
+  window.showToast?.(
+    lang === 'cs' ? PASS_ENTRIES_LIMIT_HINT_CS : PASS_ENTRIES_LIMIT_HINT_EN,
+    'error',
+  )
+}
+
+/** Zbývající vstupy na konkrétní user_passes řádek (aktuálně načtené v aplikaci). */
+function _remainingEntriesOnUserPass(passId) {
+  if (!passId) return 0
+  const row = userPasses.find(p => String(p.id) === String(passId))
+  const n = Number(row?.entries_remaining ?? 0)
+  return Number.isFinite(n) && n >= 0 ? n : 0
+}
+
+/** Po změně zaškrtnutí přepočítat disabled na dalších termínech (max jako zbývá na pasu). */
+function _enforceBkLessonCheckboxCapsFromPayOpts() {
+  const payEl = document.getElementById('bk-payment-opts')
+  const sel = payEl?.dataset.selected ?? ''
+  if (!sel.startsWith('up-')) return
+  const passId = sel.replace(/^up-/, '')
+  const cap = _remainingEntriesOnUserPass(passId)
+  const box = document.getElementById('bk-lesson-checkboxes')
+  if (!box) return
+  const n = [...box.querySelectorAll('input[name="bk-lesson-cb"]:checked')].length
+  box.querySelectorAll('input[name="bk-lesson-cb"]').forEach(inp => {
+    inp.disabled = cap <= 0 || (!inp.checked && n >= cap)
+  })
+}
+
+function _refreshPopupPassSlotsCounter() {
+  const slotEl = document.getElementById('bk-pass-slot-counter')
+  const payEl = document.getElementById('bk-payment-opts')
+  const sel = payEl?.dataset?.selected ?? ''
+  if (!slotEl || !sel.startsWith('up-')) {
+    if (slotEl) slotEl.style.display = 'none'
+    return
+  }
+  const passId = sel.replace(/^up-/, '')
+  const cap = _remainingEntriesOnUserPass(passId)
+  const n = document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked').length
+  slotEl.style.display = 'block'
+  slotEl.textContent =
+    lang === 'cs'
+      ? `Vybráno ${n} z ${cap} vstupů`
+      : `Selected ${n} of ${cap} ${cap === 1 ? 'entry' : 'entries'}`
+}
+
+function _refreshCardPassSlotsRow(courseId) {
+  const el = document.getElementById(`card-pass-count-${courseId}`)
+  const st = window._cardState?.[courseId]
+  if (!el) return
+  if (!st || st.paymentType !== 'pass' || !st.passId) {
+    el.style.display = 'none'
+    return
+  }
+  const cap = _remainingEntriesOnUserPass(st.passId)
+  const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
+  el.style.display = 'block'
+  el.textContent =
+    lang === 'cs'
+      ? `Vybráno ${n} z ${cap} vstupů`
+      : `Selected ${n} of ${cap} ${cap === 1 ? 'entry' : 'entries'}`
+}
+
+function _refreshDetailPassSlotsRow(courseId) {
+  const el = document.getElementById(`detail-pass-indicator-${courseId}`)
+  const st = window._cardState?.[courseId]
+  if (!el) return
+  if (!st || st.paymentType !== 'pass' || !st.passId) {
+    el.style.display = 'none'
+    return
+  }
+  const cap = _remainingEntriesOnUserPass(st.passId)
+  const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
+  el.style.display = 'block'
+  el.textContent =
+    lang === 'cs'
+      ? `Vybráno ${n} z ${cap} vstupů`
+      : `Selected ${n} of ${cap} ${cap === 1 ? 'entry' : 'entries'}`
+}
+
 // ── Stav v AppState (single source of truth) ──────────────────
 // Pořadí skriptů: tento modul může naběhnout před atelier_auth.js — merge, ne přepis objektu.
 window.AppState ??= {}
@@ -806,6 +894,7 @@ function buildBuyPanel(c, color) {
       <div class="bsb">${lang === 'cs' ? 'Platí pro jednu lekci' : 'Valid for one lesson'}</div>
     </div>
     <div id="pass-panel-${c.id}"></div>
+    <div id="card-pass-count-${c.id}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
     <div id="card-msg-${c.id}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
     <button class="btn-res" id="res-btn-${c.id}" style="background:${color};"
       onclick="window.reserveFromCard('${c.id}')">
@@ -866,6 +955,7 @@ async function loadPassesForCourse(courseId) {
       p.style.borderWidth = '0.5px'
       p.style.color = '#6b6b6b'
     })
+    _refreshCardPassSlotsRow(courseId)
     return
   }
 
@@ -964,9 +1054,24 @@ function _bkBindLessonCheckboxDelegation() {
   const box = document.getElementById('bk-lesson-checkboxes')
   if (!box || box.dataset.delegBound === '1') return
   box.dataset.delegBound = '1'
-  box.addEventListener('change', () => {
+  box.addEventListener('change', ev => {
     const payEl = document.getElementById('bk-payment-opts')
-    if ((payEl?.dataset.selected ?? '').startsWith('up-')) window._bkUpdateMultiBtnLabel?.()
+    const sel = payEl?.dataset.selected ?? ''
+    if (!sel.startsWith('up-')) return
+
+    const passId = sel.replace(/^up-/, '')
+    const cap = _remainingEntriesOnUserPass(passId)
+    const inp = ev.target
+    if (inp?.name !== 'bk-lesson-cb') return
+
+    const checked = [...box.querySelectorAll('input[name="bk-lesson-cb"]:checked')]
+    if (checked.length > cap) {
+      inp.checked = false
+      _toastPassEntriesLimitReached()
+    }
+    _enforceBkLessonCheckboxCapsFromPayOpts()
+    window._bkUpdateMultiBtnLabel?.()
+    _refreshPopupPassSlotsCounter()
   })
 }
 
@@ -978,6 +1083,7 @@ window._bkUpdateMultiBtnLabel = () => {
   btn.textContent = n
     ? (lang === 'cs' ? `Rezervovat vybrané (${n})` : `Book selected (${n})`)
     : (lang === 'cs' ? 'Rezervovat vybrané' : 'Book selected')
+  _refreshPopupPassSlotsCounter()
 }
 
 /** Při platbě permanentkou: výběr více termínů (checkboxy), jinak klasický select. */
@@ -1033,15 +1139,25 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
   }
 
   if (hint) {
+    const cap = Number(up.entries_remaining ?? 0) || 0
     hint.textContent = lang === 'cs'
-      ? `Zbývá ${up.entries_remaining} vstupů — vyber jeden nebo více termínů.`
-      : `${up.entries_remaining} entries left — pick one or more sessions.`
+      ? `Můžeš vybrat nejvýše ${cap} ${cap === 1 ? 'termín' : 'termínů'} (tolik zbývá na permanentce).`
+      : `You may select up to ${cap} session(s) — matching your remaining pass entries.`
   }
 
-  if (btn) {
-    btn.style.background = color
-    window._bkUpdateMultiBtnLabel()
+  if (btn) btn.style.background = color
+
+  const cap = Math.max(0, Number(up?.entries_remaining ?? 0) || 0)
+  if (box && up && bookable.length) {
+    const checkedInputs = [...box.querySelectorAll('input[name="bk-lesson-cb"]:checked')]
+    if (checkedInputs.length > cap) {
+      checkedInputs.slice(cap).forEach(inp => { inp.checked = false })
+      _toastPassEntriesLimitReached()
+    }
+    _enforceBkLessonCheckboxCapsFromPayOpts()
   }
+
+  window._bkUpdateMultiBtnLabel?.()
 }
 
 // ── Booking popup ─────────────────────────────────────────────
@@ -1205,7 +1321,10 @@ window.confirmBooking = async () => {
     if (isPass && userPassId) {
       const passRow = userPasses.find(p => p.id === userPassId)
       if (!passRow || passRow.entries_remaining < lessonIds.length) {
-        window.showToast?.(lang === 'cs' ? 'Na permanentce nemáš dost vstupů.' : 'Not enough entries on your pass.', 'error')
+        window.showToast?.(
+          lang === 'cs' ? PASS_ENTRIES_LIMIT_HINT_CS : PASS_ENTRIES_LIMIT_HINT_EN,
+          'error',
+        )
         resetBtn()
         return
       }
@@ -1480,6 +1599,7 @@ async function renderCourseDetail(courseId) {
         <div style="margin-top:18px;">
           <div class="blbl" style="margin-bottom:8px;">${lang === 'cs' ? 'Nejbližší termíny' : 'Upcoming dates'}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId)}</div>
+          <div id="detail-pass-indicator-${courseId}" style="display:none;font-size:12px;color:var(--muted);margin-top:12px;line-height:1.45;"></div>
         </div>` : ''}
 
       ${upcoming.some(l => l.available_spots > 0)
@@ -1491,6 +1611,8 @@ async function renderCourseDetail(courseId) {
              ${lang === 'cs' ? 'Lekce je plně obsazena.' : 'All sessions are full.'}
            </div>`}
     </div>`
+
+  _refreshDetailPassSlotsRow(courseId)
 }
 
 window.pickTerm = (el, color, courseId) => {
@@ -1501,7 +1623,14 @@ window.pickTerm = (el, color, courseId) => {
     const arr = Array.isArray(st.lessonIds) ? [...st.lessonIds] : []
     const i = arr.indexOf(lid)
     if (i >= 0) arr.splice(i, 1)
-    else arr.push(lid)
+    else {
+      const maxSel = _remainingEntriesOnUserPass(st.passId)
+      if (arr.length >= maxSel) {
+        _toastPassEntriesLimitReached()
+        return
+      }
+      arr.push(lid)
+    }
     window._cardState[courseId] = { ...st, lessonIds: arr, lessonId: null }
 
     document.querySelectorAll(`.term-pill[data-course-id="${courseId}"]`).forEach(p => {
@@ -1519,6 +1648,8 @@ window.pickTerm = (el, color, courseId) => {
         ? (lang === 'cs' ? `Rezervovat vybrané (${n})` : `Book selected (${n})`)
         : (lang === 'cs' ? 'Rezervovat' : 'Book')
     }
+    _refreshCardPassSlotsRow(courseId)
+    _refreshDetailPassSlotsRow(courseId)
     return
   }
 
@@ -1543,11 +1674,18 @@ window.selectPayment = (el, courseId, type, passId) => {
   el.style.borderColor = color
   el.style.borderWidth = '1.5px'
   const prev = window._cardState[courseId] ?? {}
+  let nextLessonIds = type === 'pass' ? [...(prev.lessonIds ?? [])] : []
+  if (type === 'pass' && passId) {
+    const m = _remainingEntriesOnUserPass(passId)
+    const before = nextLessonIds.length
+    if (nextLessonIds.length > m) nextLessonIds = nextLessonIds.slice(0, m)
+    if (before > m) _toastPassEntriesLimitReached()
+  }
   window._cardState[courseId] = {
     ...prev,
     paymentType: type,
     passId:      passId ?? null,
-    lessonIds:   type === 'pass' ? (prev.lessonIds ?? []) : [],
+    lessonIds:   nextLessonIds,
   }
   if (type === 'single') {
     const upcoming = window.AppState.upcomingLessons.filter(l => l.course_id === courseId)
@@ -1575,6 +1713,8 @@ window.selectPayment = (el, courseId, type, passId) => {
       ? (lang === 'cs' ? `Rezervovat vybrané (${n})` : `Book selected (${n})`)
       : (lang === 'cs' ? 'Rezervovat' : 'Book')
   }
+  _refreshCardPassSlotsRow(courseId)
+  _refreshDetailPassSlotsRow(courseId)
 }
 
 window.reserveFromCard = async (courseId) => {
@@ -1605,7 +1745,7 @@ window.reserveFromCard = async (courseId) => {
   if (isPass && passId) {
     const passRow = userPasses.find(p => p.id === passId)
     if (!passRow || passRow.entries_remaining < toBook.length) {
-      showCardMsg(courseId, lang === 'cs' ? 'Nemáš dost vstupů na permanentce.' : 'Not enough pass entries.', 'warn')
+      showCardMsg(courseId, lang === 'cs' ? PASS_ENTRIES_LIMIT_HINT_CS : PASS_ENTRIES_LIMIT_HINT_EN, 'warn')
       return
     }
     const allowed = passRow.pass?.allowed_course_ids

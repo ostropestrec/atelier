@@ -290,6 +290,59 @@ create trigger trg_check_lesson_capacity
   before insert on public.bookings
   for each row execute function public.check_lesson_capacity();
 
+-- ── Před rezervací přes permanentku: vstupy na účtu (nelze obejít z klienta) ──
+create or replace function public.check_pass_balance_before_booking()
+returns trigger
+language plpgsql
+as $$
+declare
+  rem           int;
+  st            text;
+  exp_ts        timestamptz;
+  pass_owner    uuid;
+begin
+  if new.status is distinct from 'booked' then
+    return new;
+  end if;
+  if new.payment_type is distinct from 'pass' or new.user_pass_id is null then
+    return new;
+  end if;
+
+  select
+    up.entries_remaining,
+    up.status,
+    up.expires_at,
+    up.user_id
+  into rem, st, exp_ts, pass_owner
+  from public.user_passes up
+  where up.id = new.user_pass_id
+  for update;
+
+  if not found then
+    raise exception 'Permanentka neexistuje.';
+  end if;
+  if pass_owner is distinct from new.user_id then
+    raise exception 'Permanentka neodpovídá rezervaci.';
+  end if;
+  if pass_owner is distinct from auth.uid() then
+    raise exception 'Tuto permanentku nelze pro tuto rezervaci použít.';
+  end if;
+  if exp_ts is not null and exp_ts < now() then
+    raise exception 'Permanentka už vypršela.';
+  end if;
+  if st not in ('active') or coalesce(rem, 0) < 1 then
+    raise exception 'Na permanentce nezbývají žádné vstupy.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_check_pass_balance_before_booking on public.bookings;
+create trigger trg_check_pass_balance_before_booking
+  before insert on public.bookings
+  for each row execute function public.check_pass_balance_before_booking();
+
 -- ── Dekrementace vstupů při rezervaci ────────────────────────
 create or replace function public.decrement_pass_on_booking()
 returns trigger language plpgsql
