@@ -97,6 +97,13 @@ export async function initAuth() {
     console.log('[Auth] authReady resolved')
   }
 
+  /** Po návratu na tab často dorazí znovu SIGNED_IN se stejným user.id — bez tohoto taháme DB a render dokola → zamrzání. */
+  const sameSessionUserAlreadyActive = sess => {
+    const uid = sess?.user?.id
+    if (!uid || !currentUser?.id) return false
+    return currentUser.id === uid
+  }
+
   sb.auth.onAuthStateChange(async (event, session) => {
     console.log('[Auth event]', event, session?.user?.email ?? '–')
 
@@ -104,9 +111,20 @@ export async function initAuth() {
       case 'INITIAL_SESSION':
         // Supabase JS v2 pošle INITIAL_SESSION při magic link redirectu;
         // zpracujeme jen pokud getSession() výše nic nevrátil (currentUser je null)
-        if (session && !currentUser) await onSessionChange(session)
+        if (!session) break
+        if (sameSessionUserAlreadyActive(session)) {
+          console.log('[Auth] INITIAL_SESSION přeskočeno — uživatel už je z hydrate z initAuth / předchozího toku')
+          break
+        }
+        if (!currentUser) await onSessionChange(session)
         break
       case 'SIGNED_IN':
+        // Duplicitní SIGNED_IN: stále spustit pending booking (idempotentní), ale ne celý onSessionChange
+        if (sameSessionUserAlreadyActive(session)) {
+          console.log('[Auth] SIGNED_IN přeskočeno (stejný uživatel) — jen pending booking')
+          handlePendingBooking()
+          break
+        }
         await onSessionChange(session)
         handlePendingBooking()
         break
@@ -168,39 +186,55 @@ export async function forceConnectionFailureLogout(reason) {
 }
 
 // ── Po přihlášení ─────────────────────────────────────────────
+/** Ochrana proti paralelním běhům (např. INITIAL_SESSION + SIGNED_IN téměř současně). */
+let _sessionHydrateInFlight = null
+
 async function onSessionChange(session) {
-  console.log('[Auth] onSessionChange:', session.user.email)
+  const uid = session?.user?.id
+  if (!uid || !session.user) return
+
+  if (_sessionHydrateInFlight === uid) {
+    console.log('[Auth] onSessionChange: hydrate pro účet už běží — přeskakuji duplicitní volání')
+    return
+  }
+  _sessionHydrateInFlight = uid
+
   try {
-    await mergeGhostIfNeeded(session.user)
-    await loadUserProfile(session.user.id)
-    await loadUserBookings(session.user.id)
-    await Promise.all([
-      loadUserPasses(session.user.id),
-      loadMyBookings(session.user.id),
-    ])
-  } catch (err) {
-    console.error('[Auth] Chyba při načítání profilu:', err)
-    // Záloha: uživatel je přihlášen v auth, i když profil neslo
-    if (!currentUser) {
-      currentUser = {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.user_metadata?.full_name
-          ?? session.user.email?.split('@')[0]
-          ?? '',
-        role: 'uzivatel',
-        is_ghost: false,
+    console.log('[Auth] onSessionChange:', session.user.email)
+    try {
+      await mergeGhostIfNeeded(session.user)
+      await loadUserProfile(session.user.id)
+      await loadUserBookings(session.user.id)
+      await Promise.all([
+        loadUserPasses(session.user.id),
+        loadMyBookings(session.user.id),
+      ])
+    } catch (err) {
+      console.error('[Auth] Chyba při načítání profilu:', err)
+      // Záloha: uživatel je přihlášen v auth, i když profil neslo
+      if (!currentUser) {
+        currentUser = {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name
+            ?? session.user.email?.split('@')[0]
+            ?? '',
+          role: 'uzivatel',
+          is_ghost: false,
+        }
       }
     }
-  }
-  window.AppState.user = currentUser
-  window.AppState.role = currentUser?.role ?? 'uzivatel'
+    window.AppState.user = currentUser
+    window.AppState.role = currentUser?.role ?? 'uzivatel'
 
-  renderAuthUI(currentUser)
-  renderProtectedSections(currentUser)
-  renderSettings(currentUser)
-  rerenderCalendar()
-  updateEnrolledOnNastenska()
+    renderAuthUI(currentUser)
+    renderProtectedSections(currentUser)
+    renderSettings(currentUser)
+    rerenderCalendar()
+    updateEnrolledOnNastenska()
+  } finally {
+    _sessionHydrateInFlight = null
+  }
 }
 
 // ── Profil ────────────────────────────────────────────────────

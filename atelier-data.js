@@ -48,6 +48,12 @@ async function init() {
     console.warn('[App] init() znovu vynechán — start už proběhl úspěšně (navigace init nevolá)')
     return
   }
+  if (window.__atelierInitStarted) {
+    console.warn('[App] init() již běží nebo bylo spuštěno — duplicitní volání ignorováno (ochrana proti smyčce)')
+    return
+  }
+  window.__atelierInitStarted = true
+
   console.log('[App] Inicializace start — spouští se jen při loadu modulu; nav() jen přehazuje screeny a volá hooky')
   showAppLoader()
   try {
