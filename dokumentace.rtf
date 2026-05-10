@@ -1,0 +1,146 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2639
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\froman\fcharset0 Times-Bold;\f1\froman\fcharset0 Times-Roman;\f2\fmodern\fcharset0 Courier;
+\f3\froman\fcharset0 Times-Italic;\f4\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}
+{\list\listtemplateid4\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid301\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid4}
+{\list\listtemplateid5\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid401\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid5}
+{\list\listtemplateid6\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid501\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{circle\}}{\leveltext\leveltemplateid502\'01\uc0\u9702 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid6}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}{\listoverride\listid5\listoverridecount0\ls5}{\listoverride\listid6\listoverridecount0\ls6}}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\sa321\partightenfactor0
+
+\f0\b\fs48 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Technick\'e1 dokumentace: Rezerva\uc0\u269 n\'ed syst\'e9m Ateli\'e9r\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\fs36 \cf0 1. Z\'e1kladn\'ed filozofie syst\'e9mu\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls1\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Single Source of Truth:
+\f1\b0  Datab\'e1ze v Supabase a stav plateb ve Stripe.\
+\ls1\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Bezpe\uc0\u269 nost:
+\f1\b0  Ve\'9aker\'e9 citliv\'e9 operace (platby, smaz\'e1n\'ed \'fa\uc0\u269 tu) prob\'edh\'e1 p\u345 es Edge Functions.\
+\ls1\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 U\'9eivatelsk\'fd komfort:
+\f1\b0  P\uc0\u345 ihla\'9aov\'e1n\'ed p\u345 es Magic Link (bez hesel), interaktivn\'ed kalend\'e1\u345 , polling po platb\u283 .\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 2. Datab\'e1zov\'e9 sch\'e9ma (Supabase)\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls2\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Courses:
+\f1\b0  Definice kurz\uc0\u367  (n\'e1zev, popis, barva). 
+\f0\b D\uc0\u367 le\'9eit\'e9:
+\f1\b0  Barva (
+\f2\fs26 color_code
+\f1\fs24 ) se propisuje do kalend\'e1\uc0\u345 e i do e-mailov\'fdch \'9aablon.\
+\ls2\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Lessons:
+\f1\b0  Jednotliv\'e9 lekce v kalend\'e1\uc0\u345 i.\
+\ls2\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Bookings:
+\f1\b0  Rezervace propojen\'e9 s 
+\f2\fs26 user_id
+\f1\fs24  a 
+\f2\fs26 stripe_payment_id
+\f1\fs24  (kv\uc0\u367 li idempotenci).\
+\ls2\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 User_Passes:
+\f1\b0  Permanentky u\'9eivatel\uc0\u367 .\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 3. Platebn\'ed flow (Stripe)\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls3\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Webhooky:
+\f1\b0  J\'e1dro logiky. Stripe m\uc0\u367 \'9ee poslat webhook v\'edcekr\'e1t, proto ka\'9ed\'fd handler za\u269 \'edn\'e1 
+\f0\b kontrolou idempotence
+\f1\b0  (hled\'e1 existuj\'edc\'ed z\'e1znam se stejn\'fdm 
+\f2\fs26 stripe_payment_id
+\f1\fs24 ).\
+\ls3\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Success Page & Polling:
+\f1\b0  Po platb\uc0\u283  se u\'9eivatel vrac\'ed na 
+\f2\fs26 success.html
+\f1\fs24 . Tato str\'e1nka obsahuje skript, kter\'fd a\'9e 8x (v intervalu 1,5 s) kontroluje datab\'e1zi, zda u\'9e webhook vytvo\uc0\u345 il rezervaci. Ukazuje spinner a progress bar.\
+\ls3\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Logika n\'e1kupu:
+\f1\b0  Pokud si u\'9eivatel koup\'ed permanentku a rovnou se zap\'ed\'9ae na lekci, syst\'e9m vytvo\uc0\u345 \'ed permanentku s po\u269 tem vstup\u367  
+\f2\fs26 total - 1
+\f1\fs24  a z\'e1rove\uc0\u328  vytvo\u345 \'ed prvn\'ed booking.\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 4. GDPR a Smaz\'e1n\'ed \'fa\uc0\u269 tu\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls4\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Anonymizace:
+\f1\b0  \'da\uc0\u269 et se fyzicky nema\'9ee, ale data se anonymizuj\'ed (e-mail se zm\u283 n\'ed na fake adresu, jm\'e9no se vyma\'9ee).\
+\ls4\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Logika smaz\'e1n\'ed:
+\f1\b0  1. Budouc\'ed rezervace se stornuj\'ed (m\'edsta se uvoln\'ed). 2. Aktivn\'ed permanentky se zneplatn\'ed.\
+\ls4\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Text varov\'e1n\'ed (Lid\'9at\uc0\u283 j\'9a\'ed t\'f3n):
+\f1\b0  > 
+\f3\i "Trval\'e9 smaz\'e1n\'ed. Aktivn\'ed permanentky zanikaj\'ed bez n\'e1roku na automatickou refundaci. Pokud m\'e1te nevy\uc0\u269 erpan\'e9 vstupy a p\u345 ejete si \'9e\'e1dat o vr\'e1cen\'ed pen\u283 z, kontaktujte n\'e1s p\u345 ed potvrzen\'edm smaz\'e1n\'ed na info@atelier.cz."
+\f1\i0 \
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 5. E-mailov\'fd syst\'e9m (Resend)\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls5\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Technologie:
+\f1\b0  Pou\'9e\'edv\'e1me Resend API (ne SMTP) pro vy\'9a\'9a\'ed spolehlivost a snadn\uc0\u283 j\'9a\'ed spr\'e1vu DNS (SPF/DKIM/DMARC).\
+\ls5\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Centr\'e1ln\'ed funkce:
+\f1\b0  Jedna Edge Function 
+\f2\fs26 send-email
+\f1\fs24  obsluhuje v\'9aechny \'9aablony (potvrzen\'ed, storno, zru\'9aen\'ed lekce).\
+\ls5\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \'8aablony:
+\f1\b0  Jednoduch\'fd HTML layout. Barva hlavi\uc0\u269 ky e-mailu se dynamicky m\u283 n\'ed podle 
+\f2\fs26 color_code
+\f1\fs24  kurzu.\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f0\b\fs36 \cf0 6. Frontend a Design\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa240\partightenfactor0
+\ls6\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Barvy:
+\f1\b0  Glob\'e1ln\'ed prvky (odkazy, tla\uc0\u269 \'edtka) jsou v neutr\'e1ln\'edch barv\'e1ch ateli\'e9ru. Barvy kurz\u367  v kalend\'e1\u345 i jsou dynamick\'e9 z DB.\
+\ls6\ilvl0
+\f0\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 UI Komponenty:
+\f1\b0  - 
+\f2\fs26 BookingPopup
+\f1\fs24 : Inteligentn\'ed okno, kter\'e9 pozn\'e1, zda m\'e1 u\'9eivatel permanentku.\
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa240\partightenfactor0
+\ls6\ilvl1
+\f2\fs26 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	
+\f4 \uc0\u9702 
+\f2 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Dashboard
+\f1\fs24 : P\uc0\u345 ehled rezervac\'ed a zb\'fdvaj\'edc\'edch vstup\u367 .\
+}

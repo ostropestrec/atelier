@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — potvrzení rezervace</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.08);width:100%;max-width:400px;overflow:hidden;text-align:center;}
+  .card-top{height:4px;}
+  .card-body{padding:32px 28px;}
+  .icon{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+  h1{font-size:20px;font-weight:500;color:#1a1a1a;margin-bottom:6px;}
+  .sub{font-size:13px;color:#6b6b6b;line-height:1.6;margin-bottom:20px;}
+  .info-box{background:#F8F8F8;border-radius:8px;padding:12px 16px;margin-bottom:20px;text-align:left;}
+  .info-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;}
+  .info-lbl{color:#6b6b6b;}
+  .info-val{font-weight:500;color:#1a1a1a;}
+  .bar-wrap{height:5px;background:#F8F8F8;border-radius:3px;overflow:hidden;margin-bottom:20px;}
+  .bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+  .btn-primary{display:block;padding:12px;border-radius:8px;text-decoration:none;color:#fff;font-size:13px;font-weight:500;margin-bottom:8px;border:none;cursor:pointer;width:100%;}
+  .btn-ghost{display:block;padding:11px;border-radius:8px;text-decoration:none;color:#1a1a1a;font-size:13px;border:0.5px solid rgba(0,0,0,.18);background:transparent;cursor:pointer;width:100%;}
+  .btn-ghost:hover{background:#F8F8F8;}
+
+  /* Spinner */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:36px;height:36px;border-radius:50%;border:3px solid #F8F8F8;border-top-color:#2854B9;animation:spin .8s linear infinite;margin:0 auto 18px;}
+
+  /* Stavové třídy */
+  #state-loading, #state-success, #state-error{display:none;}
+  #state-loading.active, #state-success.active, #state-error.active{display:block;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-top" id="card-top"></div>
+  <div class="card-body">
+
+    <!-- LOADING -->
+    <div id="state-loading" class="active">
+      <div class="spinner"></div>
+      <h1>Potvrzujeme rezervaci…</h1>
+      <p class="sub">Prosím čekej, nezavírej tuto stránku.</p>
+      <div style="height:6px;background:#F8F8F8;border-radius:3px;overflow:hidden;">
+        <div id="progress-bar" style="height:100%;background:#2854B9;border-radius:3px;width:0%;transition:width .4s;"></div>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="state-success">
+      <div class="icon" id="success-icon" style="background:#E1F5EE;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M5 12l5 5 9-9" stroke="#0F6E56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1 id="success-title">Rezervace potvrzena</h1>
+      <p class="sub" id="success-sub">Potvrzení jsme ti odeslali na e-mail. Těšíme se na tebe!</p>
+      <div class="info-box" id="info-box"></div>
+      <div class="bar-wrap" id="bar-wrap" style="display:none;">
+        <div class="bar-fill" id="bar-fill"></div>
+      </div>
+      <button class="btn-primary" id="btn-dashboard" onclick="window.location.href='/'">Přejít na nástěnku</button>
+      <button class="btn-ghost" onclick="window.location.href='/kurzy'">Prohlédnout další kurzy</button>
+    </div>
+
+    <!-- ERROR -->
+    <div id="state-error">
+      <div class="icon" style="background:#FCEBEB;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 8v5M12 15.5v.5" stroke="#791F1F" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="9.5" stroke="#791F1F" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <h1>Něco se pokazilo</h1>
+      <p class="sub" id="error-msg">Rezervaci se nepodařilo ověřit. Zkontroluj e-mail nebo nás kontaktuj.</p>
+      <a href="/" class="btn-primary" style="background:#2854B9;">Zpět na hlavní stránku</a>
+      <a href="mailto:info@atelier.cz" class="btn-ghost" style="margin-top:8px;">Kontaktovat ateliér</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Konfigurace ───────────────────────────────────────────────
+const SUPABASE_URL  = 'https://TVUJ_PROJEKT.supabase.co'   // ← doplnit
+const SUPABASE_ANON = 'TVUJ_ANON_KEY'                      // ← doplnit
+const MAX_ATTEMPTS  = 8
+const POLL_INTERVAL = 1500   // ms mezi pokusy
+
+// ── Stav ─────────────────────────────────────────────────────
+const params    = new URLSearchParams(window.location.search)
+const sessionId = params.get('session_id')
+
+// Animace progress baru během pollingu
+let attempt = 0
+const progressBar = document.getElementById('progress-bar')
+
+function updateProgress() {
+  const pct = Math.min((attempt / MAX_ATTEMPTS) * 90, 90)   // max 90 %, finish při úspěchu
+  progressBar.style.width = pct + '%'
+}
+
+// ── Polling ───────────────────────────────────────────────────
+async function fetchBooking() {
+  if (!sessionId) {
+    showError('Chybí identifikátor platby. Zkontroluj odkaz nebo kontaktuj ateliér.')
+    return
+  }
+
+  while (attempt < MAX_ATTEMPTS) {
+    attempt++
+    updateProgress()
+
+    try {
+      const res  = await fetch(
+        `${SUPABASE_URL}/rest/v1/bookings?stripe_payment_id=eq.${encodeURIComponent(sessionId)}&status=eq.booked&select=id,payment_type,stripe_payment_id,lesson:lessons(start_time,end_time,price_single,course:courses(title,color_code,owner:users!owner_id(name))),user_pass:user_passes(entries_remaining,entries_total)&limit=1`,
+        { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
+      )
+      const data = await res.json()
+
+      if (Array.isArray(data) && data.length > 0) {
+        progressBar.style.width = '100%'
+        setTimeout(() => showSuccess(data[0]), 300)
+        return
+      }
+    } catch (e) {
+      console.warn('Poll error:', e)
+    }
+
+    // Čekáme před dalším pokusem
+    await sleep(POLL_INTERVAL)
+  }
+
+  // Vyčerpali jsme pokusy
+  showError('Ověření trvá déle než obvykle. Potvrzení dorazí na e-mail — rezervace proběhla.')
+}
+
+// ── Render: úspěch ────────────────────────────────────────────
+function showSuccess(booking) {
+  const lesson  = arr(booking.lesson)[0]
+  const course  = arr(lesson?.course)[0]
+  const owner   = arr(course?.owner)[0]
+  const pass    = arr(booking.user_pass)[0]
+  const color   = course?.color_code ?? '#2854B9'
+  const title   = course?.title?.cs  ?? 'Lekce'
+
+  // Barva pruhu a ikony
+  document.getElementById('card-top').style.background    = color
+  document.getElementById('btn-dashboard').style.background = color
+
+  // Nadpis podle typu platby
+  const isPass = booking.payment_type === 'pass'
+  document.getElementById('success-title').textContent =
+    isPass ? 'Permanentka aktivována' : 'Rezervace potvrzena'
+
+  // Info box
+  const rows = [
+    ['Kurz',    title],
+    ['Datum',   fmtDate(lesson?.start_time)],
+    ['Čas',     `${fmtTime(lesson?.start_time)}–${fmtTime(lesson?.end_time)}`],
+    ['Lektorka', owner?.name ?? '—'],
+  ]
+  if (isPass && pass) {
+    rows.push([`Zbývá vstupů`, `${pass.entries_remaining} / ${pass.entries_total}`])
+  }
+
+  document.getElementById('info-box').innerHTML = rows
+    .map(([l, v]) => `
+      <div class="info-row">
+        <span class="info-lbl">${l}</span>
+        <span class="info-val">${v}</span>
+      </div>`)
+    .join('')
+
+  // Progress bar permanentky
+  if (isPass && pass) {
+    const barWrap = document.getElementById('bar-wrap')
+    const barFill = document.getElementById('bar-fill')
+    barWrap.style.display = 'block'
+    barFill.style.background = color
+    barFill.style.width = `${(pass.entries_remaining / pass.entries_total) * 100}%`
+  }
+
+  setState('success')
+}
+
+// ── Render: chyba ─────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('error-msg').textContent = msg
+  setState('error')
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function setState(s) {
+  ;['loading','success','error'].forEach(id => {
+    document.getElementById('state-' + id).classList.toggle('active', id === s)
+  })
+}
+
+function arr(v) { return Array.isArray(v) ? v : (v ? [v] : []) }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+function fmtDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('cs-CZ', {
+    weekday:'short', day:'numeric', month:'numeric', year:'numeric'
+  })
+}
+function fmtTime(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('cs-CZ', { hour:'2-digit', minute:'2-digit' })
+}
+
+// ── Spuštění ──────────────────────────────────────────────────
+fetchBooking()
+</script>
+</body>
+</html>

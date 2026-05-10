@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ateliér</title>
+  <!-- Bez souboru favicon.ico Chrome hlásí 404 — prázdná data URI zruší ten dotaz -->
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root{
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --muted-surface: #f6f7f9;
+      --border: rgba(17,24,39,.10);
+      --text: #111827;
+      --muted: rgba(17,24,39,.55);
+      --primary: #2854B9;
+      --primary-100: rgba(40,84,185,.10);
+      --shadow: 0 10px 30px rgba(17,24,39,.08);
+      --radius: 14px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 20px;
+      height: 64px;
+      gap: 12px;
+    }
+    .logo { font-size: 16px; font-weight: 600; letter-spacing: .06em; flex: 1; }
+    .top-actions{display:flex;align-items:center;gap:10px;}
+    .lang-toggle{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;}
+    .lang-pill{
+      padding: 6px 10px;border-radius: 10px;border: 1px solid var(--border);
+      background: transparent;color: var(--text);cursor:pointer;
+    }
+    .lang-pill.active{ background: var(--primary); color:#fff; border-color: var(--primary); }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .avatar.g { background: var(--muted-surface); color: var(--muted); }
+    .avatar.u { background: var(--primary); color: #fff; border-color: transparent; }
+    .sbtn {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 9px 14px; background: transparent; cursor: pointer;
+    }
+    .sbtn.primary{ background: var(--primary); color:#fff; border-color: var(--primary); }
+
+    /* ── Avatar dropdown menu ── */
+    #av-menu {
+      display: none; position: fixed;
+      top: 66px; right: 18px;
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: var(--shadow);
+      padding: 6px; z-index: 150; min-width: 160px;
+    }
+    #av-menu.on { display: block; }
+    #av-menu button {
+      display: block; width: 100%;
+      padding: 8px 12px; text-align: left;
+      font-size: 12px; border: none; background: transparent;
+      cursor: pointer; border-radius: 10px; color: var(--text);
+    }
+    #av-menu button:hover { background: var(--muted-surface); }
+    #av-menu button.danger { color: #791F1F; }
+
+    /* ── Desktop layout: sidebar + content ───────────────────── */
+    .app{ display:block; }
+    .sidebar{ display:none; }
+    .content{ width:100%; }
+    @media (min-width: 980px){
+      .app{ display:flex; min-height: calc(100vh - 64px); }
+      .sidebar{
+        display:block; width: 220px; flex: 0 0 220px;
+        border-right: 1px solid var(--border);
+        padding: 20px 14px;
+      }
+      .side-link{
+        width:100%; text-align:left; border:none; background:transparent;
+        padding: 10px 10px; border-radius: 12px;
+        font-size: 14px; color: var(--muted); cursor:pointer;
+      }
+      .side-link.active{ color: var(--primary); background: rgba(40,84,185,.06); font-weight:600; }
+      .content{ padding: 18px 22px; max-width: 980px; }
+      .nav{ display:none !important; }
+    }
+
+    /* ── Bottom nav (hidden — replaced by hamburger on mobile) ── */
+    .nav { display: none !important; }
+
+    /* ── App Loader & Error screen ── */
+    #app-loader, #app-error {
+      position: fixed; inset: 0; background: #fff; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 14px;
+    }
+    #app-error { display: none; }
+    .app-spinner {
+      width: 22px; height: 22px;
+      border: 2.5px solid rgba(40,84,185,.15);
+      border-top-color: #2854B9;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Screens ── */
+    .screen { display: none; padding: 12px 12px 24px; }
+    .screen.active { display: block; }
+    @media (min-width: 980px){
+      .screen{ padding: 0; }
+    }
+
+    /* ── Hamburger button (mobile only) ── */
+    .ham-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; flex-shrink: 0;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: transparent; cursor: pointer; color: var(--text);
+    }
+    @media (min-width: 980px) { .ham-btn { display: none; } }
+
+    /* ── Mobile sidebar: slide-in overlay ── */
+    @media (max-width: 979px) {
+      .sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0;
+        width: 260px; z-index: 300;
+        background: #fff; border-right: 1px solid var(--border);
+        padding: 20px 14px; overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+      }
+      .sidebar.open { display: block !important; transform: translateX(0); }
+      .side-link {
+        width: 100%; text-align: left; border: none; background: transparent;
+        padding: 10px 10px; border-radius: 12px;
+        font-size: 14px; color: var(--muted); cursor: pointer; display: block;
+      }
+      .side-link.active { color: var(--primary); background: rgba(40,84,185,.06); font-weight: 600; }
+    }
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.38); z-index: 299;
+    }
+    .sidebar-backdrop.on { display: block; }
+
+    /* ── Sekce nadpis ── */
+    .sec-title {
+      font-size: 12px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Kurzy ── */
+    .cc {
+      border: 0.5px solid rgba(0,0,0,.08); border-radius: 12px;
+      margin-bottom: 8px; background: #fff; overflow: hidden;
+    }
+    .cm { display: flex; align-items: center; padding: 10px 12px; cursor: pointer; gap: 10px; }
+    .cc-thumb-wrap {
+      flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; overflow: hidden;
+      border: 0.5px solid rgba(0,0,0,.08); background: var(--muted-surface);
+    }
+    .cc-thumb-ph { border-style: dashed; }
+    .cc-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .cab { width: 6px; height: 38px; border-radius: 3px; flex-shrink: 0; }
+    .cb { flex: 1; min-width: 0; }
+    .cname { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+    .cmeta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .cmi { font-size: 10px; color: #6b6b6b; }
+    .badge { font-size: 9px; font-weight: 500; padding: 2px 6px; border-radius: 20px; }
+    .cr { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .cpr { font-size: 12px; font-weight: 600; }
+    /* Accordion — plynulé rozbalení přes max-height */
+    .cex { max-height: 0; overflow: hidden; transition: max-height .35s ease-out; }
+    .cex.on { max-height: 2200px; transition: max-height .5s ease-in; }
+    .ml-cx { max-height: 0; overflow: hidden; transition: max-height .3s ease-out; }
+    .ml-cx.on { max-height: 600px; transition: max-height .45s ease-in; }
+    .cxi { padding: 0 12px 12px; display: grid; gap: 16px; }
+    @media (min-width: 600px) { .cxi { grid-template-columns: 1fr 1fr; } }
+
+    /* ── Detail kurzu ── */
+    .detail-hero { width:100%; height:220px; object-fit:cover; border-radius:var(--radius); margin-bottom:8px; display:block; }
+    .detail-hero-ph { width:100%; height:220px; background:var(--muted-surface); border-radius:var(--radius); margin-bottom:8px; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted); }
+
+    .detail-gallery-section { margin-bottom: 20px; }
+    .detail-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .detail-gallery-cell {
+      margin: 0; padding: 0; border: none; cursor: zoom-in;
+      border-radius: 12px; overflow: hidden; background: var(--muted-surface);
+      vertical-align: top;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-gallery-cell-frame {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    .detail-gallery-cell img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+
+    /* Lightbox galerie */
+    .course-gallery-lb {
+      display: none; position: fixed; inset: 0; z-index: 10050;
+      align-items: center; justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+      background: rgba(0,0,0,.9);
+      flex-direction: row;
+    }
+    .course-gallery-lb-shell {
+      position: relative;
+      display: flex; flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .course-gallery-lb-close {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 10060;
+      border: none;
+      background: rgba(255,255,255,.96);
+      color: #1a1a1a;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(0,0,0,.35);
+      pointer-events: auto;
+    }
+    .course-gallery-lb-arrow {
+      flex-shrink: 0;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,.22);
+      color: #fff;
+      font-size: 28px;
+      line-height: 1;
+      padding: 0 0 2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s ease;
+    }
+    .course-gallery-lb-arrow:hover { background: rgba(255,255,255,.35); }
+    .course-gallery-lb-imgwrap {
+      flex: 0 1 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: min(940px, 88vw);
+      max-height: 84vh;
+    }
+    .course-gallery-lb-img {
+      display: block;
+      max-width: 100%;
+      max-height: 84vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.45);
+      cursor: default;
+    }
+    .detail-info-table { background:var(--muted-surface); border-radius:var(--radius); padding:14px 16px; margin-top:16px; }
+    .detail-info-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .detail-info-row:last-child { border-bottom:none; }
+    .detail-info-row .lbl { color:var(--muted); }
+    .detail-info-row .val { font-weight:600; text-align:right; }
+    .blbl { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #9b9b9b; margin-bottom: 6px; }
+    .bo { border: 0.5px solid rgba(0,0,0,.12); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; }
+    .brow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .bnm { font-size: 12px; font-weight: 500; }
+    .bsb { font-size: 10px; color: #9b9b9b; }
+    .btn-detail, .btn-res {
+      width: 100%; padding: 9px; border-radius: 8px; border: none;
+      font-size: 12px; font-weight: 500; cursor: pointer; margin-top: 4px;
+    }
+    .btn-detail { background: #F8F8F8; color: #1a1a1a; border: 0.5px solid rgba(0,0,0,.12); }
+    .btn-res { color: #fff; }
+    /* ── Booking popup – platební možnosti ── */
+    .bk-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border: 0.5px solid rgba(0,0,0,.12);
+      border-radius: 8px; cursor: pointer; margin-bottom: 6px; user-select: none;
+    }
+    .bk-opt-sel { border-color: var(--primary); }
+    .bk-opt-radio {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 1.5px solid rgba(0,0,0,.25); flex-shrink: 0; transition: background .12s;
+    }
+    .bk-opt-radio.on { border-width: 0; }
+
+    /* ── Kalendář ── */
+    :root{ --cal-hour: 56px; }
+    .cal-ctrl {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .cal-ctrl button {
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 6px 10px;
+      color: var(--muted);
+      border-radius: 12px;
+    }
+    .pt { font-size: 13px; font-weight: 600; }
+
+    .cal-wrap{
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .cal-head{
+      display:grid;
+      grid-template-columns: 64px repeat(7, 1fr);
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+    .cal-head .corner{ border-right: 1px solid var(--border); }
+    .dh {
+      text-align: center;
+      padding: 10px 6px;
+      border-right: 1px solid var(--border);
+    }
+    .dh:last-child{ border-right:none; }
+    .dd { font-size: 18px; font-weight: 600; display: block; line-height:1.1; }
+    .dd.td { color: var(--primary); }
+    .dn { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing:.12em; margin-top: 4px; display:block; }
+
+    .cal-body{
+      display:grid;
+      grid-template-columns: 64px repeat(7, 1fr);
+    }
+    .time-col{
+      border-right: 1px solid var(--border);
+      background: #fff;
+    }
+    .time-slot{
+      height: var(--cal-hour);
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-end;
+      padding: 6px 10px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+      border-bottom: 1px solid rgba(17,24,39,.06);
+    }
+    .time-slot:last-child{ border-bottom:none; }
+
+    .day-col {
+      position: relative;
+      min-height: calc(var(--cal-hour) * 9);
+      border-right: 1px solid var(--border);
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(17,24,39,.06) 0px,
+          rgba(17,24,39,.06) 1px,
+          transparent 1px,
+          transparent var(--cal-hour)
+        );
+    }
+    .day-col:last-child{ border-right:none; }
+    .ev {
+      position: absolute; left: 2px; right: 2px; border-radius: 5px;
+      padding: 3px 4px; cursor: pointer; overflow: hidden;
+    }
+    .evn { font-size: 9px; font-weight: 600; line-height: 1.2; }
+    .evt { font-size: 8px; opacity: .8; }
+    .evb { font-size: 8px; font-weight: 600; margin-top: 1px; }
+
+    /* ── Popup overlay ── */
+    .pop-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.38); z-index: 200;
+      align-items: flex-end; justify-content: center; padding: 0;
+    }
+    .pop-overlay.flex, .pop-overlay[style*="flex"] { display: flex !important; }
+    .pop-sheet {
+      background: #fff; border-radius: 16px 16px 0 0;
+      width: 100%; max-width: 480px; overflow: hidden;
+    }
+    @media (min-width: 600px) {
+      .pop-overlay { align-items: center; padding: 16px; }
+      .pop-sheet { border-radius: 16px; max-height: 90vh; overflow-y: auto; }
+    }
+    .pop-bar { height: 5px; }
+    .pop-body { padding: 16px; }
+    .pop-close {
+      width: 100%; padding: 10px; border: 0.5px solid rgba(0,0,0,.12);
+      border-radius: 8px; background: transparent; font-size: 12px; cursor: pointer; margin-top: 8px;
+    }
+
+    /* ── Nástěnka ── */
+    .card {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+    }
+    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .card-meta  { font-size: 12px; color: var(--muted); }
+
+    /* ── Profile + passes + bookings (design podle screenshotů) ─ */
+    .profile-head{ margin-bottom: 18px; }
+    .hello{ font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .subtle{ font-size: 13px; color: var(--muted); }
+    .section-h{ font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 10px; font-weight:600;}
+    .pass-item{
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      background: #fff;
+      margin-bottom: 10px;
+    }
+    .pass-top{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .pass-name{ font-size: 14px; font-weight: 600; }
+    .pass-meta{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .pass-count{ font-size: 16px; font-weight: 700; color: var(--primary); }
+    .bar{ height: 6px; background: rgba(17,24,39,.08); border-radius: 999px; overflow:hidden; margin-top: 10px;}
+    .bar > i{ display:block; height:100%; width: 0%; background: var(--primary); border-radius: 999px; }
+    .booking-item{
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      background: #fff;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 8px; margin-top: 6px; }
+    .bk-left{ display:flex; gap:10px; align-items:flex-start; min-width:0; }
+    .bk-title{ font-size: 14px; font-weight: 600; }
+    .bk-sub{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .pill{
+      font-size: 12px; font-weight: 600;
+      padding: 7px 10px; border-radius: 999px;
+      background: rgba(17,24,39,.06); color: var(--muted);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .pill.ok{ background: rgba(40,84,185,.10); color: var(--primary); border-color: rgba(40,84,185,.18); }
+    .btn-small{
+      padding: 9px 12px; border-radius: 12px; border: 1px solid var(--border);
+      background: transparent; cursor:pointer; font-size: 13px; font-weight:600;
+      white-space: nowrap;
+    }
+    .btn-small.danger{ color:#7A1F1F; border-color: rgba(122,31,31,.25); background: rgba(122,31,31,.06); }
+
+    /* ── Nastavení (form + modal) ─────────────────────────────── */
+    .page-title{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .page-sub{ font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+    .block-label{
+      font-size: 11px; letter-spacing:.14em; text-transform:uppercase;
+      color: var(--muted); font-weight:700; margin: 18px 0 8px;
+    }
+    .field{ margin-bottom: 14px; }
+    .field label{ display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .input, .select{
+      width:100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      background:#fff;
+      outline: none;
+    }
+    .input:focus, .select:focus{ border-color: rgba(40,84,185,.35); box-shadow: 0 0 0 4px rgba(40,84,185,.10); }
+    .helper{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+    .btn-wide{
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:8px;
+      padding: 11px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor:pointer;
+    }
+    .btn-wide.primary{ background: var(--primary); border-color: var(--primary); color:#fff; }
+    .btn-wide:disabled{ opacity:.6; cursor:default; }
+
+    .danger-card{
+      border: 1px solid rgba(122,31,31,.25);
+      background: rgba(122,31,31,.06);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-top: 10px;
+    }
+    .danger-title{ font-size: 14px; font-weight: 700; color:#5d1414; margin-bottom: 4px; }
+    .danger-text{ font-size: 13px; color: rgba(93,20,20,.85); line-height:1.5; margin-bottom: 12px; }
+
+    .modal{
+      display:none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.38);
+      z-index: 250;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+    }
+    .modal.on{ display:flex; }
+    .modal-card{
+      width: 100%;
+      max-width: 560px;
+      background:#fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modal-body{ padding: 18px 18px 14px; }
+    .modal-title{ font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .modal-sub{ font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .modal-list{ margin: 0 0 14px; padding-left: 18px; color: var(--text); }
+    .modal-list li{ margin: 6px 0; font-size: 13px; color: rgba(17,24,39,.85); }
+    .warn-box{
+      border: 1px solid rgba(122,31,31,.25);
+      background: rgba(122,31,31,.06);
+      border-radius: 12px;
+      padding: 12px 12px;
+      font-size: 13px;
+      color: rgba(93,20,20,.92);
+      line-height: 1.5;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .modal-actions{
+      display:flex;
+      gap:12px;
+      padding: 12px 18px 18px;
+      border-top: 1px solid var(--border);
+      justify-content: space-between;
+    }
+    .modal-actions .btn-wide{ flex: 1; }
+    .btn-wide.danger{ border-color: rgba(122,31,31,.25); background: rgba(122,31,31,.06); color:#5d1414; }
+
+    /* ── Účet ── */
+    .profile-row {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
+    }
+    .profile-av {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: #2854B9; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; flex-shrink: 0;
+    }
+    .profile-name { font-size: 14px; font-weight: 500; }
+    .profile-email { font-size: 11px; color: #6b6b6b; }
+    .menu-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border: 0.5px solid rgba(0,0,0,.08);
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+    }
+    .menu-item span { font-size: 12px; }
+    .menu-item .arr { color: #9b9b9b; font-size: 14px; }
+    .menu-item.danger span { color: #791F1F; }
+
+    /* ── Prázdný stav ── */
+    .empty { text-align: center; padding: 40px 20px; font-size: 12px; color: #9b9b9b; }
+
+    /* ── Admin sidebar sekce ── */
+    .side-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .10em;
+      text-transform: uppercase; color: var(--muted);
+      padding: 14px 10px 6px; opacity: .7;
+    }
+
+    /* ── Admin stat karty ── */
+    .admin-stat-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 20px;
+    }
+    @media (min-width: 600px) { .admin-stat-grid { grid-template-columns: repeat(4, 1fr); } }
+    .admin-stat-card {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+    }
+    .admin-stat-value { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .admin-stat-label { font-size: 11px; color: var(--muted); }
+
+    /* ── Admin sekce nadpis ── */
+    .admin-section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .10em;
+      text-transform: uppercase; color: var(--muted);
+      margin: 0 0 10px;
+    }
+
+    /* ── Admin lekce řádek ── */
+    .admin-lesson-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .admin-lesson-row:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <button class="ham-btn" id="ham-btn" onclick="window.toggleSidebar?.()">
+    <svg width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="18" height="2" rx="1" fill="currentColor"/>
+      <rect y="6" width="18" height="2" rx="1" fill="currentColor"/>
+      <rect y="12" width="18" height="2" rx="1" fill="currentColor"/>
+    </svg>
+  </button>
+  <span class="logo">Ateliér</span>
+  <div class="top-actions">
+    <div class="lang-toggle" aria-label="Language">
+      <button class="lang-pill active" onclick="window.__setLang?.('cs'); window.syncLangUI?.('cs')">CS</button>
+      <button class="lang-pill" onclick="window.__setLang?.('en'); window.syncLangUI?.('en')">EN</button>
+    </div>
+    <button class="sbtn" id="sbtn" onclick="window.openAuthPopup?.()">Přihlásit se</button>
+    <div class="avatar g" id="av" title="Přihlásit se">?</div>
+  </div>
+</div>
+
+<!-- Avatar dropdown -->
+<div id="av-menu">
+  <button onclick="nav('nastaveni')">Nastavení</button>
+  <button class="danger" onclick="window.signOut?.()">Odhlásit se</button>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="content">
+
+<!-- ── Screen: Nástěnka ── -->
+<div class="screen active" id="screen-nastenka">
+  <div class="sec-title">Nástěnka</div>
+  <div id="nastenka-content"></div>
+
+  <div id="nastenka-courses-wrap" style="display:none;">
+    <div class="section-h" id="nastenka-courses-h">Moje kurzy</div>
+    <div id="nastenka-courses"></div>
+  </div>
+
+  <div id="nastenka-workshops-wrap" style="display:none;">
+    <div class="section-h">Moje workshopy</div>
+    <div id="nastenka-workshops"></div>
+  </div>
+</div>
+
+<!-- ── Screen: Nastavení (z menu pod avatarem) ── -->
+<div class="screen" id="screen-nastaveni">
+  <div class="page-title">Nastavení</div>
+  <div class="page-sub">Správa účtu</div>
+
+  <div class="block-label">Osobní údaje</div>
+  <div class="field">
+    <label for="set-name">Jméno a příjmení</label>
+    <input class="input" id="set-name" type="text" placeholder="Vaše jméno" />
+  </div>
+  <div class="field">
+    <label for="set-email">E-mailová adresa</label>
+    <input class="input" id="set-email" type="email" placeholder="email@domena.cz" disabled />
+  </div>
+
+  <div class="block-label">Změna hesla</div>
+  <div class="helper">Nastavte nebo změňte heslo pro přihlášení e-mailem a heslem.</div>
+  <div class="field">
+    <label for="set-pw1">Nové heslo</label>
+    <input class="input" id="set-pw1" type="password" placeholder="Minimálně 8 znaků" autocomplete="new-password" />
+  </div>
+  <div class="field">
+    <label for="set-pw2">Potvrzení hesla</label>
+    <input class="input" id="set-pw2" type="password" placeholder="Zopakujte nové heslo" autocomplete="new-password" />
+  </div>
+  <button class="btn-wide" id="set-pw-btn" onclick="window.changePassword?.()">Uložit heslo</button>
+
+  <div class="block-label">Notifikace</div>
+  <div class="field">
+    <label for="set-reminder">Připomínka lekce</label>
+    <select class="select" id="set-reminder">
+      <option value="6">6 hodin předem</option>
+      <option value="24">24 hodin předem</option>
+      <option value="48">48 hodin předem</option>
+      <option value="">Nezasílat</option>
+    </select>
+  </div>
+
+  <button class="btn-wide" id="set-save" onclick="window.saveSettings?.()">Uložit změny</button>
+
+  <div class="block-label" id="profile-danger-zone">Nebezpečná zóna</div>
+  <div class="danger-card">
+    <div class="danger-title">Smazání účtu</div>
+    <div class="danger-text">
+      Trvalé smazání účtu. Aktivní permanentky zanikají bez nároku na automatickou refundaci.
+    </div>
+    <button class="btn-wide danger" onclick="window.openDeleteAccountModal?.()">Smazat můj účet</button>
+  </div>
+</div>
+
+<!-- ── Screen: Kurzy ── -->
+<div class="screen" id="screen-kurzy">
+  <div class="sec-title">Kurzy</div>
+  <!-- Karty kurzů renderuje atelier-data.js do tohoto containeru -->
+</div>
+
+<!-- ── Screen: Kalendář ── -->
+<div class="screen" id="screen-kalendar">
+  <div class="cal-ctrl">
+    <button onclick="calPrev()">‹</button>
+    <span class="pt" id="cal-week-label"></span>
+    <button onclick="calNext()">›</button>
+  </div>
+  <div class="cal-wrap" id="cal-wrap">
+    <div class="cal-head">
+      <div class="corner"></div>
+      <div class="dh"><span class="dd" id="dd0"></span><span class="dn" id="dn0"></span></div>
+      <div class="dh"><span class="dd" id="dd1"></span><span class="dn" id="dn1"></span></div>
+      <div class="dh"><span class="dd" id="dd2"></span><span class="dn" id="dn2"></span></div>
+      <div class="dh"><span class="dd" id="dd3"></span><span class="dn" id="dn3"></span></div>
+      <div class="dh"><span class="dd" id="dd4"></span><span class="dn" id="dn4"></span></div>
+      <div class="dh"><span class="dd" id="dd5"></span><span class="dn" id="dn5"></span></div>
+      <div class="dh"><span class="dd" id="dd6"></span><span class="dn" id="dn6"></span></div>
+    </div>
+
+    <div class="cal-body">
+      <div class="time-col" id="cal-times"></div>
+      <div class="day-col" id="col-po"></div>
+      <div class="day-col" id="col-ut"></div>
+      <div class="day-col" id="col-st"></div>
+      <div class="day-col" id="col-ct"></div>
+      <div class="day-col" id="col-pa"></div>
+      <div class="day-col" id="col-so"></div>
+      <div class="day-col" id="col-ne"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Smazat účet ── -->
+<div class="modal" id="modal-del" onclick="if(event.target===this)window.closeDeleteAccountModal?.()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-body">
+      <div class="modal-title">Smazat účet</div>
+      <div class="modal-sub">Tato akce je nevratná. Co se stane:</div>
+      <ul class="modal-list">
+        <li>Budoucí rezervace budou stornovány a místa uvolněna pro ostatní.</li>
+        <li>Aktivní permanentky budou zneplatněny a jejich zbývající vstupy zaniknou.</li>
+        <li>Osobní údaje budou anonymizovány v souladu s GDPR.</li>
+      </ul>
+      <div class="warn-box">
+        <div style="width:18px;flex:0 0 18px;line-height:1.2;">⚠︎</div>
+        <div>
+          Smazáním účtu zanikají vaše aktivní permanentky <b>bez nároku na automatickou refundaci</b>.
+          Pokud máte nevyčerpané vstupy a přejete si žádat o vrácení peněz, kontaktujte nás před potvrzením smazání na
+          <a href="mailto:info@atelier.cz" style="color:inherit;">info@atelier.cz</a>.
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-wide" onclick="window.closeDeleteAccountModal?.()">Zrušit</button>
+      <button class="btn-wide danger" id="del-continue" onclick="window.confirmDeleteAccount?.()">Pokračovat →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Screen: Moje lekce (lektor) ── -->
+<div class="screen" id="screen-moje-lekce">
+  <div class="sec-title">Moje lekce</div>
+  <div class="empty">Přehled vašich lekcí bude doplněn.</div>
+</div>
+
+<!-- ── Screen: Detail kurzu ── -->
+<div class="screen" id="screen-detail-kurzu">
+  <div id="detail-kurzu-content">
+    <div class="empty">Vyberte kurz…</div>
+  </div>
+</div>
+
+<!-- ── Screen: Správa ateliéru (legacy, přesměruje na admin-dashboard) ── -->
+<div class="screen" id="screen-sprava">
+  <div class="empty">Načítám správu…</div>
+</div>
+
+<!-- ── Screen: Admin Dashboard ── -->
+<div class="screen" id="screen-admin-dashboard">
+  <div id="admin-dash-content"></div>
+</div>
+
+<!-- ── Screen: Admin Kurzy ── -->
+<div class="screen" id="screen-admin-kurzy">
+  <div id="admin-kurzy-content"></div>
+</div>
+
+<!-- ── Screen: Admin Zákazníci ── -->
+<div class="screen" id="screen-admin-zakaznici">
+  <div id="admin-zakaznici-content"></div>
+</div>
+
+<!-- ── Screen: Admin Platby ── -->
+<div class="screen" id="screen-admin-platby">
+  <div id="admin-platby-content"></div>
+</div>
+
+<!-- ── Screen: Admin Permanentky ── -->
+<div class="screen" id="screen-admin-permanentky">
+  <div id="admin-permanentky-content"></div>
+</div>
+
+  </main>
+</div>
+
+<!-- ── Bottom navigation (skrytá — navigace je v sidebaru) ── -->
+<nav class="nav" id="bottom-nav"></nav>
+
+<!-- ── Mobile sidebar backdrop ── -->
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="window.closeSidebar?.()"></div>
+
+<!-- ── Popup: detail lekce z kalendáře ── -->
+<div class="pop-overlay" id="pop-kal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="pop-sheet">
+    <div class="pop-bar" id="kal-bar"></div>
+    <div class="pop-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div>
+          <div id="kal-name" style="font-size:16px;font-weight:600;margin-bottom:3px;"></div>
+          <div id="kal-meta" style="font-size:11px;color:#6b6b6b;"></div>
+        </div>
+        <span id="kal-enrolled" style="display:none;font-size:9px;font-weight:600;
+          background:#E1F5EE;color:#085041;padding:3px 8px;border-radius:20px;">✓ PŘIHLÁŠENA</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div><div style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Lektor</div><div id="kal-lektor" style="font-size:12px;"></div></div>
+        <div><div style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Délka</div><div id="kal-delka" style="font-size:12px;"></div></div>
+        <div><div style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Volná místa</div><div id="kal-mista" style="font-size:12px;"></div></div>
+      </div>
+      <!-- Tlačítka pro přihlášeného uživatele (enrolled) -->
+      <div id="kal-btns-enr" style="display:none;">
+        <button class="pop-close" onclick="window.cancelBookingFromPopup?.()">Stornovat rezervaci</button>
+      </div>
+      <!-- Tlačítka pro nepřihlášeného -->
+      <div id="kal-btns-free" style="display:grid;gap:6px;">
+        <button id="kal-rez-btn" class="btn-res" style="padding:11px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;">Rezervovat</button>
+      </div>
+      <button class="pop-close" onclick="document.getElementById('pop-kal').style.display='none'">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Booking popup ── -->
+<div class="pop-overlay" id="pop-booking" onclick="if(event.target===this)this.style.display='none'">
+  <div class="pop-sheet">
+    <div class="pop-bar" id="bk-bar"></div>
+    <div class="pop-body">
+      <div id="bk-name" style="font-size:16px;font-weight:600;margin-bottom:16px;"></div>
+
+      <div class="blbl" style="margin-bottom:6px;">Termín</div>
+      <div id="bk-lesson-single-wrap">
+        <select id="bk-lesson-select" class="input" style="width:100%;margin-bottom:14px;"></select>
+      </div>
+      <div id="bk-lesson-multi-wrap" style="display:none;margin-bottom:14px;">
+        <div id="bk-lesson-checkboxes" class="input" style="width:100%;max-height:220px;overflow-y:auto;padding:10px 12px;line-height:1.5;"></div>
+        <div id="bk-multi-hint" style="font-size:11px;color:#6b6b6b;margin-top:8px;"></div>
+      </div>
+
+      <div class="blbl" style="margin-bottom:6px;">Způsob platby</div>
+      <div id="bk-payment-opts" style="margin-bottom:16px;"></div>
+
+      <button id="bk-confirm-btn" class="btn-res"
+        style="width:100%;padding:11px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;"
+        onclick="window.confirmBooking?.()">
+        Potvrdit rezervaci
+      </button>
+      <button class="pop-close" onclick="document.getElementById('pop-booking').style.display='none'">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Navigace a utility JS ── -->
+<script>
+  // Aktivní screen
+  function nav(id, el) {
+    console.log('[Debug] nav()', id, '— jen přepnutí screenu + hooky, NE volá init()')
+    const adminSections   = new Set(['sprava', 'admin-dashboard', 'admin-kurzy', 'admin-zakaznici', 'admin-platby', 'admin-permanentky'])
+    const lektorSections  = new Set(['moje-lekce'])
+    const protectedAll    = new Set(['nastaveni', 'moje-lekce', ...adminSections])
+
+    if (protectedAll.has(id) && !(window.isAuthenticated?.())) {
+      window.openAuthPopup?.()
+      return
+    }
+    const role = window.__userRole ?? 'uzivatel'
+    if (lektorSections.has(id) && role !== 'lektor' && role !== 'admin') return
+    if (adminSections.has(id) && role !== 'admin') return
+
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'))
+    document.querySelectorAll('.side-link').forEach(b => b.classList.remove('active'))
+
+    const screen = document.getElementById('screen-' + id)
+    if (screen) screen.classList.add('active')
+    if (el) el.classList.add('active')
+
+    window.closeSidebar?.()
+
+    if (id === 'nastenka') {
+      window.renderProfile?.()
+      window.renderNastenkaMyCourses?.()
+    }
+    if (id === 'nastaveni') window.renderSettings?.()
+
+    // Rozšíření z ES modulů (kurzy, kalendář, admin…) — pouze překreslení komponent; init() jen při bootu aplikace.
+    ;(window.__appNavHooks ?? []).forEach(fn => {
+      try { fn?.(id, el) }
+      catch (e) { console.error('[app-nav-hook]', e) }
+    })
+  }
+
+  window.nav = nav
+
+  // Lang UI helper (napojeno na tlačítka v topbaru)
+  window.syncLangUI = (l) => {
+    document.querySelectorAll('.lang-pill').forEach(p => p.classList.remove('active'))
+    const btn = Array.from(document.querySelectorAll('.lang-pill')).find(b => b.textContent.trim().toLowerCase() === String(l).toLowerCase())
+    if (btn) btn.classList.add('active')
+  }
+
+  // Kalendář: pevná struktura časů (i bez dat)
+  function ensureCalendarSkeleton() {
+    const tc = document.getElementById('cal-times')
+    const wrap = document.getElementById('cal-wrap')
+    if (!tc || !wrap) return
+    if (tc.dataset.ready === '1') return
+    tc.dataset.ready = '1'
+    const start = 9, end = 18
+    tc.innerHTML = ''
+    for (let h = start; h <= end; h++) {
+      const div = document.createElement('div')
+      div.className = 'time-slot'
+      div.textContent = `${h}:00`
+      tc.appendChild(div)
+    }
+    const hourPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cal-hour')) || 56
+    const height = (end - start) * hourPx
+    ;['col-po','col-ut','col-st','col-ct','col-pa','col-so','col-ne'].forEach(id => {
+      const col = document.getElementById(id)
+      if (col) col.style.minHeight = `${height}px`
+    })
+  }
+
+  ensureCalendarSkeleton()
+
+  // Zavřít všechny popupy
+  window.closeAll = () => {
+    document.querySelectorAll('.pop-overlay').forEach(p => p.style.display = 'none')
+  }
+
+  // Mobilní hamburger sidebar
+  window.toggleSidebar = () => {
+    const sidebar  = document.getElementById('sidebar')
+    const backdrop = document.getElementById('sidebar-backdrop')
+    const isOpen   = sidebar?.classList.contains('open')
+    if (isOpen) {
+      sidebar?.classList.remove('open')
+      backdrop?.classList.remove('on')
+    } else {
+      sidebar?.classList.add('open')
+      backdrop?.classList.add('on')
+    }
+  }
+  window.closeSidebar = () => {
+    document.getElementById('sidebar')?.classList.remove('open')
+    document.getElementById('sidebar-backdrop')?.classList.remove('on')
+  }
+
+  // Klik mimo av-menu zavře menu
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('av-menu')
+    const av   = document.getElementById('av')
+    if (menu && !menu.contains(e.target) && e.target !== av) {
+      menu.classList.remove('on')
+    }
+  })
+
+  // ── Toast notification ──────────────────────────────────────
+  let _toastTimer = null
+  window.showToast = (msg, type = 'info') => {
+    const el = document.getElementById('toast')
+    if (!el) return
+    el.textContent = msg
+    el.style.background =
+      type === 'error' ? '#791F1F' :
+      type === 'ok'    ? '#085041' : '#1a1a1a'
+    el.style.display = 'block'
+    clearTimeout(_toastTimer)
+    _toastTimer = setTimeout(() => { el.style.display = 'none' }, 4000)
+  }
+
+  // ── Global error boundary ────────────────────────────────────
+  window.onerror = (msg, src, line, _col, err) => {
+    console.error('[Global Error]', msg, `${src}:${line}`, err)
+    window.showToast('Něco se nepovedlo, zkuste to znovu.', 'error')
+    return false
+  }
+  window.onunhandledrejection = (e) => {
+    console.error('[Unhandled Rejection]', e.reason)
+    window.showToast('Něco se nepovedlo, zkuste to znovu.', 'error')
+  }
+</script>
+
+<!-- ── Toast ── -->
+<div id="toast" style="
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(0);
+  display:none; z-index:10000;
+  background:#1a1a1a; color:#fff;
+  padding:10px 18px; border-radius:10px;
+  font-size:13px; font-weight:500;
+  box-shadow:0 4px 20px rgba(0,0,0,.22);
+  max-width:320px; text-align:center;
+  pointer-events:none; white-space:pre-line;
+"></div>
+
+<!-- ── App Loader (zobrazí se ihned, skryje se až po načtení dat) ── -->
+<div id="app-loader">
+  <div style="font-size:22px;font-weight:700;letter-spacing:.01em;color:#1a1a1a;">Ateliér</div>
+  <div class="app-spinner"></div>
+</div>
+
+<!-- ── Error screen (zobrazí se při selhání inicializace) ── -->
+<div id="app-error">
+  <div style="font-size:22px;font-weight:700;color:#1a1a1a;">Ateliér</div>
+  <div style="font-size:13px;color:#791F1F;text-align:center;max-width:280px;line-height:1.6;">
+    Nepodařilo se načíst aplikaci.<br>Zkontrolujte připojení k internetu.
+  </div>
+  <button onclick="location.reload()"
+    style="padding:10px 28px;background:#2854B9;color:#fff;border:none;border-radius:8px;
+           font-size:13px;font-weight:500;cursor:pointer;">
+    Zkusit znovu
+  </button>
+</div>
+
+<!-- Lokální moduly: spouštěj server z této složky (např. `python -m http.server`), jinak
+     GET /atelier-data.js / atelier_auth.js vrátí 404. Knihovna Supabase se tahá z esm.sh v atelier-supabase.js. -->
+<!-- ── Supabase moduly — POŘADÍ JE DŮLEŽITÉ ── -->
+<script type="module" src="atelier-data.js"></script>
+<script type="module" src="atelier_auth.js"></script>
+<script type="module" src="atelier-admin.js"></script>
+
+</body>
+</html>
