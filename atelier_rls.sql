@@ -363,10 +363,12 @@ create policy "bookings: zákazník storní vlastní"
   using (
     user_id  = public.current_user_id()
     and status = 'booked'
+    and payment_type = 'pass'
   )
   with check (
     status   = 'cancelled'
     and user_id   = public.current_user_id()
+    and payment_type = 'pass'
     and lesson_id = lesson_id
   );
 

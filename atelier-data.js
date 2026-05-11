@@ -722,6 +722,8 @@ function openKalendarPopup(lesson, course, enrolled) {
 
   const lid = lesson.lesson_id ?? lesson.id
   window._kalOpenLessonId = lid != null ? String(lid) : ''
+  const enrolledBooking = myBookings.find(b => String(b?.lesson?.id ?? '') === String(lid))
+  const canCancelEnrolledBooking = enrolledBooking?.payment_type === 'pass'
 
   const enrBadge = document.getElementById('kal-enrolled')
   const bEnr     = document.getElementById('kal-btns-enr')
@@ -729,7 +731,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const rezBtn   = document.getElementById('kal-rez-btn')
 
   if (enrBadge) enrBadge.style.display = enrolled ? 'inline-block' : 'none'
-  if (bEnr)     bEnr.style.display     = enrolled ? 'block' : 'none'
+  if (bEnr)     bEnr.style.display     = enrolled && canCancelEnrolledBooking ? 'block' : 'none'
   if (bFree)    bFree.style.display    = enrolled ? 'none'  : 'grid'
   if (rezBtn) {
     rezBtn.style.background = color
@@ -754,7 +756,7 @@ window.cancelBookingFromPopup = async () => {
   try {
     const { data, error } = await sb
       .from('bookings')
-      .select('id')
+      .select('id, payment_type')
       .eq('user_id', currentUser.id)
       .eq('lesson_id', lid)
       .eq('status', 'booked')
@@ -762,6 +764,15 @@ window.cancelBookingFromPopup = async () => {
     if (error) throw error
     if (!data?.id) {
       window.showToast?.(lang === 'cs' ? 'Aktivní rezervace nenalezena.' : 'No active booking found.', 'error')
+      return
+    }
+    if (data.payment_type === 'single') {
+      window.showToast?.(
+        lang === 'cs'
+          ? 'Jednorázový vstup nelze stornovat.'
+          : 'Single-entry bookings cannot be cancelled.',
+        'error',
+      )
       return
     }
     const { error: uErr } = await sb

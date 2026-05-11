@@ -948,8 +948,8 @@ create policy "bookings: vytvořit vlastní"
 
 create policy "bookings: zákazník storní vlastní"
   on public.bookings for update to authenticated
-  using (user_id = public.current_user_id() and status = 'booked')
-  with check (status = 'cancelled' and user_id = public.current_user_id());
+  using (user_id = public.current_user_id() and status = 'booked' and payment_type = 'pass')
+  with check (status = 'cancelled' and user_id = public.current_user_id() and payment_type = 'pass');
 
 create policy "bookings: lektor edituje na svých lekcích"
   on public.bookings for update to authenticated

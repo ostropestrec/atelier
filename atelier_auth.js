@@ -1097,7 +1097,9 @@ function renderProtectedSections(user) {
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
                   <span class="pill ok">Přihlášena</span>
-                  <button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">Odhlásit</button>
+                  ${b.payment_type === 'pass'
+                    ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">Odhlásit</button>`
+                    : ''}
                 </div>
               </div>
             `
@@ -1120,6 +1122,11 @@ window.renderProfile = () => renderProtectedSections(currentUser)
 
 window.cancelMyBooking = async (bookingId) => {
   if (!currentUser || !bookingId) return
+  const booking = myBookings.find(b => String(b.id) === String(bookingId))
+  if (booking?.payment_type === 'single') {
+    window.showToast?.('Jednorázový vstup nelze stornovat.', 'error')
+    return
+  }
   try {
     const { error } = await sb
       .from('bookings')
