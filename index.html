@@ -129,14 +129,16 @@
       flex-shrink: 0;
     }
     .avatar-color-grid {
-      display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap:10px;
+      display:flex; flex-wrap:wrap; gap:8px;
       margin-top: 10px;
     }
     .avatar-color-btn {
-      width: 100%; aspect-ratio: 1 / 1; border-radius: 999px; cursor:pointer;
+      width: 30px; height: 30px; padding: 0; display:block;
+      border-radius: 999px; cursor:pointer;
       border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(17,24,39,.08);
       transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
       background: var(--swatch, var(--avatar-default));
+      flex: 0 0 30px;
     }
     .avatar-color-btn:hover { transform: scale(1.04); }
     .avatar-color-btn.active {
