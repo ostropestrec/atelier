@@ -321,6 +321,78 @@ create trigger trg_restore_pass_on_cancel
   before update on public.bookings
   for each row execute function public.restore_pass_on_cancel();
 
+create or replace function public.can_self_cancel_booking(p_lesson_id uuid, p_user_pass_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.lessons l
+    join public.courses c on c.id = l.course_id
+    join public.user_passes up on up.id = p_user_pass_id
+    where l.id = p_lesson_id
+      and l.start_time > now() + make_interval(hours => c.cancellation_hours)
+      and coalesce(up.cancellation_count, 0) < public.allowed_pass_cancellations(up.entries_total)
+  );
+$$;
+
+create or replace function public.cancel_my_pass_booking(p_booking_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_booking_user_id uuid;
+  v_lesson_id uuid;
+  v_user_pass_id uuid;
+  v_payment_type text;
+  v_status text;
+begin
+  if v_user_id is null then
+    return jsonb_build_object('ok', false, 'error', 'not_authenticated');
+  end if;
+
+  select b.user_id, b.lesson_id, b.user_pass_id, b.payment_type, b.status
+  into v_booking_user_id, v_lesson_id, v_user_pass_id, v_payment_type, v_status
+  from public.bookings b
+  where b.id = p_booking_id
+  for update of b;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'booking_not_found');
+  end if;
+
+  if v_booking_user_id is distinct from v_user_id then
+    return jsonb_build_object('ok', false, 'error', 'forbidden');
+  end if;
+
+  if v_status is distinct from 'booked' then
+    return jsonb_build_object('ok', false, 'error', 'not_active_booking');
+  end if;
+
+  if v_payment_type is distinct from 'pass' or v_user_pass_id is null then
+    return jsonb_build_object('ok', false, 'error', 'single_entry_cannot_cancel');
+  end if;
+
+  if not public.can_self_cancel_booking(v_lesson_id, v_user_pass_id) then
+    return jsonb_build_object('ok', false, 'error', 'cancel_not_allowed');
+  end if;
+
+  update public.bookings
+  set status = 'cancelled',
+      cancelled_at = coalesce(cancelled_at, now())
+  where id = p_booking_id
+    and status = 'booked';
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
 -- ── FUNKCE: expirace permanentek (volat cron jobem) ──────────
 create or replace function public.expire_passes()
 returns void language plpgsql as $$

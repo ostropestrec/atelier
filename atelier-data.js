@@ -14,6 +14,7 @@ import {
   loadUserPasses,
   myBookings,
   canUserCancelBooking,
+  getUserBookingCancellationMessage,
 } from './atelier_auth.js'
 
 // ── Jazyk ─────────────────────────────────────────────────────
@@ -784,19 +785,19 @@ window.cancelBookingFromPopup = async () => {
       return
     }
     if (!canUserCancelBooking(data)) {
-      window.showToast?.(
-        lang === 'cs'
-          ? 'Storno už není možné, vypršelo storno okno.'
-          : 'Cancellation is no longer available; the cancellation window has expired.',
-        'error',
-      )
+      window.showToast?.(getUserBookingCancellationMessage(data), 'error')
       return
     }
-    const { error: uErr } = await sb
-      .from('bookings')
-      .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
-      .eq('id', data.id)
-    if (uErr) throw uErr
+    const { data: rpcData, error: rpcErr } = await sb.rpc('cancel_my_pass_booking', {
+      p_booking_id: data.id,
+    })
+    if (rpcErr) throw rpcErr
+    if (rpcData?.ok === false) {
+      const msg = rpcData.error === 'cancel_not_allowed'
+        ? getUserBookingCancellationMessage(data)
+        : (rpcData.error || 'Storno se nepodařilo.')
+      throw new Error(msg)
+    }
 
     window.showToast?.(lang === 'cs' ? 'Rezervace byla zrušena.' : 'Booking cancelled.', 'ok')
     const pop = document.getElementById('pop-kal')

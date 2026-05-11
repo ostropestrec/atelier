@@ -1321,6 +1321,63 @@ $$;
 revoke all on function public.admin_cancel_lesson(uuid) from public;
 grant execute on function public.admin_cancel_lesson(uuid) to authenticated;
 
+create or replace function public.cancel_my_pass_booking(p_booking_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_booking_user_id uuid;
+  v_lesson_id uuid;
+  v_user_pass_id uuid;
+  v_payment_type text;
+  v_status text;
+begin
+  if v_user_id is null then
+    return jsonb_build_object('ok', false, 'error', 'not_authenticated');
+  end if;
+
+  select b.user_id, b.lesson_id, b.user_pass_id, b.payment_type, b.status
+  into v_booking_user_id, v_lesson_id, v_user_pass_id, v_payment_type, v_status
+  from public.bookings b
+  where b.id = p_booking_id
+  for update of b;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'booking_not_found');
+  end if;
+
+  if v_booking_user_id is distinct from v_user_id then
+    return jsonb_build_object('ok', false, 'error', 'forbidden');
+  end if;
+
+  if v_status is distinct from 'booked' then
+    return jsonb_build_object('ok', false, 'error', 'not_active_booking');
+  end if;
+
+  if v_payment_type is distinct from 'pass' or v_user_pass_id is null then
+    return jsonb_build_object('ok', false, 'error', 'single_entry_cannot_cancel');
+  end if;
+
+  if not public.can_self_cancel_booking(v_lesson_id, v_user_pass_id) then
+    return jsonb_build_object('ok', false, 'error', 'cancel_not_allowed');
+  end if;
+
+  update public.bookings
+  set status = 'cancelled',
+      cancelled_at = coalesce(cancelled_at, now())
+  where id = p_booking_id
+    and status = 'booked';
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+revoke all on function public.cancel_my_pass_booking(uuid) from public;
+grant execute on function public.cancel_my_pass_booking(uuid) to authenticated;
+
 -- Storno jedné rezervace z adminu: e-mail do fronty + volitelné nevrácení vstupu na permanentku
 -- (trigger restore_pass_on_cancel vždy přičte vstup; při p_refund_pass = false ho zde odečteme zpět)
 create or replace function public.admin_cancel_customer_booking(

@@ -384,16 +384,52 @@ function passCancellationLimit(entriesTotal) {
   return total <= 5 ? 1 : 2
 }
 
-export function canUserCancelBooking(booking) {
-  if (!booking || booking.payment_type !== 'pass') return false
+function _resolveBookingUserPassMeta(booking) {
+  if (!booking) return null
+  const fromActivePasses = userPasses.find(up => String(up.id) === String(booking.user_pass_id))
+  return fromActivePasses || booking.user_pass || null
+}
+
+export function getUserBookingCancellationState(booking) {
+  if (!booking) return { allowed: false, reason: 'missing_booking' }
+  if (booking.payment_type !== 'pass') return { allowed: false, reason: 'single_entry' }
   const lessonStart = booking.lesson?.start_time
   const cancellationHours = Number(booking.lesson?.course?.cancellation_hours)
   const startTs = lessonStart ? new Date(lessonStart).getTime() : NaN
-  if (!Number.isFinite(startTs) || !Number.isFinite(cancellationHours)) return false
-  const cancellationCount = Number(booking.user_pass?.cancellation_count ?? 0)
-  const cancellationLimit = passCancellationLimit(booking.user_pass?.entries_total)
-  return cancellationCount < cancellationLimit
-    && Date.now() <= startTs - (cancellationHours * 60 * 60 * 1000)
+  if (!Number.isFinite(startTs) || !Number.isFinite(cancellationHours)) {
+    return { allowed: false, reason: 'missing_window_data' }
+  }
+  const userPass = _resolveBookingUserPassMeta(booking)
+  const cancellationCount = Number(userPass?.cancellation_count ?? 0)
+  const cancellationLimit = passCancellationLimit(userPass?.entries_total)
+  if (cancellationLimit <= 0) {
+    return { allowed: false, reason: 'missing_pass_data' }
+  }
+  if (cancellationCount >= cancellationLimit) {
+    return { allowed: false, reason: 'limit_reached', cancellationCount, cancellationLimit }
+  }
+  if (Date.now() > startTs - (cancellationHours * 60 * 60 * 1000)) {
+    return { allowed: false, reason: 'window_closed', cancellationCount, cancellationLimit }
+  }
+  return { allowed: true, reason: 'ok', cancellationCount, cancellationLimit }
+}
+
+export function getUserBookingCancellationMessage(booking) {
+  const state = getUserBookingCancellationState(booking)
+  if (state.reason === 'limit_reached') {
+    return 'Dosáhli jste limitu bezplatných storen na této permanentce.'
+  }
+  if (state.reason === 'window_closed') {
+    return 'Storno už není možné, vypršelo storno okno.'
+  }
+  if (state.reason === 'single_entry') {
+    return 'Jednorázový vstup nelze stornovat.'
+  }
+  return 'Storno této rezervace není možné.'
+}
+
+export function canUserCancelBooking(booking) {
+  return getUserBookingCancellationState(booking).allowed
 }
 
 export async function refreshUserBookings() {
@@ -1142,21 +1178,22 @@ window.renderProfile = () => renderProtectedSections(currentUser)
 window.cancelMyBooking = async (bookingId) => {
   if (!currentUser || !bookingId) return
   const booking = myBookings.find(b => String(b.id) === String(bookingId))
-  if (booking?.payment_type === 'single') {
-    window.showToast?.('Jednorázový vstup nelze stornovat.', 'error')
-    return
-  }
-  if (booking && !canUserCancelBooking(booking)) {
-    window.showToast?.('Storno už není možné, vypršelo storno okno.', 'error')
+  const cancelState = getUserBookingCancellationState(booking)
+  if (booking && !cancelState.allowed) {
+    window.showToast?.(getUserBookingCancellationMessage(booking), 'error')
     return
   }
   try {
-    const { error } = await sb
-      .from('bookings')
-      .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
-      .eq('id', bookingId)
-      .eq('user_id', currentUser.id)
+    const { data, error } = await sb.rpc('cancel_my_pass_booking', {
+      p_booking_id: bookingId,
+    })
     if (error) throw error
+    if (data?.ok === false) {
+      const msg = data.error === 'cancel_not_allowed'
+        ? getUserBookingCancellationMessage(booking)
+        : (data.error || 'Storno se nepodařilo.')
+      throw new Error(msg)
+    }
     window.showToast?.('Rezervace byla zrušena.', 'ok')
     await refreshMyAuthUI()
   } catch (err) {
