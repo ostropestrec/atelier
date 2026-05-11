@@ -227,6 +227,46 @@ async function fetchCoursesMap() {
   }
 }
 
+let _adminCustomersData = []
+let _adminCustomersQuery = ''
+
+function _normalizeSearch(s) {
+  return String(s ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function _sortTs(iso) {
+  const t = iso ? new Date(iso).getTime() : 0
+  return Number.isFinite(t) ? t : 0
+}
+
+function _renderAdminZakazniciList() {
+  const listEl = document.getElementById('admin-zakaznici-list')
+  const countEl = document.getElementById('admin-zakaznici-count')
+  if (!listEl || !countEl) return
+
+  const q = _normalizeSearch(_adminCustomersQuery)
+  const filtered = !_adminCustomersData.length
+    ? []
+    : _adminCustomersData.filter(u => !q || u.searchText.includes(q))
+
+  countEl.textContent = q
+    ? `${filtered.length} z ${_adminCustomersData.length} zákazníků`
+    : `${_adminCustomersData.length} zákazníků`
+
+  listEl.innerHTML = filtered.length
+    ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${filtered.map(_zakaznikRow).join('')}</div>`
+    : `<div class="empty">${q ? 'Žádný zákazník neodpovídá hledání.' : 'Žádní zákazníci.'}</div>`
+}
+
+window.adminFilterZakaznici = (value) => {
+  _adminCustomersQuery = String(value ?? '')
+  _renderAdminZakazniciList()
+}
+
 // ── Admin Dashboard ──────────────────────────────────────────
 export async function renderAdminDashboard() {
   const el = document.getElementById('admin-dash-content')
@@ -444,35 +484,84 @@ export async function renderAdminZakaznici() {
     await adminRace((async () => {
     const { data: users, error } = await sb.from('users')
       .select('id, name, email, created_at').eq('role', 'uzivatel')
-      .not('email', 'like', 'deleted_%@%').order('name')
+      .not('email', 'like', 'deleted_%@%').order('created_at', { ascending: false })
     if (error) throw error
 
     const userIds = (users ?? []).map(u => u.id)
-    let bookingMap = {}, lastMap = {}, passMap = {}
+    let bookingRows = [], passRows = []
     if (userIds.length > 0) {
       const [{ data: bookings }, { data: passes }] = await Promise.all([
-        sb.from('bookings').select('user_id, lesson:lessons(start_time)').in('user_id', userIds).eq('status', 'booked'),
-        sb.from('user_passes').select('user_id, pass:passes(name,allowed_course_ids)').in('user_id', userIds).eq('status', 'active'),
+        sb.from('bookings')
+          .select('user_id, status, payment_type, created_at, lesson:lessons(start_time,course:courses(title))')
+          .in('user_id', userIds),
+        sb.from('user_passes')
+          .select('user_id, status, created_at, pass:passes(name,allowed_course_ids)')
+          .in('user_id', userIds),
       ])
-      ;(bookings ?? []).forEach(b => {
-        bookingMap[b.user_id] = (bookingMap[b.user_id] ?? 0) + 1
-        const t = b.lesson?.start_time
-        if (t && (!lastMap[b.user_id] || t > lastMap[b.user_id])) lastMap[b.user_id] = t
-      })
-      ;(passes ?? []).forEach(up => {
-        if (!passMap[up.user_id]) passMap[up.user_id] = []
-        passMap[up.user_id].push(up)
-      })
+      bookingRows = bookings ?? []
+      passRows = passes ?? []
     }
+
+    const bookingsByUser = {}
+    const passesByUser = {}
+    for (const b of bookingRows) {
+      if (!bookingsByUser[b.user_id]) bookingsByUser[b.user_id] = []
+      bookingsByUser[b.user_id].push(b)
+    }
+    for (const up of passRows) {
+      if (!passesByUser[up.user_id]) passesByUser[up.user_id] = []
+      passesByUser[up.user_id].push(up)
+    }
+
+    _adminCustomersData = (users ?? []).map(user => {
+      const userBookings = bookingsByUser[user.id] ?? []
+      const userPasses = passesByUser[user.id] ?? []
+      const activeLessons = userBookings.filter(b => b.status === 'booked')
+      const activePasses = userPasses.filter(up => up.status === 'active')
+      const lastBookingPurchaseAt = userBookings
+        .filter(b => b.payment_type === 'single')
+        .reduce((acc, b) => _sortTs(b.created_at) > _sortTs(acc) ? b.created_at : acc, null)
+      const lastPassPurchaseAt = userPasses
+        .reduce((acc, up) => _sortTs(up.created_at) > _sortTs(acc) ? up.created_at : acc, null)
+      const lastPurchaseAt = _sortTs(lastBookingPurchaseAt) >= _sortTs(lastPassPurchaseAt)
+        ? lastBookingPurchaseAt
+        : lastPassPurchaseAt
+      const activePassLabels = activePasses.map(up => loc(up.pass?.name) || 'Permanentka').filter(Boolean)
+      const bookedCourseTitles = userBookings.map(b => loc(b.lesson?.course?.title)).filter(Boolean)
+      const purchasedPassTitles = userPasses.map(up => loc(up.pass?.name)).filter(Boolean)
+      const searchText = _normalizeSearch([
+        user.name,
+        user.email,
+        ...bookedCourseTitles,
+        ...purchasedPassTitles,
+      ].join(' | '))
+
+      return {
+        ...user,
+        activeLessonsCount: activeLessons.length,
+        activePassLabels,
+        lastPurchaseAt,
+        sortAt: _sortTs(lastPurchaseAt) || _sortTs(user.created_at),
+        searchText,
+      }
+    }).sort((a, b) => b.sortAt - a.sortAt)
+
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:8px;">Zákazníci</div>
-      <div style="font-size:12px;color:#6b6b6b;margin-bottom:16px;">${users?.length ?? 0} zákazníků</div>
-      ${users?.length ? `
-        <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-          ${users.map(u => _zakaznikRow(u, bookingMap, lastMap, passMap)).join('')}
-        </div>
-      ` : `<div class="empty">Žádní zákazníci.</div>`}
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+        <div id="admin-zakaznici-count" style="font-size:12px;color:#6b6b6b;">0 zákazníků</div>
+        <input
+          id="admin-zakaznici-search"
+          type="search"
+          value="${esc(_adminCustomersQuery)}"
+          placeholder="Hledat podle jména, e-mailu, kurzu nebo permanentky"
+          oninput="window.adminFilterZakaznici?.(this.value)"
+          style="width:100%;max-width:380px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:#fff;outline:none;box-sizing:border-box;"
+        />
+      </div>
+      <div id="admin-zakaznici-list"></div>
     `
+    _renderAdminZakazniciList()
     })(), 'admin-zakaznici')
   } catch (err) {
     if (err?.code === 'TIMEOUT' && stable) {
@@ -485,10 +574,12 @@ export async function renderAdminZakaznici() {
   }
 }
 
-function _zakaznikRow(user, bookingMap, lastMap, passMap) {
-  const count = bookingMap[user.id] ?? 0
-  const last  = lastMap[user.id]
-  const passes = passMap[user.id] ?? []
+function _zakaznikRow(user) {
+  const passes = user.activePassLabels ?? []
+  const summary = [
+    `Aktivní lekce: ${user.activeLessonsCount ?? 0}`,
+    `Poslední nákup: ${user.lastPurchaseAt ? fmtDate(user.lastPurchaseAt) : 'zatím žádný'}`,
+  ].join(' · ')
   return `
     <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
       <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;
@@ -498,17 +589,14 @@ function _zakaznikRow(user, bookingMap, lastMap, passMap) {
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(user.name || '—')}</div>
         <div style="font-size:11px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(user.email)}</div>
+        <div style="font-size:11px;color:#8a8c90;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px;">${esc(summary)}</div>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;max-width:160px;">
         ${passes.slice(0, 2).map(up => `
           <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;
             background:rgba(40,84,185,.10);color:var(--primary);border:1px solid rgba(40,84,185,.18);white-space:nowrap;">
-            ${esc(loc(up.pass?.name) || 'Permanentka')}
+            ${esc(up || 'Permanentka')}
           </span>`).join('')}
-      </div>
-      <div style="text-align:right;flex-shrink:0;min-width:60px;">
-        <div style="font-size:12px;font-weight:600;">${count} lekcí</div>
-        <div style="font-size:10px;color:#9b9b9b;">${last ? fmtDate(last) : 'Žádná'}</div>
       </div>
       <div style="flex-shrink:0;">
         <button type="button" class="btn-small" title="Upravit zakoupené permanentky"
