@@ -29,6 +29,11 @@ export let userBookings = new Set()   // Set<lesson_id> aktivních rezervací
 export let userPasses   = []          // active user passes
 export let myBookings   = []          // active booked lessons (enriched)
 
+const AVATAR_COLORS = [
+  '#2854B9', '#FD8D40', '#E05C5C', '#4CAF50', '#9C27B0',
+  '#00BCD4', '#795548', '#607D8B', '#E91E63', '#111827',
+]
+
 // Jednoduchý „auth flag“ pro ostatní části UI (např. navigaci v index.html)
 export function isAuthenticated() { return !!currentUser }
 window.isAuthenticated = () => !!currentUser
@@ -220,6 +225,7 @@ async function onSessionChange(session) {
             ?? session.user.email?.split('@')[0]
             ?? '',
           role: 'uzivatel',
+          avatar_color: '#2854B9',
           is_ghost: false,
         }
       }
@@ -241,7 +247,7 @@ async function onSessionChange(session) {
 async function loadUserProfile(userId) {
   const { data, error } = await sb
     .from('users')
-    .select('id, email, name, role, is_ghost')
+    .select('id, email, name, role, is_ghost, reminder_hours, avatar_color')
     .eq('id', userId)
     .single()
 
@@ -273,7 +279,15 @@ async function createUserProfile(userId) {
 
   const { data, error } = await sb
     .from('users')
-    .insert({ id: userId, email: user.email, name, role: 'uzivatel', is_ghost: false, created_via })
+    .insert({
+      id: userId,
+      email: user.email,
+      name,
+      role: 'uzivatel',
+      is_ghost: false,
+      created_via,
+      avatar_color: '#2854B9',
+    })
     .select()
     .single()
 
@@ -292,9 +306,9 @@ async function reactivateUserProfile(userId) {
 
   const { data, error } = await sb
     .from('users')
-    .update({ email: authUser.email, name, role: 'uzivatel', avatar_url: null })
+    .update({ email: authUser.email, name, role: 'uzivatel', avatar_url: null, avatar_color: '#2854B9' })
     .eq('id', userId)
-    .select('id, email, name, role, is_ghost')
+    .select('id, email, name, role, is_ghost, reminder_hours, avatar_color')
     .single()
 
   if (!error) {
@@ -303,7 +317,7 @@ async function reactivateUserProfile(userId) {
   } else {
     console.error('reactivateUserProfile:', error)
     // Záloha: DB update selhal, ale uživatel je auth přihlášen
-    currentUser = { id: userId, email: authUser.email, name, role: 'uzivatel', is_ghost: false }
+    currentUser = { id: userId, email: authUser.email, name, role: 'uzivatel', is_ghost: false, avatar_color: '#2854B9' }
   }
 }
 
@@ -769,6 +783,9 @@ function renderAuthUI(user) {
     av.classList.add('u')
     av.title   = user.email
     av.onclick = toggleAvatarMenu
+    av.style.background = user.avatar_color || '#2854B9'
+    av.style.borderColor = 'transparent'
+    av.style.color = '#fff'
     if (nm)   nm.textContent           = user.name || user.email
     if (sbtn) sbtn.style.display       = 'none'
   } else {
@@ -777,6 +794,9 @@ function renderAuthUI(user) {
     av.classList.add('g')
     av.title   = 'Přihlásit se'
     av.onclick = () => window.openAuthPopup?.()
+    av.style.background = ''
+    av.style.borderColor = ''
+    av.style.color = ''
     if (nm)   nm.textContent           = 'Přihlásit se'
     if (sbtn) sbtn.style.display       = ''
   }
@@ -786,18 +806,26 @@ function renderSettings(user) {
   const nameEl = document.getElementById('set-name')
   const emailEl = document.getElementById('set-email')
   const remEl = document.getElementById('set-reminder')
-  if (!nameEl && !emailEl && !remEl) return
+  const previewEl = document.getElementById('set-avatar-preview')
+  const colorsEl = document.getElementById('set-avatar-colors')
+  if (!nameEl && !emailEl && !remEl && !previewEl && !colorsEl) return
 
   if (!user) {
     if (nameEl) nameEl.value = ''
     if (emailEl) emailEl.value = ''
     if (remEl) remEl.value = '24'
+    if (previewEl) {
+      previewEl.textContent = '?'
+      previewEl.style.background = '#2854B9'
+    }
+    if (colorsEl) colorsEl.innerHTML = ''
     return
   }
 
   if (nameEl) nameEl.value = user.name ?? ''
   if (emailEl) emailEl.value = user.email ?? ''
   if (remEl) remEl.value = user.reminder_hours != null ? String(user.reminder_hours) : ''
+  _renderAvatarColorSettings(user)
 }
 
 async function saveSettings() {
@@ -805,18 +833,20 @@ async function saveSettings() {
   const btn = document.getElementById('set-save')
   const nameEl = document.getElementById('set-name')
   const remEl = document.getElementById('set-reminder')
+  const selectedAvatarBtn = document.querySelector('#set-avatar-colors .avatar-color-btn.active')
   const name = nameEl ? nameEl.value.trim() : (currentUser.name ?? '')
   const reminder_hours = remEl
     ? (remEl.value === '' ? null : Number(remEl.value))
     : (currentUser.reminder_hours ?? 24)
+  const avatar_color = selectedAvatarBtn?.getAttribute('data-avatar-color') || currentUser.avatar_color || '#2854B9'
 
   if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
   try {
     const { data, error } = await sb
       .from('users')
-      .update({ name, reminder_hours })
+      .update({ name, reminder_hours, avatar_color })
       .eq('id', currentUser.id)
-      .select('id, email, name, role, is_ghost, reminder_hours')
+      .select('id, email, name, role, is_ghost, reminder_hours, avatar_color')
       .single()
     if (error) throw error
     currentUser = { ...currentUser, ...data }
@@ -830,6 +860,34 @@ async function saveSettings() {
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Uložit změny' }
   }
+}
+
+function _renderAvatarColorSettings(user) {
+  const previewEl = document.getElementById('set-avatar-preview')
+  const colorsEl = document.getElementById('set-avatar-colors')
+  const selected = user?.avatar_color || '#2854B9'
+  if (previewEl) {
+    previewEl.textContent = getInitials(user?.name || user?.email || '?')
+    previewEl.style.background = selected
+  }
+  if (!colorsEl) return
+  colorsEl.innerHTML = AVATAR_COLORS.map(color => `
+    <button type="button"
+      class="avatar-color-btn${selected === color ? ' active' : ''}"
+      data-avatar-color="${color}"
+      style="--swatch:${color};"
+      title="${color}"
+      onclick="window.pickAvatarColor?.('${color}')"></button>
+  `).join('')
+}
+
+window.pickAvatarColor = (color) => {
+  if (!color) return
+  const previewEl = document.getElementById('set-avatar-preview')
+  if (previewEl) previewEl.style.background = color
+  document.querySelectorAll('#set-avatar-colors .avatar-color-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-avatar-color') === color)
+  })
 }
 
 async function confirmDeleteAccount() {

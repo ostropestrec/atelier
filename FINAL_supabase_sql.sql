@@ -28,7 +28,8 @@ alter table public.courses
 -- ── Migrace: chybějící sloupce users ─────────────────────────
 alter table public.users
   add column if not exists is_ghost       boolean not null default false,
-  add column if not exists reminder_hours int              default 24;
+  add column if not exists reminder_hours int              default 24,
+  add column if not exists avatar_color   text             default '#2854B9';
 
 -- ── Migrace: chybějící sloupce courses ───────────────────────
 alter table public.courses
@@ -57,6 +58,7 @@ create table if not exists public.users (
   email         text not null unique,
   name          text,
   avatar_url    text,
+  avatar_color  text default '#2854B9',
   role          text not null default 'uzivatel'
                   check (role in ('admin','lektor','uzivatel')),
   is_ghost      boolean not null default false,

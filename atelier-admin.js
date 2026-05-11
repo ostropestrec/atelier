@@ -419,6 +419,7 @@ function _courseCard(course) {
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn-small" onclick="window.openDetail?.('${esc(course.id)}')">Detail</button>
           <button class="btn-small" onclick="window.${editFn}?.('${esc(course.id)}')">Upravit</button>
           ${active
             ? `<button class="btn-small danger" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">Deaktivovat</button>`

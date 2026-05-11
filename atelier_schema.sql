@@ -12,6 +12,7 @@ create table public.users (
   email         text not null unique,
   name          text,
   avatar_url    text,
+  avatar_color  text default '#2854B9',
   role          text not null default 'uzivatel'
                   check (role in ('admin','lektor','uzivatel')),
   is_ghost      boolean not null default false,
