@@ -291,6 +291,16 @@ function _looksLikeMissingRefundColumns(err) {
   return /refund_status|refund_note|refunded_at|refund_amount/i.test(msg) && /column/i.test(msg)
 }
 
+function _canFallbackAdminBookingCancel(err) {
+  const msg = String(err?.message ?? err ?? '')
+  return err?.code === 'PGRST202'
+    || /Could not find the function/i.test(msg)
+    || /admin_cancel_customer_booking/i.test(msg)
+    || /booking_cancelled_admin/i.test(msg)
+    || /email_notification_queue/i.test(msg)
+    || _looksLikeMissingRefundColumns(err)
+}
+
 function _paymentAmount(payment) {
   const value = Number(payment?.amount ?? payment?.price_paid ?? 0)
   return Number.isFinite(value) ? value : 0
@@ -2647,6 +2657,34 @@ window.closeLessonAttendeesModal = () => {
   if (m) m.style.display = 'none'
 }
 
+async function _adminCancelCustomerBookingFallback(bookingId, paymentType, userPassId, refundPass) {
+  const { error: bookingErr } = await sb.from('bookings').update({
+    status: 'cancelled',
+    cancelled_at: new Date().toISOString(),
+  }).eq('id', bookingId).eq('status', 'booked')
+  if (bookingErr) throw bookingErr
+
+  if (paymentType === 'pass' && userPassId && refundPass === false) {
+    const { data: passRow, error: passLoadErr } = await sb.from('user_passes')
+      .select('id, entries_remaining, expires_at')
+      .eq('id', userPassId)
+      .maybeSingle()
+    if (passLoadErr) throw passLoadErr
+    if (passRow) {
+      const nextRemaining = Math.max(0, Number(passRow.entries_remaining || 0) - 1)
+      const nextStatus = passRow.expires_at && new Date(passRow.expires_at).getTime() < Date.now()
+        ? 'expired'
+        : (nextRemaining <= 0 ? 'depleted' : 'active')
+      const { error: passUpdateErr } = await sb.from('user_passes').update({
+        entries_remaining: nextRemaining,
+        status: nextStatus,
+        updated_at: new Date().toISOString(),
+      }).eq('id', userPassId)
+      if (passUpdateErr) throw passUpdateErr
+    }
+  }
+}
+
 window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, userPassId) => {
   if (!bookingId) return
   if (!confirm('Opravdu zrušit rezervaci tohoto zákazníka na této lekci?')) return
@@ -2664,14 +2702,14 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
       p_refund_pass: refundPass,
     })
     if (error) {
-      const missFn = error.code === 'PGRST202'
-        || error.message?.includes('Could not find the function')
-        || error.message?.includes('admin_cancel_customer_booking')
-      if (missFn) {
+      if (_canFallbackAdminBookingCancel(error)) {
+        await _adminCancelCustomerBookingFallback(bookingId, paymentType, userPassId, refundPass)
         window.showToast?.(
-          'Chybí SQL funkce admin_cancel_customer_booking (e-mail a správné storno). Spusťte migraci z FINAL_supabase_sql.sql.',
-          'error',
+          'Rezervace byla zrušena. Vstup na permanentku byl vrácen podle nastavení; e-mail se v nouzovém režimu nezařadil automaticky.',
+          'ok',
         )
+        if (lessonId) await window.adminOpenLessonDetail?.(lessonId)
+        void renderAdminDashboard()
         return
       }
       throw error
