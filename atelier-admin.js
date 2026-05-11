@@ -2650,6 +2650,20 @@ function buildLessonAttendeesModal() {
         <div id="mla-list" style="padding:14px 18px 18px;max-height:65vh;overflow:auto;"></div>
       </div>
     </div>`)
+  const root = document.getElementById('modal-lesson-attendees')
+  if (root && !root.dataset.mlaDelegation) {
+    root.dataset.mlaDelegation = '1'
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-admin-cancel-booking]')
+      if (!btn || !root.contains(btn)) return
+      e.preventDefault()
+      const bookingId = btn.getAttribute('data-admin-cancel-booking')
+      const lessonId = root.dataset.lessonId || ''
+      const paymentType = btn.getAttribute('data-payment-type') || ''
+      const userPassId = btn.getAttribute('data-user-pass-id') || ''
+      void window.adminCancelCustomerBooking?.(bookingId, lessonId, paymentType, userPassId || null)
+    })
+  }
 }
 
 window.closeLessonAttendeesModal = () => {
@@ -2729,23 +2743,6 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
     window.showToast?.('Nepodařilo se zrušit rezervaci: ' + (err.message ?? err), 'error')
   }
 }
-
-;(function installAdminLessonAttendeesCancelDelegation() {
-  if (window.__mlaCancelDelegationInstalled) return
-  window.__mlaCancelDelegationInstalled = true
-  document.body.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-admin-cancel-booking]')
-    if (!btn) return
-    const modal = document.getElementById('modal-lesson-attendees')
-    if (!modal?.contains(btn)) return
-    e.preventDefault()
-    const bookingId = btn.getAttribute('data-admin-cancel-booking')
-    const lessonId = modal.dataset.lessonId || ''
-    const paymentType = btn.getAttribute('data-payment-type') || ''
-    const userPassId = btn.getAttribute('data-user-pass-id') || ''
-    void window.adminCancelCustomerBooking?.(bookingId, lessonId, paymentType, userPassId || null)
-  })
-})()
 
 window.adminOpenLessonDetail = async (lessonId) => {
   if (!lessonId) return
