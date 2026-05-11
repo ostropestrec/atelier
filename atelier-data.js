@@ -1981,14 +1981,14 @@ async function buildMojeLekceMarkup() {
               </div>
             </div>
             <div class="ml-cx" id="ml-cx-${lid}">
-              <div style="padding:0 14px 14px 19px;display:grid;grid-template-columns:${imgUrl ? '80px 1fr' : '1fr'};gap:12px;align-items:start;">
-                ${imgUrl ? `<img src="${imgUrl}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;" alt="" />` : ''}
-                <div>
-                  ${desc ? `<div style="font-size:12px;color:#6b6b6b;line-height:1.6;margin-bottom:8px;">${desc}</div>` : ''}
-                  <button class="btn-detail" onclick="window.openDetail('${l.course_id}')">
-                    ${lang === 'cs' ? 'Detail kurzu →' : 'Course detail →'}
-                  </button>
+              <div style="padding:0 14px 14px 19px;">
+                <div style="font-size:12px;color:#6b6b6b;line-height:1.65;overflow:hidden;margin-bottom:10px;">
+                  ${imgUrl ? `<img src="${imgUrl}" style="float:left;width:108px;height:108px;object-fit:cover;border-radius:8px;margin:0 12px 8px 0;" alt="" />` : ''}
+                  ${desc || ''}
                 </div>
+                <button class="btn-detail" onclick="window.openDetail('${l.course_id}')">
+                  ${lang === 'cs' ? 'Detail kurzu →' : 'Course detail →'}
+                </button>
               </div>
             </div>
           </div>`
