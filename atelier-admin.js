@@ -2825,12 +2825,16 @@ window.adminOpenLessonDetail = async (lessonId) => {
               ? `Permanentka${passLabel ? ': ' + passLabel : ''}`
               : 'Jednorázově'
             const passIdAttr = b.user_pass_id ? esc(b.user_pass_id) : ''
+            const lessonIdArg = esc(String(lessonId))
+            const bookingIdArg = esc(String(b.id))
+            const paymentTypeArg = esc(String(b.payment_type))
             return `<tr style="border-top:1px solid var(--border);">
               <td style="padding:10px 8px 10px 0;vertical-align:top;font-weight:500;line-height:1.45;">${esc(u?.name || '—')}</td>
               <td style="padding:10px 4px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;">${esc(u?.email || '—')}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;line-height:1.45;">${payCell}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;">
                 <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+                  onclick="window.adminCancelCustomerBooking?.('${bookingIdArg}','${lessonIdArg}','${paymentTypeArg}','${passIdAttr}')"
                   data-admin-cancel-booking="${esc(b.id)}"
                   data-payment-type="${esc(b.payment_type)}"
                   data-user-pass-id="${passIdAttr}">Zrušit rezervaci</button>
