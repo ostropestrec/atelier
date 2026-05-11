@@ -288,18 +288,56 @@ function _adminPriceSearchTokens(amount) {
 
 function _looksLikeMissingRefundColumns(err) {
   const msg = String(err?.message ?? err ?? '')
-  return /refund_status|refund_note|refunded_at/i.test(msg) && /column/i.test(msg)
+  return /refund_status|refund_note|refunded_at|refund_amount/i.test(msg) && /column/i.test(msg)
 }
 
-function _isRefundableSinglePayment(payment) {
-  return payment?.type === 'single'
-    && payment?.status === 'cancelled'
-    && Number(payment?.amount || 0) > 0
+function _paymentAmount(payment) {
+  const value = Number(payment?.amount ?? payment?.price_paid ?? 0)
+  return Number.isFinite(value) ? value : 0
+}
+
+function _paymentRefundStatus(payment) {
+  return payment?.refundStatus ?? payment?.refund_status ?? null
+}
+
+function _paymentRefundAmount(payment) {
+  const stored = Number(payment?.refundAmount ?? payment?.refund_amount)
+  if (Number.isFinite(stored) && stored >= 0) return stored
+  return _paymentRefundStatus(payment) === 'completed' ? _paymentAmount(payment) : 0
+}
+
+function _paymentSupportsRefund(payment) {
+  if (_paymentAmount(payment) <= 0) return false
+  return payment?.type === 'pass'
+    || (payment?.type === 'single' && payment?.status === 'cancelled')
 }
 
 function _effectiveRefundStatus(payment) {
-  if (!_isRefundableSinglePayment(payment)) return 'not_required'
-  return payment?.refundStatus === 'completed' ? 'completed' : 'pending'
+  if (!_paymentSupportsRefund(payment)) return 'not_required'
+  const stored = _paymentRefundStatus(payment)
+  if (stored === 'completed' || stored === 'pending' || stored === 'not_required') return stored
+  return payment?.type === 'single' && payment?.status === 'cancelled' ? 'pending' : 'not_required'
+}
+
+function _paymentCanStartRefund(payment) {
+  return payment?.type === 'pass'
+    && _paymentSupportsRefund(payment)
+    && _effectiveRefundStatus(payment) === 'not_required'
+}
+
+function _sumGrossRevenue(rows) {
+  return (rows ?? []).reduce((sum, row) => sum + _paymentAmount(row), 0)
+}
+
+function _sumCompletedRefunds(rows) {
+  return (rows ?? []).reduce((sum, row) => {
+    if (_effectiveRefundStatus(row) !== 'completed') return sum
+    return sum + _paymentRefundAmount(row)
+  }, 0)
+}
+
+function _refundFieldId(type, id, field) {
+  return `refund-${field}-${type}-${id}`
 }
 
 function _renderAdminZakazniciList() {
@@ -422,9 +460,9 @@ export async function renderAdminDashboard() {
     const [
       { data: todayAvail },
       { data: weekAvail },
-      { data: monthPasses },
+      monthPassesRes,
       { count: activePasses },
-      { data: monthBookings },
+      monthBookingsRes,
     ] = await Promise.all([
       sb.from('lesson_availability')
         .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
@@ -434,11 +472,48 @@ export async function renderAdminDashboard() {
         .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
         .gte('start_time', tomorrow.toISOString()).lt('start_time', weekEnd.toISOString())
         .eq('status', 'active').order('start_time'),
-      sb.from('user_passes').select('price_paid').gte('created_at', monthStart.toISOString()),
+      sb.from('user_passes').select('price_paid, refund_status, refund_amount')
+        .gte('created_at', monthStart.toISOString()),
       sb.from('user_passes').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      sb.from('bookings').select('price_paid').eq('payment_type', 'single').eq('status', 'booked')
+      sb.from('bookings').select('price_paid, status, payment_type, refund_status, refund_amount')
+        .eq('payment_type', 'single')
         .gte('created_at', monthStart.toISOString()),
     ])
+
+    let monthPasses = monthPassesRes.data ?? []
+    if (monthPassesRes.error) {
+      if (!_looksLikeMissingRefundColumns(monthPassesRes.error)) throw monthPassesRes.error
+      const fallbackPassesRes = await sb.from('user_passes')
+        .select('price_paid')
+        .gte('created_at', monthStart.toISOString())
+      if (fallbackPassesRes.error) throw fallbackPassesRes.error
+      monthPasses = (fallbackPassesRes.data ?? []).map(row => ({
+        ...row,
+        type: 'pass',
+        refund_status: 'not_required',
+        refund_amount: null,
+      }))
+    } else {
+      monthPasses = monthPasses.map(row => ({ ...row, type: 'pass' }))
+    }
+
+    let monthBookings = monthBookingsRes.data ?? []
+    if (monthBookingsRes.error) {
+      if (!_looksLikeMissingRefundColumns(monthBookingsRes.error)) throw monthBookingsRes.error
+      const fallbackBookingsRes = await sb.from('bookings')
+        .select('price_paid, status, payment_type')
+        .eq('payment_type', 'single')
+        .gte('created_at', monthStart.toISOString())
+      if (fallbackBookingsRes.error) throw fallbackBookingsRes.error
+      monthBookings = (fallbackBookingsRes.data ?? []).map(row => ({
+        ...row,
+        type: 'single',
+        refund_status: null,
+        refund_amount: null,
+      }))
+    } else {
+      monthBookings = monthBookings.map(row => ({ ...row, type: 'single' }))
+    }
 
     const courseMap = await fetchCoursesMap()
     const enrich = rows => (rows ?? []).map(l => ({ ...l, course: courseMap[l.course_id] }))
@@ -448,8 +523,9 @@ export async function renderAdminDashboard() {
     const totalCap    = todayLessons.reduce((s, l) => s + (l.capacity ?? 0), 0)
     const totalBooked = todayLessons.reduce((s, l) => s + (Number(l.booked_count) || 0), 0)
     const occupancy   = totalCap > 0 ? Math.round((totalBooked / totalCap) * 100) : 0
-    const monthRev    = (monthPasses ?? []).reduce((s, p) => s + Number(p.price_paid || 0), 0)
-                      + (monthBookings ?? []).reduce((s, b) => s + Number(b.price_paid || 0), 0)
+    const monthGrossRev = _sumGrossRevenue([...monthPasses, ...monthBookings])
+    const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthBookings])
+    const monthNetRev = monthGrossRev - monthRefunds
 
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:16px;">Dashboard</div>
@@ -463,8 +539,16 @@ export async function renderAdminDashboard() {
           <div class="admin-stat-label">Obsazenost dnes</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRev)}</div>
-          <div class="admin-stat-label">Příjmy tento měsíc</div>
+          <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthGrossRev)}</div>
+          <div class="admin-stat-label">Hrubý příjem</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRefunds)}</div>
+          <div class="admin-stat-label">Refundace</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthNetRev)}</div>
+          <div class="admin-stat-label">Čistý příjem</div>
         </div>
         <div class="admin-stat-card">
           <div class="admin-stat-value">${activePasses ?? 0}</div>
@@ -1075,17 +1159,33 @@ export async function renderAdminPlatby() {
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0)
   try {
     await adminRace((async () => {
-    const [{ data: recentPasses, error: recentPassesErr }, recentSinglesRes, { data: monthPasses, error: monthPassesErr }, { data: monthSingles, error: monthSinglesErr }] = await Promise.all([
-      sb.from('user_passes').select('id,price_paid,created_at,status,user:users(name,email),pass:passes(name)')
+    const [recentPassesRes, recentSinglesRes, monthPassesRes, monthSinglesRes] = await Promise.all([
+      sb.from('user_passes').select('id,price_paid,created_at,status,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),pass:passes(name)')
         .order('created_at',{ascending:false}).limit(40),
-      sb.from('bookings').select('id,price_paid,status,created_at,refund_status,refund_note,refunded_at,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
+      sb.from('bookings').select('id,price_paid,status,created_at,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
         .eq('payment_type','single').order('created_at',{ascending:false}).limit(40),
-      sb.from('user_passes').select('price_paid').gte('created_at', monthStart.toISOString()),
-      sb.from('bookings').select('price_paid').eq('payment_type','single').gte('created_at', monthStart.toISOString()),
+      sb.from('user_passes').select('price_paid, refund_status, refund_amount').gte('created_at', monthStart.toISOString()),
+      sb.from('bookings').select('price_paid, status, payment_type, refund_status, refund_amount')
+        .eq('payment_type','single').gte('created_at', monthStart.toISOString()),
     ])
-    if (recentPassesErr) throw recentPassesErr
-    if (monthPassesErr) throw monthPassesErr
-    if (monthSinglesErr) throw monthSinglesErr
+
+    let recentPasses = recentPassesRes.data ?? []
+    if (recentPassesRes.error) {
+      if (!_looksLikeMissingRefundColumns(recentPassesRes.error)) throw recentPassesRes.error
+      const fallbackPassesRes = await sb.from('user_passes')
+        .select('id,price_paid,created_at,status,user:users(name,email),pass:passes(name)')
+        .order('created_at',{ascending:false})
+        .limit(40)
+      if (fallbackPassesRes.error) throw fallbackPassesRes.error
+      recentPasses = (fallbackPassesRes.data ?? []).map(row => ({
+        ...row,
+        refund_status: 'not_required',
+        refund_note: null,
+        refunded_at: null,
+        refund_amount: null,
+      }))
+    }
+
     let recentSingles = recentSinglesRes.data ?? []
     if (recentSinglesRes.error) {
       if (!_looksLikeMissingRefundColumns(recentSinglesRes.error)) throw recentSinglesRes.error
@@ -1100,25 +1200,64 @@ export async function renderAdminPlatby() {
         refund_status: null,
         refund_note: null,
         refunded_at: null,
+        refund_amount: null,
       }))
     }
-    const monthRev       = (monthPasses ?? []).reduce((s,p)=>s+Number(p.price_paid||0),0)
-                         + (monthSingles ?? []).reduce((s,b)=>s+Number(b.price_paid||0),0)
-    const monthPassRev   = (monthPasses ?? []).reduce((s,p)=>s+Number(p.price_paid||0),0)
-    const monthSingleRev = (monthSingles ?? []).reduce((s,b)=>s+Number(b.price_paid||0),0)
+
+    let monthPasses = monthPassesRes.data ?? []
+    if (monthPassesRes.error) {
+      if (!_looksLikeMissingRefundColumns(monthPassesRes.error)) throw monthPassesRes.error
+      const fallbackMonthPassesRes = await sb.from('user_passes')
+        .select('price_paid')
+        .gte('created_at', monthStart.toISOString())
+      if (fallbackMonthPassesRes.error) throw fallbackMonthPassesRes.error
+      monthPasses = (fallbackMonthPassesRes.data ?? []).map(row => ({
+        ...row,
+        type: 'pass',
+        refund_status: 'not_required',
+        refund_amount: null,
+      }))
+    } else {
+      monthPasses = monthPasses.map(row => ({ ...row, type: 'pass' }))
+    }
+
+    let monthSingles = monthSinglesRes.data ?? []
+    if (monthSinglesRes.error) {
+      if (!_looksLikeMissingRefundColumns(monthSinglesRes.error)) throw monthSinglesRes.error
+      const fallbackMonthSinglesRes = await sb.from('bookings')
+        .select('price_paid, status, payment_type')
+        .eq('payment_type','single')
+        .gte('created_at', monthStart.toISOString())
+      if (fallbackMonthSinglesRes.error) throw fallbackMonthSinglesRes.error
+      monthSingles = (fallbackMonthSinglesRes.data ?? []).map(row => ({
+        ...row,
+        type: 'single',
+        refund_status: null,
+        refund_amount: null,
+      }))
+    } else {
+      monthSingles = monthSingles.map(row => ({ ...row, type: 'single' }))
+    }
+
+    const monthGrossRev = _sumGrossRevenue([...monthPasses, ...monthSingles])
+    const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthSingles])
+    const monthNetRev = monthGrossRev - monthRefunds
     const all = [
       ...(recentPasses ?? []).map(p=>({type:'pass',id:p.id,amount:p.price_paid,date:p.created_at,status:p.status,
-        userName:p.user?.name||p.user?.email||'—',description:loc(p.pass?.name)||'Permanentka'})),
+        userName:p.user?.name||p.user?.email||'—',description:loc(p.pass?.name)||'Permanentka',
+        refundStatus:p.refund_status ?? 'not_required', refundNote:p.refund_note ?? '', refundedAt:p.refunded_at ?? null,
+        refundAmount:p.refund_amount ?? null})),
       ...(recentSingles ?? []).map(b=>({type:'single',id:b.id,amount:b.price_paid,date:b.created_at,status:b.status,
         userName:b.user?.name||b.user?.email||'—',description:loc(b.lesson?.course?.title)||'Lekce',
-        refundStatus:b.refund_status ?? null, refundNote:b.refund_note ?? '', refundedAt:b.refunded_at ?? null})),
+        refundStatus:b.refund_status ?? null, refundNote:b.refund_note ?? '', refundedAt:b.refunded_at ?? null,
+        refundAmount:b.refund_amount ?? null})),
     ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,60)
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:16px;">Platby</div>
       <div class="admin-stat-grid">
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRev)}</div><div class="admin-stat-label">Příjmy tento měsíc</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthPassRev)}</div><div class="admin-stat-label">Z permanentek</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthSingleRev)}</div><div class="admin-stat-label">Jednorázové vstupy</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthGrossRev)}</div><div class="admin-stat-label">Hrubý příjem</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRefunds)}</div><div class="admin-stat-label">Refundace</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthNetRev)}</div><div class="admin-stat-label">Čistý příjem</div></div>
       </div>
       <div class="admin-section-title">Všechny platby</div>
       ${all.length ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${all.map(_platbaRow).join('')}</div>`
@@ -1138,11 +1277,22 @@ export async function renderAdminPlatby() {
 
 function _platbaRow(p) {
   const isPass = p.type === 'pass'
+  const paidAmount = _paymentAmount(p)
+  const refundApplied = _paymentRefundAmount(p)
   const typeBg = isPass ? 'rgba(40,84,185,.10)' : 'rgba(8,80,65,.10)'
   const typeColor = isPass ? 'var(--primary)' : '#085041'
   const refundStatus = _effectiveRefundStatus(p)
+  const refundCanStart = _paymentCanStartRefund(p)
   const refundPending = refundStatus === 'pending'
   const refundCompleted = refundStatus === 'completed'
+  const noteId = _refundFieldId(p.type, p.id, 'note')
+  const amountId = _refundFieldId(p.type, p.id, 'amount')
+  const draftRefundAmount = (() => {
+    const base = refundPending || refundCompleted
+      ? refundApplied || paidAmount
+      : paidAmount
+    return Number.isFinite(base) ? String(base).replace(/\.00$/, '') : ''
+  })()
   const statusMap = {
     active:{l:'Aktivní',bg:'#E1F5EE',c:'#085041'}, expired:{l:'Vypršela',bg:'#F3F4F6',c:'#6b6b6b'},
     depleted:{l:'Vyčerpána',bg:'#F3F4F6',c:'#6b6b6b'}, booked:{l:'Uhrazeno',bg:'#E1F5EE',c:'#085041'},
@@ -1157,23 +1307,38 @@ function _platbaRow(p) {
       : ''
   const refundMeta = refundCompleted
     ? `<div style="font-size:11px;color:#085041;margin-top:6px;">
-        ${p.refundedAt ? `Potvrzeno ${fmtDateTime(p.refundedAt)}` : 'Refund potvrzen'}
+        Refundováno ${fmtPrice(refundApplied || paidAmount)}
+        ${p.refundedAt ? ` · ${fmtDateTime(p.refundedAt)}` : ''}
         ${p.refundNote ? ` · ${esc(p.refundNote)}` : ''}
       </div>`
     : ''
-  const refundControls = refundPending
+  const refundControls = refundPending || refundCanStart
     ? `
       <div style="flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(0,0,0,.08);">
         <input
-          id="refund-note-${esc(p.id)}"
+          id="${esc(amountId)}"
+          type="number"
+          min="0.01"
+          max="${esc(String(paidAmount))}"
+          step="0.01"
+          value="${esc(draftRefundAmount)}"
+          placeholder="Částka refundace (Kč)"
+          style="width:160px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:12px;box-sizing:border-box;"
+        />
+        <input
+          id="${esc(noteId)}"
           type="text"
           value="${esc(p.refundNote || '')}"
-          placeholder="Refund note (optional)"
+          placeholder="Poznámka k refundaci (volitelné)"
           style="flex:1;min-width:240px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:12px;box-sizing:border-box;"
         />
-        <button type="button" class="btn-small primary" onclick="window.adminMarkBookingRefunded?.('${esc(p.id)}', this)">
-          Označit jako refundováno
-        </button>
+        ${refundCanStart
+          ? `<button type="button" class="btn-small" onclick="window.adminStartPaymentRefund?.('${esc(p.type)}', '${esc(p.id)}', this)">
+              Označit refundaci
+            </button>`
+          : `<button type="button" class="btn-small primary" onclick="window.adminMarkPaymentRefunded?.('${esc(p.type)}', '${esc(p.id)}', this)">
+              Označit jako refundováno
+            </button>`}
       </div>`
     : ''
   return `
@@ -1197,46 +1362,78 @@ function _platbaRow(p) {
     </div>`
 }
 
-window.adminMarkBookingRefunded = async (bookingId, btnEl = null) => {
-  if (!bookingId) return
-  if (!confirm('Confirm that you have manually sent the refund to the customer?')) return
-  const noteInput = document.getElementById(`refund-note-${bookingId}`)
+async function _updatePaymentRefundState(type, paymentId, nextStatus, btnEl = null) {
+  if (!paymentId || !['pending', 'completed'].includes(nextStatus)) return
+  const noteInput = document.getElementById(_refundFieldId(type, paymentId, 'note'))
+  const amountInput = document.getElementById(_refundFieldId(type, paymentId, 'amount'))
   const note = noteInput?.value?.trim() || null
+  const refundAmount = Number(amountInput?.value)
+  const maxRefund = Number(amountInput?.getAttribute('max'))
+  if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+    window.showToast?.('Zadejte platnou částku refundace.', 'error')
+    return
+  }
+  if (Number.isFinite(maxRefund) && refundAmount > maxRefund) {
+    window.showToast?.('Refundace nemůže být vyšší než přijatá platba.', 'error')
+    return
+  }
+  const confirmMsg = nextStatus === 'completed'
+    ? 'Potvrzujete, že refundace byla skutečně odeslána zákazníkovi?'
+    : 'Označit tuto platbu jako čekající refundaci?'
+  if (!confirm(confirmMsg)) return
   if (btnEl) {
     btnEl.disabled = true
-    btnEl.textContent = 'Saving...'
+    btnEl.textContent = nextStatus === 'completed' ? 'Ukládám…' : 'Označuji…'
   }
   try {
-    const { error } = await sb.from('bookings')
-      .update({
-        refund_status: 'completed',
-        refund_note: note,
-        refunded_at: new Date().toISOString(),
-      })
-      .eq('id', bookingId)
-      .eq('payment_type', 'single')
-      .eq('status', 'cancelled')
+    const table = type === 'pass' ? 'user_passes' : 'bookings'
+    let query = sb.from(table).update({
+      refund_status: nextStatus,
+      refund_note: note,
+      refund_amount: refundAmount,
+      refunded_at: nextStatus === 'completed' ? new Date().toISOString() : null,
+    }).eq('id', paymentId)
+    if (type === 'single') {
+      query = query.eq('payment_type', 'single').eq('status', 'cancelled')
+    }
+    const { error } = await query
     if (error) {
       if (_looksLikeMissingRefundColumns(error)) {
         window.showToast?.(
-          'V databázi chybí refund sloupce v bookings. Spusťte migraci z FINAL_supabase_sql.sql.',
+          'V databázi chybí refund sloupce. Spusťte migraci z FINAL_supabase_sql.sql.',
           'error',
         )
         return
       }
       throw error
     }
-    window.showToast?.('Refund byl označen jako dokončený.', 'ok')
+    window.showToast?.(
+      nextStatus === 'completed'
+        ? 'Refundace byla označena jako dokončená.'
+        : 'Platba byla označena jako čekající refundace.',
+      'ok',
+    )
     await renderAdminPlatby()
+    void renderAdminDashboard()
   } catch (err) {
-    console.error('[Admin] adminMarkBookingRefunded:', err)
-    window.showToast?.('Nepodařilo se uložit refund: ' + (err.message ?? err), 'error')
+    console.error('[Admin] _updatePaymentRefundState:', err)
+    window.showToast?.('Nepodařilo se uložit refundaci: ' + (err.message ?? err), 'error')
   } finally {
     if (btnEl) {
       btnEl.disabled = false
-      btnEl.textContent = 'Označit jako refundováno'
+      btnEl.textContent = nextStatus === 'completed'
+        ? 'Označit jako refundováno'
+        : 'Označit refundaci'
     }
   }
+}
+
+window.adminStartPaymentRefund = async (type, paymentId, btnEl = null) => {
+  await _updatePaymentRefundState(type, paymentId, 'pending', btnEl)
+}
+
+window.adminMarkPaymentRefunded = async (type, paymentId, btnEl = null) => {
+  await _updatePaymentRefundState(type, paymentId, 'completed', btnEl)
 }
 
 // ── Admin Permanentky ─────────────────────────────────────────

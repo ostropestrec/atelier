@@ -1071,6 +1071,11 @@ function renderProtectedSections(user) {
 
       <div class="section-h">Aktivní permanentky</div>
       ${passHtml || `<div class="empty">Nemáte žádné aktivní permanentky.</div>`}
+      ${passHtml ? `
+        <div class="card-meta" style="margin-top:10px;">
+          V případě potřeby zrušení permanentky a vrácení peněz za zbylé vstupy nás prosím kontaktujte na jatakidu@gmail.com.
+        </div>
+      ` : ''}
 
       <div class="section-h">Přihlášené lekce</div>
       ${(myBookings?.length

@@ -94,6 +94,11 @@ create table public.user_passes (
   status            text not null default 'active'
                       check (status in ('active','expired','depleted')),
   stripe_payment_id text,
+  refund_status     text not null default 'not_required'
+                      check (refund_status in ('not_required','pending','completed')),
+  refund_note       text,
+  refunded_at       timestamptz,
+  refund_amount     numeric(10,2),
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   constraint entries_valid check (
@@ -122,6 +127,7 @@ create table public.bookings (
                       check (refund_status in ('not_required','pending','completed')),
   refund_note       text,
   refunded_at       timestamptz,
+  refund_amount     numeric(10,2),
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   constraint unique_active_booking unique (user_id, lesson_id)

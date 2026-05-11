@@ -139,6 +139,11 @@ create table if not exists public.user_passes (
   status            text not null default 'active'
                       check (status in ('active','expired','depleted')),
   stripe_payment_id text,
+  refund_status     text not null default 'not_required'
+                      check (refund_status in ('not_required','pending','completed')),
+  refund_note       text,
+  refunded_at       timestamptz,
+  refund_amount     numeric(10,2),
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   constraint entries_valid check (
@@ -149,6 +154,25 @@ create table if not exists public.user_passes (
 create index if not exists idx_user_passes_user_id on public.user_passes(user_id);
 create index if not exists idx_user_passes_status  on public.user_passes(status);
 create index if not exists idx_user_passes_expires on public.user_passes(expires_at);
+
+alter table public.user_passes add column if not exists refund_status text;
+alter table public.user_passes add column if not exists refund_note text;
+alter table public.user_passes add column if not exists refunded_at timestamptz;
+alter table public.user_passes add column if not exists refund_amount numeric(10,2);
+alter table public.user_passes alter column refund_status set default 'not_required';
+update public.user_passes
+set refund_status = 'not_required'
+where refund_status is null;
+update public.user_passes
+set refund_amount = price_paid
+where refund_status = 'completed'
+  and refund_amount is null
+  and coalesce(price_paid, 0) > 0;
+alter table public.user_passes drop constraint if exists user_passes_refund_status_check;
+alter table public.user_passes
+  add constraint user_passes_refund_status_check
+  check (refund_status in ('not_required','pending','completed'));
+alter table public.user_passes alter column refund_status set not null;
 
 -- ── BOOKINGS — rezervace ─────────────────────────────────────
 create table if not exists public.bookings (
@@ -167,6 +191,7 @@ create table if not exists public.bookings (
                       check (refund_status in ('not_required','pending','completed')),
   refund_note       text,
   refunded_at       timestamptz,
+  refund_amount     numeric(10,2),
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
@@ -179,6 +204,7 @@ create index if not exists idx_bookings_stripe_payment on public.bookings(stripe
 alter table public.bookings add column if not exists refund_status text;
 alter table public.bookings add column if not exists refund_note text;
 alter table public.bookings add column if not exists refunded_at timestamptz;
+alter table public.bookings add column if not exists refund_amount numeric(10,2);
 alter table public.bookings alter column refund_status set default 'not_required';
 update public.bookings
 set refund_status = 'not_required'
@@ -189,6 +215,12 @@ where status = 'cancelled'
   and payment_type = 'single'
   and coalesce(price_paid, 0) > 0
   and refund_status = 'not_required';
+update public.bookings
+set refund_amount = price_paid
+where payment_type = 'single'
+  and refund_status in ('pending', 'completed')
+  and refund_amount is null
+  and coalesce(price_paid, 0) > 0;
 alter table public.bookings drop constraint if exists bookings_refund_status_check;
 alter table public.bookings
   add constraint bookings_refund_status_check
@@ -447,6 +479,7 @@ begin
        and coalesce(new.price_paid, old.price_paid, 0) > 0 then
       new.refund_status := 'pending';
       new.refunded_at := null;
+      new.refund_amount := coalesce(new.refund_amount, old.refund_amount, new.price_paid, old.price_paid);
     else
       new.refund_status := coalesce(new.refund_status, old.refund_status, 'not_required');
     end if;
