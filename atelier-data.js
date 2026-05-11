@@ -13,6 +13,7 @@ import {
   userPasses,
   loadUserPasses,
   myBookings,
+  canUserCancelBooking,
 } from './atelier_auth.js'
 
 // ── Jazyk ─────────────────────────────────────────────────────
@@ -723,7 +724,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const lid = lesson.lesson_id ?? lesson.id
   window._kalOpenLessonId = lid != null ? String(lid) : ''
   const enrolledBooking = myBookings.find(b => String(b?.lesson?.id ?? '') === String(lid))
-  const canCancelEnrolledBooking = enrolledBooking?.payment_type === 'pass'
+  const canCancelEnrolledBooking = canUserCancelBooking(enrolledBooking)
 
   const enrBadge = document.getElementById('kal-enrolled')
   const bEnr     = document.getElementById('kal-btns-enr')
@@ -756,7 +757,14 @@ window.cancelBookingFromPopup = async () => {
   try {
     const { data, error } = await sb
       .from('bookings')
-      .select('id, payment_type')
+      .select(`
+        id, payment_type, user_pass_id,
+        user_pass:user_passes ( id, entries_total, cancellation_count ),
+        lesson:lessons (
+          id, start_time,
+          course:courses ( cancellation_hours )
+        )
+      `)
       .eq('user_id', currentUser.id)
       .eq('lesson_id', lid)
       .eq('status', 'booked')
@@ -771,6 +779,15 @@ window.cancelBookingFromPopup = async () => {
         lang === 'cs'
           ? 'Jednorázový vstup nelze stornovat.'
           : 'Single-entry bookings cannot be cancelled.',
+        'error',
+      )
+      return
+    }
+    if (!canUserCancelBooking(data)) {
+      window.showToast?.(
+        lang === 'cs'
+          ? 'Storno už není možné, vypršelo storno okno.'
+          : 'Cancellation is no longer available; the cancellation window has expired.',
         'error',
       )
       return

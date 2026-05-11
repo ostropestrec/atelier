@@ -89,6 +89,7 @@ create table public.user_passes (
   pass_id           uuid not null references public.passes(id) on delete restrict,
   entries_total     int not null,
   entries_remaining int not null,
+  cancellation_count int not null default 0,
   price_paid        numeric(10,2) not null,  -- fixovaná cena při nákupu
   expires_at        timestamptz not null,
   status            text not null default 'active'
@@ -103,7 +104,8 @@ create table public.user_passes (
   updated_at        timestamptz not null default now(),
   constraint entries_valid check (
     entries_remaining >= 0 and entries_remaining <= entries_total
-  )
+  ),
+  constraint user_passes_cancellation_count_valid check (cancellation_count >= 0)
 );
 
 create index idx_user_passes_user_id on public.user_passes(user_id);
@@ -249,12 +251,21 @@ create trigger trg_decrement_pass
   for each row execute function public.decrement_pass_on_booking();
 
 -- ── TRIGGER: vrácení vstupu při včasném stornování ───────────
+create or replace function public.allowed_pass_cancellations(p_entries_total int)
+returns int language sql immutable as $$
+  select case when coalesce(p_entries_total, 0) <= 5 then 1 else 2 end;
+$$;
+
 create or replace function public.restore_pass_on_cancel()
 returns trigger language plpgsql as $$
 declare
   lesson_start  timestamptz;
   cancel_hours  int;
   hours_before  numeric;
+  v_actor_role  text;
+  v_entries_total int;
+  v_cancellation_count int;
+  v_cancel_limit int;
 begin
   if new.status = 'cancelled' and old.status = 'booked' then
     select l.start_time, c.cancellation_hours
@@ -267,13 +278,38 @@ begin
 
     if hours_before >= cancel_hours then
       new.cancellation_type := 'early';
-      if new.user_pass_id is not null then
-        update public.user_passes
-        set entries_remaining = entries_remaining + 1, status = 'active'
-        where id = new.user_pass_id;
-      end if;
     else
       new.cancellation_type := 'late';
+    end if;
+
+    if old.user_pass_id is not null then
+      select u.role
+      into v_actor_role
+      from public.users u
+      where u.id = auth.uid();
+
+      if coalesce(v_actor_role, '') = 'admin' then
+        update public.user_passes
+        set entries_remaining = entries_remaining + 1,
+            status = case when status = 'depleted' then 'active' else status end
+        where id = old.user_pass_id;
+      elsif new.cancellation_type = 'early' then
+        select up.entries_total, coalesce(up.cancellation_count, 0)
+        into v_entries_total, v_cancellation_count
+        from public.user_passes up
+        where up.id = old.user_pass_id
+        for update;
+
+        v_cancel_limit := public.allowed_pass_cancellations(v_entries_total);
+
+        if v_cancellation_count < v_cancel_limit then
+          update public.user_passes
+          set entries_remaining = entries_remaining + 1,
+              cancellation_count = coalesce(cancellation_count, 0) + 1,
+              status = case when status = 'depleted' then 'active' else status end
+          where id = old.user_pass_id;
+        end if;
+      end if;
     end if;
 
     new.cancelled_at := now();

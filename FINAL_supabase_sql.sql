@@ -134,6 +134,7 @@ create table if not exists public.user_passes (
   pass_id           uuid not null references public.passes(id) on delete restrict,
   entries_total     int not null,
   entries_remaining int not null,
+  cancellation_count int not null default 0,
   price_paid        numeric(10,2) not null,
   expires_at        timestamptz not null,
   status            text not null default 'active'
@@ -148,7 +149,8 @@ create table if not exists public.user_passes (
   updated_at        timestamptz not null default now(),
   constraint entries_valid check (
     entries_remaining >= 0 and entries_remaining <= entries_total
-  )
+  ),
+  constraint user_passes_cancellation_count_valid check (cancellation_count >= 0)
 );
 
 create index if not exists idx_user_passes_user_id on public.user_passes(user_id);
@@ -159,6 +161,16 @@ alter table public.user_passes add column if not exists refund_status text;
 alter table public.user_passes add column if not exists refund_note text;
 alter table public.user_passes add column if not exists refunded_at timestamptz;
 alter table public.user_passes add column if not exists refund_amount numeric(10,2);
+alter table public.user_passes add column if not exists cancellation_count int;
+alter table public.user_passes alter column cancellation_count set default 0;
+update public.user_passes
+set cancellation_count = 0
+where cancellation_count is null;
+alter table public.user_passes drop constraint if exists user_passes_cancellation_count_valid;
+alter table public.user_passes
+  add constraint user_passes_cancellation_count_valid
+  check (cancellation_count >= 0);
+alter table public.user_passes alter column cancellation_count set not null;
 alter table public.user_passes alter column refund_status set default 'not_required';
 update public.user_passes
 set refund_status = 'not_required'
@@ -452,6 +464,10 @@ declare
   lesson_start  timestamptz;
   cancel_hours  int;
   hours_before  numeric;
+  v_actor_role  text;
+  v_entries_total int;
+  v_cancellation_count int;
+  v_cancel_limit int;
 begin
   if new.status = 'cancelled' and old.status = 'booked' then
     select l.start_time, c.cancellation_hours
@@ -469,10 +485,33 @@ begin
     end if;
 
     if old.user_pass_id is not null then
-      update public.user_passes
-      set entries_remaining = entries_remaining + 1,
-          status = case when status = 'depleted' then 'active' else status end
-      where id = old.user_pass_id;
+      select u.role
+      into v_actor_role
+      from public.users u
+      where u.id = auth.uid();
+
+      if coalesce(v_actor_role, '') = 'admin' then
+        update public.user_passes
+        set entries_remaining = entries_remaining + 1,
+            status = case when status = 'depleted' then 'active' else status end
+        where id = old.user_pass_id;
+      elsif new.cancellation_type = 'early' then
+        select up.entries_total, coalesce(up.cancellation_count, 0)
+        into v_entries_total, v_cancellation_count
+        from public.user_passes up
+        where up.id = old.user_pass_id
+        for update;
+
+        v_cancel_limit := public.allowed_pass_cancellations(v_entries_total);
+
+        if v_cancellation_count < v_cancel_limit then
+          update public.user_passes
+          set entries_remaining = entries_remaining + 1,
+              cancellation_count = coalesce(cancellation_count, 0) + 1,
+              status = case when status = 'depleted' then 'active' else status end
+          where id = old.user_pass_id;
+        end if;
+      end if;
     end if;
 
     if coalesce(new.payment_type, old.payment_type) = 'single'
@@ -687,6 +726,29 @@ create or replace function public.is_lektor()
 returns boolean language sql stable security definer as $$
   select exists (
     select 1 from public.users where id = auth.uid() and role in ('lektor', 'admin')
+  );
+$$;
+
+create or replace function public.allowed_pass_cancellations(p_entries_total int)
+returns int language sql immutable as $$
+  select case when coalesce(p_entries_total, 0) <= 5 then 1 else 2 end;
+$$;
+
+create or replace function public.can_self_cancel_booking(p_lesson_id uuid, p_user_pass_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.lessons l
+    join public.courses c on c.id = l.course_id
+    join public.user_passes up on up.id = p_user_pass_id
+    where l.id = p_lesson_id
+      and l.start_time > now() + make_interval(hours => c.cancellation_hours)
+      and coalesce(up.cancellation_count, 0) < public.allowed_pass_cancellations(up.entries_total)
   );
 $$;
 
@@ -948,8 +1010,18 @@ create policy "bookings: vytvořit vlastní"
 
 create policy "bookings: zákazník storní vlastní"
   on public.bookings for update to authenticated
-  using (user_id = public.current_user_id() and status = 'booked' and payment_type = 'pass')
-  with check (status = 'cancelled' and user_id = public.current_user_id() and payment_type = 'pass');
+  using (
+    user_id = public.current_user_id()
+    and status = 'booked'
+    and payment_type = 'pass'
+    and public.can_self_cancel_booking(public.bookings.lesson_id, public.bookings.user_pass_id)
+  )
+  with check (
+    status = 'cancelled'
+    and user_id = public.current_user_id()
+    and payment_type = 'pass'
+    and public.can_self_cancel_booking(public.bookings.lesson_id, public.bookings.user_pass_id)
+  );
 
 create policy "bookings: lektor edituje na svých lekcích"
   on public.bookings for update to authenticated

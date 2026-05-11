@@ -346,7 +346,7 @@ export async function loadUserPasses(userId) {
   const { data, error } = await sb
     .from('user_passes')
     .select(`
-      id, entries_total, entries_remaining, expires_at, status,
+      id, entries_total, entries_remaining, cancellation_count, expires_at, status,
       pass:passes ( id, name, entries_total, price, validity_weeks, allowed_course_ids )
     `)
     .eq('user_id', userId)
@@ -363,10 +363,11 @@ export async function loadMyBookings(userId) {
   const { data, error } = await sb
     .from('bookings')
     .select(`
-      id, status, payment_type, created_at,
+      id, status, payment_type, user_pass_id, created_at,
+      user_pass:user_passes ( id, entries_total, cancellation_count ),
       lesson:lessons (
         id, start_time, end_time,
-        course:courses ( id, title, color_code, is_workshop, owner:users ( name ) )
+        course:courses ( id, title, color_code, is_workshop, cancellation_hours, owner:users ( name ) )
       )
     `)
     .eq('user_id', userId)
@@ -375,6 +376,24 @@ export async function loadMyBookings(userId) {
 
   if (error) { console.error('loadMyBookings:', error); myBookings = []; return }
   myBookings = data ?? []
+}
+
+function passCancellationLimit(entriesTotal) {
+  const total = Number(entriesTotal)
+  if (!Number.isFinite(total) || total <= 0) return 0
+  return total <= 5 ? 1 : 2
+}
+
+export function canUserCancelBooking(booking) {
+  if (!booking || booking.payment_type !== 'pass') return false
+  const lessonStart = booking.lesson?.start_time
+  const cancellationHours = Number(booking.lesson?.course?.cancellation_hours)
+  const startTs = lessonStart ? new Date(lessonStart).getTime() : NaN
+  if (!Number.isFinite(startTs) || !Number.isFinite(cancellationHours)) return false
+  const cancellationCount = Number(booking.user_pass?.cancellation_count ?? 0)
+  const cancellationLimit = passCancellationLimit(booking.user_pass?.entries_total)
+  return cancellationCount < cancellationLimit
+    && Date.now() <= startTs - (cancellationHours * 60 * 60 * 1000)
 }
 
 export async function refreshUserBookings() {
@@ -1097,7 +1116,7 @@ function renderProtectedSections(user) {
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
                   <span class="pill ok">Přihlášena</span>
-                  ${b.payment_type === 'pass'
+                  ${canUserCancelBooking(b)
                     ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">Odhlásit</button>`
                     : ''}
                 </div>
@@ -1125,6 +1144,10 @@ window.cancelMyBooking = async (bookingId) => {
   const booking = myBookings.find(b => String(b.id) === String(bookingId))
   if (booking?.payment_type === 'single') {
     window.showToast?.('Jednorázový vstup nelze stornovat.', 'error')
+    return
+  }
+  if (booking && !canUserCancelBooking(booking)) {
+    window.showToast?.('Storno už není možné, vypršelo storno okno.', 'error')
     return
   }
   try {
