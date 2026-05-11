@@ -1970,6 +1970,10 @@ async function buildMojeLekceMarkup() {
                     <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
                   </div>
                 </div>
+                <div style="flex-shrink:0;">
+                  <button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
+                    onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">Účastníci</button>
+                </div>
               </div>
             </div>
             <div class="ml-cx" id="ml-cx-${lid}">
