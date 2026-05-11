@@ -2702,7 +2702,7 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
       p_refund_pass: refundPass,
     })
     if (error) {
-      if (_canFallbackAdminBookingCancel(error)) {
+      try {
         await _adminCancelCustomerBookingFallback(bookingId, paymentType, userPassId, refundPass)
         window.showToast?.(
           'Rezervace byla zrušena. Vstup na permanentku byl vrácen podle nastavení; e-mail se v nouzovém režimu nezařadil automaticky.',
@@ -2711,8 +2711,12 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
         if (lessonId) await window.adminOpenLessonDetail?.(lessonId)
         void renderAdminDashboard()
         return
+      } catch (fallbackErr) {
+        console.error('[Admin] adminCancelCustomerBooking fallback failed:', fallbackErr)
+        const rpcMsg = error?.message || error
+        const fbMsg = fallbackErr?.message || fallbackErr
+        throw new Error(`RPC: ${rpcMsg} | fallback: ${fbMsg}`)
       }
-      throw error
     }
     if (data && data.ok === false) {
       throw new Error(data.error || 'Operace se nezdařila')
