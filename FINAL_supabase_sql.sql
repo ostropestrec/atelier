@@ -805,6 +805,7 @@ drop policy if exists "user_passes: číst vlastní"              on public.user
 drop policy if exists "user_passes: lektor vidí pro své kurzy" on public.user_passes;
 drop policy if exists "user_passes: admin vidí vše"            on public.user_passes;
 drop policy if exists "user_passes: uživatel vytvoří vlastní"  on public.user_passes;
+drop policy if exists "user_passes: admin upravuje"            on public.user_passes;
 
 create policy "user_passes: číst vlastní"
   on public.user_passes for select to authenticated
@@ -828,6 +829,12 @@ create policy "user_passes: admin vidí vše"
 create policy "user_passes: uživatel vytvoří vlastní"
   on public.user_passes for insert to authenticated
   with check (user_id = public.current_user_id());
+
+-- Admin upravuje zakoupené permanentky zákazníků (vstupy, platnost, stav, cena)
+create policy "user_passes: admin upravuje"
+  on public.user_passes for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- ── 6. BOOKINGS ──────────────────────────────────────────────
 drop policy if exists "bookings: číst vlastní"               on public.bookings;
@@ -881,7 +888,8 @@ create policy "bookings: lektor edituje na svých lekcích"
 
 create policy "bookings: admin edituje vše"
   on public.bookings for update to authenticated
-  using (public.is_admin());
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- ── 7. GDPR LOG — nikdo přes klienta nečte ani nepíše ────────
 drop policy if exists "gdpr_log: jen service_role" on public.gdpr_deletion_log;
@@ -935,7 +943,10 @@ create policy "gdpr_log: jen service_role"
 create table if not exists public.email_notification_queue (
   id           uuid primary key default gen_random_uuid(),
   kind         text not null
-                 check (kind in ('min_capacity_below','lesson_cancelled','lesson_rescheduled')),
+                 check (kind in (
+                   'min_capacity_below','lesson_cancelled','lesson_rescheduled',
+                   'booking_cancelled_admin'
+                 )),
   to_email     text not null,
   subject      text not null,
   body_plain   text not null,
@@ -949,6 +960,16 @@ create table if not exists public.email_notification_queue (
 create index if not exists idx_email_notification_queue_pending
   on public.email_notification_queue (created_at asc)
   where processed_at is null;
+
+-- Migrace starších DB: doplnění typu záznamu ve frontě
+alter table public.email_notification_queue drop constraint if exists email_notification_queue_kind_check;
+alter table public.email_notification_queue add constraint email_notification_queue_kind_check
+  check (kind in (
+    'min_capacity_below',
+    'lesson_cancelled',
+    'lesson_rescheduled',
+    'booking_cancelled_admin'
+  ));
 
 alter table public.email_notification_queue enable row level security;
 
@@ -1150,6 +1171,129 @@ $$;
 
 revoke all on function public.admin_cancel_lesson(uuid) from public;
 grant execute on function public.admin_cancel_lesson(uuid) to authenticated;
+
+-- Storno jedné rezervace z adminu: e-mail do fronty + volitelné nevrácení vstupu na permanentku
+-- (trigger restore_pass_on_cancel vždy přičte vstup; při p_refund_pass = false ho zde odečteme zpět)
+create or replace function public.admin_cancel_customer_booking(
+  p_booking_id uuid,
+  p_refund_pass boolean default true
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id       uuid;
+  v_lesson_id     uuid;
+  v_user_pass_id  uuid;
+  v_payment_type  text;
+  v_book_status   text;
+  v_start         timestamptz;
+  v_course_title  text;
+  v_to_email      text;
+  v_lang          text;
+  v_note_cs       text := '';
+  v_note_en       text := '';
+begin
+  if p_booking_id is null then
+    return jsonb_build_object('ok', false, 'error', 'missing_booking_id');
+  end if;
+
+  if not public.is_admin() then
+    raise exception 'Pouze administrátor může zrušit rezervaci zákazníka.';
+  end if;
+
+  select bk.user_id, bk.lesson_id, bk.user_pass_id, bk.payment_type, bk.status,
+         l.start_time, public._course_title_plain(c.title)
+  into v_user_id, v_lesson_id, v_user_pass_id, v_payment_type, v_book_status, v_start, v_course_title
+  from public.bookings bk
+  join public.lessons l on l.id = bk.lesson_id
+  join public.courses c on c.id = l.course_id
+  where bk.id = p_booking_id
+  for update of bk;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'booking_not_found');
+  end if;
+
+  if v_book_status is distinct from 'booked' then
+    return jsonb_build_object('ok', false, 'error', 'not_active_booking');
+  end if;
+
+  select u.email, coalesce(nullif(trim(u.language_pref), ''), 'cs')
+  into v_to_email, v_lang
+  from public.users u
+  where u.id = v_user_id;
+
+  if v_payment_type = 'pass' and v_user_pass_id is not null then
+    if p_refund_pass then
+      v_note_cs := E'\n\nVstup na permanentku byl vrácen na váš zůstatek.';
+      v_note_en := E'\n\nYour pass entry has been restored to your balance.';
+    else
+      v_note_cs := E'\n\nVstup na permanentku jsme nevraceli (storno z administrace).';
+      v_note_en := E'\n\nYour pass entry was not refunded (cancellation by the studio).';
+    end if;
+  end if;
+
+  if v_to_email is not null and length(trim(v_to_email)) > 0 then
+    insert into public.email_notification_queue (
+      kind, to_email, subject, body_plain, lesson_id, meta, dedupe_key
+    )
+    values (
+      'booking_cancelled_admin',
+      v_to_email,
+      case when v_lang = 'en' then
+        'Booking removed — ' || left(coalesce(v_course_title, 'Lesson'), 100)
+      else
+        'Zrušení Vaší přihlášky — ' || left(coalesce(v_course_title, 'Lekce'), 100)
+      end,
+      case when v_lang = 'en' then
+        format(
+          e'Hello,\n\nYour booking for "%s" on %s was cancelled by the studio.%s\n\nWe apologize for any inconvenience.\n',
+          coalesce(v_course_title, 'lesson'),
+          to_char(v_start at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+          v_note_en
+        )
+      else
+        format(
+          e'Dobrý den,\n\nVaše přihláška na lekci „%s“ dne %s byla zrušena z naší strany (administrace).%s\n\nOmlouváme se za případnou nepříjemnost.\n',
+          coalesce(v_course_title, 'lekce'),
+          to_char(v_start at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+          v_note_cs
+        )
+      end,
+      v_lesson_id,
+      jsonb_build_object('user_id', v_user_id, 'booking_id', p_booking_id),
+      'bca:' || p_booking_id::text
+    )
+    on conflict (dedupe_key) do nothing;
+  end if;
+
+  update public.bookings
+  set status = 'cancelled',
+      cancelled_at = coalesce(cancelled_at, now())
+  where id = p_booking_id;
+
+  if v_payment_type = 'pass' and v_user_pass_id is not null and not p_refund_pass then
+    update public.user_passes up
+    set
+      entries_remaining = greatest(0, up.entries_remaining - 1),
+      status = case
+        when up.expires_at < now() then 'expired'
+        when greatest(0, up.entries_remaining - 1) <= 0 then 'depleted'
+        else 'active'
+      end,
+      updated_at = now()
+    where up.id = v_user_pass_id;
+  end if;
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+revoke all on function public.admin_cancel_customer_booking(uuid, boolean) from public;
+grant execute on function public.admin_cancel_customer_booking(uuid, boolean) to authenticated;
 
 -- Upozornění lektorovi: méně než min. účastníků, okno startu lekce za 23–25 h (volat z cronu každou hodinu)
 create or replace function public.enqueue_min_capacity_warnings()

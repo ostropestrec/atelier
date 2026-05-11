@@ -260,9 +260,13 @@ create policy "user_passes: admin vidí vše"
   to authenticated
   using (public.is_admin());
 
--- INSERT/UPDATE user_passes se provádí výhradně přes
--- Edge Function s service_role (po Stripe webhoooku).
--- Žádná public policy pro INSERT/UPDATE — chrání integritu dat.
+-- INSERT: uživatel pro sebe (nákup z aplikace) nebo backend (Stripe).
+-- UPDATE: admin může upravit zakoupenou permanentku zákazníka (správa vstupů / platnosti).
+create policy "user_passes: admin upravuje"
+  on public.user_passes for update
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- ============================================================
 -- 6. BOOKINGS — soukromé rezervace
@@ -331,6 +335,13 @@ create policy "bookings: lektor edituje na svých lekcích"
         and c.owner_id = public.current_user_id()
     )
   );
+
+-- Admin může upravovat rezervace (např. storno přihlášky zákazníka z lekce)
+create policy "bookings: admin edituje vše"
+  on public.bookings for update
+  to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- ============================================================
 -- GHOST ÚČET — Flow při rezervaci bez přihlášení

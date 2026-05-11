@@ -175,6 +175,22 @@ function fmtDateTime(iso) {
     + ' ' + d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
 }
 
+/** Hodnota pro `<input type="datetime-local">` v lokálním čase. */
+function _isoToDatetimeLocalInput(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+function _datetimeLocalInputToIso(s) {
+  const t = String(s ?? '').trim()
+  if (!t) return null
+  const d = new Date(t)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
+
 function fmtTimeOnly(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
@@ -493,7 +509,191 @@ function _zakaznikRow(user, bookingMap, lastMap, passMap) {
         <div style="font-size:12px;font-weight:600;">${count} lekcí</div>
         <div style="font-size:10px;color:#9b9b9b;">${last ? fmtDate(last) : 'Žádná'}</div>
       </div>
+      <div style="flex-shrink:0;">
+        <button type="button" class="btn-small" title="Upravit zakoupené permanentky"
+          onclick="window.openAdminCustomerPassesModal?.('${esc(user.id)}', ${JSON.stringify(user.name || user.email || 'Zákazník')})">Permanentky</button>
+      </div>
     </div>`
+}
+
+let _mupEditUserId = null
+let _mupDisplayName = ''
+
+function buildAdminCustomerPassesModal() {
+  if (document.getElementById('modal-admin-user-passes')) return
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="modal-admin-user-passes" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
+      z-index:300;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;"
+      onclick="if(event.target===this)window.closeAdminCustomerPassesModal?.()">
+      <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
+        width:100%;max-width:520px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
+        <div style="padding:18px 18px 4px;">
+          <div style="font-size:18px;font-weight:700;" id="mup-title">Permanentky zákazníka</div>
+        </div>
+        <div id="mup-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
+        <div id="mup-error" style="display:none;margin:0 18px 12px;font-size:12px;color:#791F1F;background:#FCEBEB;
+          border-radius:8px;padding:10px 12px;"></div>
+        <div style="display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);">
+          <button type="button" class="btn-wide" onclick="window.closeAdminCustomerPassesModal?.()">Zavřít</button>
+        </div>
+      </div>
+    </div>`)
+  const root = document.getElementById('modal-admin-user-passes')
+  if (root && !root.dataset.mupDelegation) {
+    root.dataset.mupDelegation = '1'
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-mup-save]')
+      if (!btn || !root.contains(btn)) return
+      e.preventDefault()
+      void window.adminSaveUserPassFromCard?.(btn.getAttribute('data-mup-save'))
+    })
+  }
+}
+
+function _mupPassesListHtml(passes) {
+  if (!passes.length) {
+    return '<div class="empty" style="padding:12px 0;">Tento zákazník nemá žádnou permanentku.</div>'
+  }
+  const INP = 'width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;'
+  return passes.map(up => {
+    const name = loc(up.pass?.name) || 'Permanentka'
+    const st = up.status || 'active'
+    return `
+    <div data-mup-card="${esc(up.id)}" style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;background:#fafafa;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${esc(name)}</div>
+      <div style="font-size:11px;color:#6b6b6b;margin-bottom:10px;">Zakoupeno ${fmtDate(up.created_at)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Zbývá vstupů</label>
+          <input type="number" min="0" data-mup-field="entries_remaining" value="${up.entries_remaining}" style="${INP}" />
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Celkem vstupů</label>
+          <input type="number" min="1" data-mup-field="entries_total" value="${up.entries_total}" style="${INP}" />
+        </div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Platnost do</label>
+        <input type="datetime-local" data-mup-field="expires_at" value="${esc(_isoToDatetimeLocalInput(up.expires_at))}" style="${INP}" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Stav</label>
+          <select data-mup-field="status" style="${INP}">
+            <option value="active" ${st === 'active' ? 'selected' : ''}>Aktivní</option>
+            <option value="expired" ${st === 'expired' ? 'selected' : ''}>Vypršela</option>
+            <option value="depleted" ${st === 'depleted' ? 'selected' : ''}>Vyčerpána</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Cena zaplaceno (Kč)</label>
+          <input type="number" min="0" step="0.01" data-mup-field="price_paid" value="${Number(up.price_paid) || 0}" style="${INP}" />
+        </div>
+      </div>
+      <div data-mup-row-err style="display:none;font-size:12px;color:#791F1F;margin-bottom:8px;"></div>
+      <button type="button" class="btn-small primary" data-mup-save="${esc(up.id)}">Uložit změny</button>
+    </div>`
+  }).join('')
+}
+
+async function _mupReloadBody() {
+  const body = document.getElementById('mup-body')
+  if (!body || !_mupEditUserId) return
+  body.innerHTML = '<div style="font-size:12px;color:#9b9b9b;">Načítám…</div>'
+  const { data: passes, error } = await sb.from('user_passes')
+    .select('id, entries_total, entries_remaining, expires_at, status, price_paid, created_at, pass:passes(name)')
+    .eq('user_id', _mupEditUserId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  body.innerHTML = _mupPassesListHtml(passes ?? [])
+}
+
+window.openAdminCustomerPassesModal = async (userId, displayName) => {
+  buildAdminCustomerPassesModal()
+  _mupEditUserId = userId
+  _mupDisplayName = displayName || 'Zákazník'
+  const title = document.getElementById('mup-title')
+  const errGlobal = document.getElementById('mup-error')
+  if (title) title.textContent = `Permanentky — ${_mupDisplayName}`
+  if (errGlobal) { errGlobal.style.display = 'none'; errGlobal.textContent = '' }
+  document.getElementById('modal-admin-user-passes').style.display = 'flex'
+  const body = document.getElementById('mup-body')
+  body.innerHTML = '<div style="font-size:12px;color:#9b9b9b;">Načítám…</div>'
+  try {
+    await _mupReloadBody()
+  } catch (e) {
+    console.error('[Admin] openAdminCustomerPassesModal:', e)
+    body.innerHTML = `<div class="empty" style="color:#791F1F;padding:12px 0;">${esc(e.message || 'Chyba při načtení')}</div>`
+  }
+}
+
+window.closeAdminCustomerPassesModal = () => {
+  const m = document.getElementById('modal-admin-user-passes')
+  if (m) m.style.display = 'none'
+  _mupEditUserId = null
+}
+
+window.adminSaveUserPassFromCard = async (userPassId) => {
+  if (!userPassId) return
+  const card = document.querySelector(`[data-mup-card="${String(userPassId).replace(/"/g, '')}"]`)
+  if (!card) return
+  const errEl = card.querySelector('[data-mup-row-err]')
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
+  const get = field => card.querySelector(`[data-mup-field="${field}"]`)
+  const entriesRemaining = Number(get('entries_remaining')?.value)
+  const entriesTotal = Number(get('entries_total')?.value)
+  const pricePaid = Number(get('price_paid')?.value)
+  const status = get('status')?.value
+  const expiresLocal = get('expires_at')?.value
+  const expiresAt = _datetimeLocalInputToIso(expiresLocal)
+  if (!entriesTotal || entriesTotal < 1) {
+    if (errEl) { errEl.textContent = 'Celkový počet vstupů musí být alespoň 1.'; errEl.style.display = 'block' }
+    return
+  }
+  if (Number.isNaN(entriesRemaining) || entriesRemaining < 0) {
+    if (errEl) { errEl.textContent = 'Zbývající vstupy musí být 0 nebo více.'; errEl.style.display = 'block' }
+    return
+  }
+  if (entriesRemaining > entriesTotal) {
+    if (errEl) { errEl.textContent = 'Zbývá nemůže být víc než celkem vstupů.'; errEl.style.display = 'block' }
+    return
+  }
+  if (!['active', 'expired', 'depleted'].includes(status)) {
+    if (errEl) { errEl.textContent = 'Neplatný stav.'; errEl.style.display = 'block' }
+    return
+  }
+  if (!expiresAt) {
+    if (errEl) { errEl.textContent = 'Vyplňte platnost do (datum a čas).'; errEl.style.display = 'block' }
+    return
+  }
+  if (Number.isNaN(pricePaid) || pricePaid < 0) {
+    if (errEl) { errEl.textContent = 'Zadejte platnou cenu.'; errEl.style.display = 'block' }
+    return
+  }
+  const btn = card.querySelector('[data-mup-save]')
+  if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
+  try {
+    const { error } = await sb.from('user_passes').update({
+      entries_total: entriesTotal,
+      entries_remaining: entriesRemaining,
+      expires_at: expiresAt,
+      status,
+      price_paid: pricePaid,
+    }).eq('id', userPassId)
+    if (error) throw error
+    window.showToast?.('Permanentka byla uložena.', 'ok')
+    await _mupReloadBody()
+    void renderAdminZakaznici()
+  } catch (err) {
+    console.error('[Admin] adminSaveUserPassFromCard:', err)
+    if (errEl) {
+      errEl.textContent = err.message || 'Uložení se nepodařilo.'
+      errEl.style.display = 'block'
+    }
+    window.showToast?.('Chyba: ' + (err.message ?? err), 'error')
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Uložit změny' }
+  }
 }
 
 // ── Admin Platby ─────────────────────────────────────────────
@@ -1677,7 +1877,7 @@ function _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, num
 function buildLessonAttendeesModal() {
   if (document.getElementById('modal-lesson-attendees')) return
   document.body.insertAdjacentHTML('beforeend', `
-    <div id="modal-lesson-attendees" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
+    <div id="modal-lesson-attendees" data-lesson-id="" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
       z-index:300;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;"
       onclick="if(event.target===this)window.closeLessonAttendeesModal?.()">
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
@@ -1697,6 +1897,64 @@ window.closeLessonAttendeesModal = () => {
   if (m) m.style.display = 'none'
 }
 
+window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, userPassId) => {
+  if (!bookingId) return
+  if (!confirm('Opravdu zrušit rezervaci tohoto zákazníka na této lekci?')) return
+  let refundPass = true
+  if (paymentType === 'pass' && userPassId) {
+    refundPass = confirm(
+      'Vrátit zákazníkovi 1 vstup na permanentku?\n\n'
+      + 'OK = ano, vrátit vstup\n'
+      + 'Zrušit = ne, vstup zůstane odečtený',
+    )
+  }
+  try {
+    const { data, error } = await sb.rpc('admin_cancel_customer_booking', {
+      p_booking_id: bookingId,
+      p_refund_pass: refundPass,
+    })
+    if (error) {
+      const missFn = error.code === 'PGRST202'
+        || error.message?.includes('Could not find the function')
+        || error.message?.includes('admin_cancel_customer_booking')
+      if (missFn) {
+        window.showToast?.(
+          'Chybí SQL funkce admin_cancel_customer_booking (e-mail a správné storno). Spusťte migraci z FINAL_supabase_sql.sql.',
+          'error',
+        )
+        return
+      }
+      throw error
+    }
+    if (data && data.ok === false) {
+      throw new Error(data.error || 'Operace se nezdařila')
+    }
+    window.showToast?.('Rezervace byla zrušena. Zákazník obdrží e-mail z fronty.', 'ok')
+    if (lessonId) await window.adminOpenLessonDetail?.(lessonId)
+    void renderAdminDashboard()
+  } catch (err) {
+    console.error('[Admin] adminCancelCustomerBooking:', err)
+    window.showToast?.('Nepodařilo se zrušit rezervaci: ' + (err.message ?? err), 'error')
+  }
+}
+
+;(function installAdminLessonAttendeesCancelDelegation() {
+  if (window.__mlaCancelDelegationInstalled) return
+  window.__mlaCancelDelegationInstalled = true
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-admin-cancel-booking]')
+    if (!btn) return
+    const modal = document.getElementById('modal-lesson-attendees')
+    if (!modal?.contains(btn)) return
+    e.preventDefault()
+    const bookingId = btn.getAttribute('data-admin-cancel-booking')
+    const lessonId = modal.dataset.lessonId || ''
+    const paymentType = btn.getAttribute('data-payment-type') || ''
+    const userPassId = btn.getAttribute('data-user-pass-id') || ''
+    void window.adminCancelCustomerBooking?.(bookingId, lessonId, paymentType, userPassId || null)
+  })
+})()
+
 window.adminOpenLessonDetail = async (lessonId) => {
   if (!lessonId) return
   buildLessonAttendeesModal()
@@ -1704,6 +1962,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
   const listEl = document.getElementById('mla-list')
   const titleEl = document.getElementById('mla-title')
   if (!modal || !listEl) return
+  modal.dataset.lessonId = String(lessonId)
   listEl.innerHTML = '<div style="font-size:12px;color:#9b9b9b;padding:12px 0;">Načítám…</div>'
   if (titleEl) titleEl.textContent = 'Účastníci lekce'
   modal.style.display = 'flex'
@@ -1758,6 +2017,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
             <th style="padding:8px 8px 8px 0;">Jméno</th>
             <th style="padding:8px 4px;">E-mail</th>
             <th style="padding:8px 0 8px 8px;text-align:right;">Platba</th>
+            <th style="padding:8px 0 8px 8px;text-align:right;width:1%;white-space:nowrap;">Akce</th>
           </tr>
         </thead>
         <tbody>
@@ -1768,10 +2028,17 @@ window.adminOpenLessonDetail = async (lessonId) => {
             const payCell = b.payment_type === 'pass'
               ? `Permanentka${passLabel ? ': ' + passLabel : ''}`
               : 'Jednorázově'
+            const passIdAttr = b.user_pass_id ? esc(b.user_pass_id) : ''
             return `<tr style="border-top:1px solid var(--border);">
               <td style="padding:10px 8px 10px 0;vertical-align:top;">${esc(u?.name || '—')}</td>
               <td style="padding:10px 4px;vertical-align:top;word-break:break-all;">${esc(u?.email || '—')}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;white-space:nowrap;">${payCell}</td>
+              <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;">
+                <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+                  data-admin-cancel-booking="${esc(b.id)}"
+                  data-payment-type="${esc(b.payment_type)}"
+                  data-user-pass-id="${passIdAttr}">Zrušit rezervaci</button>
+              </td>
             </tr>`
           }).join('')}
         </tbody>
