@@ -511,7 +511,9 @@ function _zakaznikRow(user, bookingMap, lastMap, passMap) {
       </div>
       <div style="flex-shrink:0;">
         <button type="button" class="btn-small" title="Upravit zakoupené permanentky"
-          onclick="window.openAdminCustomerPassesModal?.('${esc(user.id)}', ${JSON.stringify(user.name || user.email || 'Zákazník')})">Permanentky</button>
+          data-admin-user-passes-open="1"
+          data-user-id="${esc(user.id)}"
+          data-display-name="${esc(user.name || user.email || 'Zákazník')}">Permanentky</button>
       </div>
     </div>`
 }
@@ -526,7 +528,7 @@ function buildAdminCustomerPassesModal() {
       z-index:300;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;"
       onclick="if(event.target===this)window.closeAdminCustomerPassesModal?.()">
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
-        width:100%;max-width:520px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
+        width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
           <div style="font-size:18px;font-weight:700;" id="mup-title">Permanentky zákazníka</div>
         </div>
@@ -549,6 +551,19 @@ function buildAdminCustomerPassesModal() {
     })
   }
 }
+
+;(function installAdminCustomerPassesDelegation() {
+  if (window.__adminCustomerPassesDelegationInstalled) return
+  window.__adminCustomerPassesDelegationInstalled = true
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-admin-user-passes-open]')
+    if (!btn) return
+    e.preventDefault()
+    const userId = btn.getAttribute('data-user-id')
+    const displayName = btn.getAttribute('data-display-name') || 'Zákazník'
+    void window.openAdminCustomerPassesModal?.(userId, displayName)
+  })
+})()
 
 function _mupPassesListHtml(passes) {
   if (!passes.length) {
@@ -686,11 +701,19 @@ window.adminSaveUserPassFromCard = async (userPassId) => {
     void renderAdminZakaznici()
   } catch (err) {
     console.error('[Admin] adminSaveUserPassFromCard:', err)
+    const msg = String(err?.message ?? err ?? '')
+    const looksLikeMissingRls =
+      msg.includes('row-level security')
+      || msg.includes('permission denied')
+      || msg.includes('new row violates row-level security policy')
+    const uiMsg = looksLikeMissingRls
+      ? 'V databázi chybí admin UPDATE politika pro user_passes. Spusťte SQL migraci z FINAL_supabase_sql.sql.'
+      : (err.message || 'Uložení se nepodařilo.')
     if (errEl) {
-      errEl.textContent = err.message || 'Uložení se nepodařilo.'
+      errEl.textContent = uiMsg
       errEl.style.display = 'block'
     }
-    window.showToast?.('Chyba: ' + (err.message ?? err), 'error')
+    window.showToast?.('Chyba: ' + uiMsg, 'error')
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Uložit změny' }
   }
@@ -1976,7 +1999,7 @@ function buildLessonAttendeesModal() {
           <button type="button" onclick="window.closeLessonAttendeesModal?.()"
             style="border:none;background:transparent;font-size:20px;line-height:1;cursor:pointer;color:#6b6b6b;padding:0 4px;">×</button>
         </div>
-        <div id="mla-list" style="padding:14px 18px 18px;max-height:60vh;overflow-y:auto;"></div>
+        <div id="mla-list" style="padding:14px 18px 18px;max-height:65vh;overflow:auto;"></div>
       </div>
     </div>`)
 }
@@ -2100,13 +2123,20 @@ window.adminOpenLessonDetail = async (lessonId) => {
     }
 
     listEl.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <div style="overflow-x:auto;">
+      <table style="width:100%;min-width:700px;border-collapse:collapse;font-size:13px;table-layout:fixed;">
+        <colgroup>
+          <col style="width:18%;">
+          <col style="width:26%;">
+          <col style="width:36%;">
+          <col style="width:20%;">
+        </colgroup>
         <thead>
           <tr style="text-align:left;color:#6b6b6b;font-size:11px;">
             <th style="padding:8px 8px 8px 0;">Jméno</th>
             <th style="padding:8px 4px;">E-mail</th>
-            <th style="padding:8px 0 8px 8px;text-align:right;">Platba</th>
-            <th style="padding:8px 0 8px 8px;text-align:right;width:1%;white-space:nowrap;">Akce</th>
+            <th style="padding:8px 0 8px 8px;">Platba</th>
+            <th style="padding:8px 0 8px 8px;text-align:right;white-space:nowrap;">Akce</th>
           </tr>
         </thead>
         <tbody>
@@ -2119,9 +2149,9 @@ window.adminOpenLessonDetail = async (lessonId) => {
               : 'Jednorázově'
             const passIdAttr = b.user_pass_id ? esc(b.user_pass_id) : ''
             return `<tr style="border-top:1px solid var(--border);">
-              <td style="padding:10px 8px 10px 0;vertical-align:top;">${esc(u?.name || '—')}</td>
-              <td style="padding:10px 4px;vertical-align:top;word-break:break-all;">${esc(u?.email || '—')}</td>
-              <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;white-space:nowrap;">${payCell}</td>
+              <td style="padding:10px 8px 10px 0;vertical-align:top;font-weight:500;line-height:1.45;">${esc(u?.name || '—')}</td>
+              <td style="padding:10px 4px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;">${esc(u?.email || '—')}</td>
+              <td style="padding:10px 0 10px 8px;vertical-align:top;line-height:1.45;">${payCell}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;">
                 <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
                   data-admin-cancel-booking="${esc(b.id)}"
@@ -2132,6 +2162,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
           }).join('')}
         </tbody>
       </table>
+      </div>
       <div style="font-size:11px;color:#9b9b9b;margin-top:12px;">Celkem přihlášených: ${rows.length}</div>`
     })(), 'modal-lesson-attendees')
   } catch (err) {
