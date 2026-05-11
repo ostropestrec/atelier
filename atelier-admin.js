@@ -638,7 +638,8 @@ function _mupAddFormHtml() {
                 </option>`).join('')}
             </select>
           </div>
-          <button type="button" class="btn-small primary" data-mup-add="1" style="white-space:nowrap;">Připsat</button>
+          <button type="button" class="btn-small primary" data-mup-add="1"
+            onclick="window.adminCreateUserPassManual?.()" style="white-space:nowrap;">Připsat</button>
         </div>
       ` : `<div style="font-size:12px;color:#9b9b9b;">Nejsou k dispozici žádné aktivní typy permanentek.</div>`}
       <div id="mup-add-error" style="display:none;font-size:12px;color:#791F1F;margin-top:10px;"></div>
@@ -692,7 +693,10 @@ window.closeAdminCustomerPassesModal = () => {
 }
 
 window.adminCreateUserPassManual = async () => {
-  if (!_mupEditUserId) return
+  if (!_mupEditUserId) {
+    window.showToast?.('Chybí zákazník pro připsání permanentky. Zavřete okno a otevřete ho znovu.', 'error')
+    return
+  }
   const errEl = document.getElementById('mup-add-error')
   if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
 
@@ -704,7 +708,7 @@ window.adminCreateUserPassManual = async () => {
     return
   }
 
-  const btn = document.querySelector('[data-mup-add]')
+  const btn = document.getElementById('modal-admin-user-passes')?.querySelector('[data-mup-add]')
   if (btn) { btn.disabled = true; btn.textContent = 'Připisuji…' }
 
   try {
