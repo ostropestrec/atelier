@@ -118,6 +118,10 @@ create table public.bookings (
   cancelled_at      timestamptz,
   cancellation_type text check (cancellation_type in ('early','late')),
   stripe_payment_id text,
+  refund_status     text not null default 'not_required'
+                      check (refund_status in ('not_required','pending','completed')),
+  refund_note       text,
+  refunded_at       timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   constraint unique_active_booking unique (user_id, lesson_id)

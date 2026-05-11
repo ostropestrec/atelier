@@ -268,6 +268,40 @@ function _adminBookingSearchTokens(booking) {
   return [weekday, dateCs, dateTimeCs, timeCs, dayMonth, _adminBookingStatusLabel(booking?.status)]
 }
 
+function _adminPriceSearchTokens(amount) {
+  const value = Number(amount)
+  if (!Number.isFinite(value) || value < 0) return []
+  const fixed = value.toFixed(2)
+  const plain = fixed.replace(/\.00$/, '')
+  const cs = fixed.replace('.', ',')
+  return Array.from(new Set([
+    plain,
+    fixed,
+    cs,
+    `${plain} kc`,
+    `${plain} kč`,
+    `${fixed} kc`,
+    `${cs} kč`,
+    fmtPrice(value),
+  ].map(_normalizeSearch).filter(Boolean)))
+}
+
+function _looksLikeMissingRefundColumns(err) {
+  const msg = String(err?.message ?? err ?? '')
+  return /refund_status|refund_note|refunded_at/i.test(msg) && /column/i.test(msg)
+}
+
+function _isRefundableSinglePayment(payment) {
+  return payment?.type === 'single'
+    && payment?.status === 'cancelled'
+    && Number(payment?.amount || 0) > 0
+}
+
+function _effectiveRefundStatus(payment) {
+  if (!_isRefundableSinglePayment(payment)) return 'not_required'
+  return payment?.refundStatus === 'completed' ? 'completed' : 'pending'
+}
+
 function _renderAdminZakazniciList() {
   const listEl = document.getElementById('admin-zakaznici-list')
   const countEl = document.getElementById('admin-zakaznici-count')
@@ -590,10 +624,10 @@ export async function renderAdminZakaznici() {
     if (userIds.length > 0) {
       const [{ data: bookings }, { data: passes }] = await Promise.all([
         sb.from('bookings')
-          .select('id, user_id, status, payment_type, created_at, lesson:lessons(start_time,end_time,course:courses(title))')
+          .select('id, user_id, status, payment_type, price_paid, created_at, lesson:lessons(start_time,end_time,course:courses(title))')
           .in('user_id', userIds),
         sb.from('user_passes')
-          .select('user_id, status, created_at, pass:passes(name,allowed_course_ids)')
+          .select('user_id, status, price_paid, created_at, pass:passes(name,allowed_course_ids)')
           .in('user_id', userIds),
       ])
       bookingRows = bookings ?? []
@@ -616,10 +650,13 @@ export async function renderAdminZakaznici() {
       const userPasses = passesByUser[user.id] ?? []
       const activeLessons = userBookings.filter(b => b.status === 'booked')
       const activePasses = userPasses.filter(up => up.status === 'active')
+      const lastActivityAt = [...userBookings, ...userPasses]
+        .reduce((acc, row) => _sortTs(row?.created_at) > _sortTs(acc) ? row.created_at : acc, user.created_at)
       const lastBookingPurchaseAt = userBookings
-        .filter(b => b.payment_type === 'single')
+        .filter(b => b.payment_type === 'single' && Number(b.price_paid || 0) > 0)
         .reduce((acc, b) => _sortTs(b.created_at) > _sortTs(acc) ? b.created_at : acc, null)
       const lastPassPurchaseAt = userPasses
+        .filter(up => Number(up.price_paid || 0) > 0)
         .reduce((acc, up) => _sortTs(up.created_at) > _sortTs(acc) ? up.created_at : acc, null)
       const lastPurchaseAt = _sortTs(lastBookingPurchaseAt) >= _sortTs(lastPassPurchaseAt)
         ? lastBookingPurchaseAt
@@ -631,21 +668,28 @@ export async function renderAdminZakaznici() {
       })
       const bookedCourseTitles = userBookings.map(b => loc(b.lesson?.course?.title)).filter(Boolean)
       const purchasedPassTitles = userPasses.map(up => loc(up.pass?.name)).filter(Boolean)
+      const paymentAmountTokens = [
+        ...userBookings.flatMap(b => _adminPriceSearchTokens(b.price_paid)),
+        ...userPasses.flatMap(up => _adminPriceSearchTokens(up.price_paid)),
+      ]
       const searchText = _normalizeSearch([
         user.name,
         user.email,
         ...bookedCourseTitles,
         ...purchasedPassTitles,
         ...userBookings.flatMap(_adminBookingSearchTokens),
+        ...paymentAmountTokens,
       ].join(' | '))
 
       return {
         ...user,
         activeLessonsCount: activeLessons.length,
+        activePassCount: activePasses.length,
         activePassLabels,
         bookingHistory,
+        lastActivityAt,
         lastPurchaseAt,
-        sortAt: _sortTs(lastPurchaseAt) || _sortTs(user.created_at),
+        sortAt: _sortTs(lastPurchaseAt) || _sortTs(lastActivityAt) || _sortTs(user.created_at),
         searchText,
       }
     }).sort((a, b) => b.sortAt - a.sortAt)
@@ -658,7 +702,7 @@ export async function renderAdminZakaznici() {
           id="admin-zakaznici-search"
           type="search"
           value="${esc(_adminCustomersQuery)}"
-          placeholder="Hledat podle jména, e-mailu, kurzu nebo permanentky"
+          placeholder="Hledat podle jména, e-mailu, kurzu, permanentky nebo částky"
           oninput="window.adminFilterZakaznici?.(this.value)"
           style="width:100%;max-width:380px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:#fff;outline:none;box-sizing:border-box;"
         />
@@ -682,7 +726,8 @@ function _zakaznikRow(user) {
   const passes = user.activePassLabels ?? []
   const summary = [
     `Aktivní lekce: ${user.activeLessonsCount ?? 0}`,
-    `Poslední nákup: ${user.lastPurchaseAt ? fmtDate(user.lastPurchaseAt) : 'zatím žádný'}`,
+    `Aktivní permanentky: ${user.activePassCount ?? 0}`,
+    `Poslední aktivita: ${user.lastActivityAt ? fmtDate(user.lastActivityAt) : 'zatím žádná'}`,
   ].join(' · ')
   return `
     <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
@@ -1030,14 +1075,33 @@ export async function renderAdminPlatby() {
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0)
   try {
     await adminRace((async () => {
-    const [{ data: recentPasses }, { data: recentSingles }, { data: monthPasses }, { data: monthSingles }] = await Promise.all([
+    const [{ data: recentPasses, error: recentPassesErr }, recentSinglesRes, { data: monthPasses, error: monthPassesErr }, { data: monthSingles, error: monthSinglesErr }] = await Promise.all([
       sb.from('user_passes').select('id,price_paid,created_at,status,user:users(name,email),pass:passes(name)')
         .order('created_at',{ascending:false}).limit(40),
-      sb.from('bookings').select('id,price_paid,status,created_at,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
+      sb.from('bookings').select('id,price_paid,status,created_at,refund_status,refund_note,refunded_at,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
         .eq('payment_type','single').order('created_at',{ascending:false}).limit(40),
       sb.from('user_passes').select('price_paid').gte('created_at', monthStart.toISOString()),
       sb.from('bookings').select('price_paid').eq('payment_type','single').gte('created_at', monthStart.toISOString()),
     ])
+    if (recentPassesErr) throw recentPassesErr
+    if (monthPassesErr) throw monthPassesErr
+    if (monthSinglesErr) throw monthSinglesErr
+    let recentSingles = recentSinglesRes.data ?? []
+    if (recentSinglesRes.error) {
+      if (!_looksLikeMissingRefundColumns(recentSinglesRes.error)) throw recentSinglesRes.error
+      const fallbackSinglesRes = await sb.from('bookings')
+        .select('id,price_paid,status,created_at,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
+        .eq('payment_type','single')
+        .order('created_at',{ascending:false})
+        .limit(40)
+      if (fallbackSinglesRes.error) throw fallbackSinglesRes.error
+      recentSingles = (fallbackSinglesRes.data ?? []).map(row => ({
+        ...row,
+        refund_status: null,
+        refund_note: null,
+        refunded_at: null,
+      }))
+    }
     const monthRev       = (monthPasses ?? []).reduce((s,p)=>s+Number(p.price_paid||0),0)
                          + (monthSingles ?? []).reduce((s,b)=>s+Number(b.price_paid||0),0)
     const monthPassRev   = (monthPasses ?? []).reduce((s,p)=>s+Number(p.price_paid||0),0)
@@ -1046,7 +1110,8 @@ export async function renderAdminPlatby() {
       ...(recentPasses ?? []).map(p=>({type:'pass',id:p.id,amount:p.price_paid,date:p.created_at,status:p.status,
         userName:p.user?.name||p.user?.email||'—',description:loc(p.pass?.name)||'Permanentka'})),
       ...(recentSingles ?? []).map(b=>({type:'single',id:b.id,amount:b.price_paid,date:b.created_at,status:b.status,
-        userName:b.user?.name||b.user?.email||'—',description:loc(b.lesson?.course?.title)||'Lekce'})),
+        userName:b.user?.name||b.user?.email||'—',description:loc(b.lesson?.course?.title)||'Lekce',
+        refundStatus:b.refund_status ?? null, refundNote:b.refund_note ?? '', refundedAt:b.refunded_at ?? null})),
     ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,60)
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:16px;">Platby</div>
@@ -1075,6 +1140,9 @@ function _platbaRow(p) {
   const isPass = p.type === 'pass'
   const typeBg = isPass ? 'rgba(40,84,185,.10)' : 'rgba(8,80,65,.10)'
   const typeColor = isPass ? 'var(--primary)' : '#085041'
+  const refundStatus = _effectiveRefundStatus(p)
+  const refundPending = refundStatus === 'pending'
+  const refundCompleted = refundStatus === 'completed'
   const statusMap = {
     active:{l:'Aktivní',bg:'#E1F5EE',c:'#085041'}, expired:{l:'Vypršela',bg:'#F3F4F6',c:'#6b6b6b'},
     depleted:{l:'Vyčerpána',bg:'#F3F4F6',c:'#6b6b6b'}, booked:{l:'Uhrazeno',bg:'#E1F5EE',c:'#085041'},
@@ -1082,8 +1150,34 @@ function _platbaRow(p) {
     missed:{l:'Nedorazil',bg:'#FFF4E0',c:'#8B5C00'},
   }
   const st = statusMap[p.status] ?? {l:p.status,bg:'#F3F4F6',c:'#6b6b6b'}
+  const refundBadge = refundPending
+    ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:#FCEBEB;color:#791F1F;">Refundace čeká</span>`
+    : refundCompleted
+      ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#085041;">Refundace dokončena</span>`
+      : ''
+  const refundMeta = refundCompleted
+    ? `<div style="font-size:11px;color:#085041;margin-top:6px;">
+        ${p.refundedAt ? `Potvrzeno ${fmtDateTime(p.refundedAt)}` : 'Refund potvrzen'}
+        ${p.refundNote ? ` · ${esc(p.refundNote)}` : ''}
+      </div>`
+    : ''
+  const refundControls = refundPending
+    ? `
+      <div style="flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(0,0,0,.08);">
+        <input
+          id="refund-note-${esc(p.id)}"
+          type="text"
+          value="${esc(p.refundNote || '')}"
+          placeholder="Refund note (optional)"
+          style="flex:1;min-width:240px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:12px;box-sizing:border-box;"
+        />
+        <button type="button" class="btn-small primary" onclick="window.adminMarkBookingRefunded?.('${esc(p.id)}', this)">
+          Označit jako refundováno
+        </button>
+      </div>`
+    : ''
   return `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
           <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};">${isPass?'Permanentka':'Vstup'}</span>
@@ -1093,9 +1187,56 @@ function _platbaRow(p) {
       </div>
       <div style="text-align:right;flex-shrink:0;">
         <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${fmtPrice(p.amount)}</div>
-        <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.c};">${st.l}</span>
+        <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+          <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.c};">${st.l}</span>
+          ${refundBadge}
+        </div>
+        ${refundMeta}
       </div>
+      ${refundControls}
     </div>`
+}
+
+window.adminMarkBookingRefunded = async (bookingId, btnEl = null) => {
+  if (!bookingId) return
+  if (!confirm('Confirm that you have manually sent the refund to the customer?')) return
+  const noteInput = document.getElementById(`refund-note-${bookingId}`)
+  const note = noteInput?.value?.trim() || null
+  if (btnEl) {
+    btnEl.disabled = true
+    btnEl.textContent = 'Saving...'
+  }
+  try {
+    const { error } = await sb.from('bookings')
+      .update({
+        refund_status: 'completed',
+        refund_note: note,
+        refunded_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
+      .eq('payment_type', 'single')
+      .eq('status', 'cancelled')
+    if (error) {
+      if (_looksLikeMissingRefundColumns(error)) {
+        window.showToast?.(
+          'V databázi chybí refund sloupce v bookings. Spusťte migraci z FINAL_supabase_sql.sql.',
+          'error',
+        )
+        return
+      }
+      throw error
+    }
+    window.showToast?.('Refund byl označen jako dokončený.', 'ok')
+    await renderAdminPlatby()
+  } catch (err) {
+    console.error('[Admin] adminMarkBookingRefunded:', err)
+    window.showToast?.('Nepodařilo se uložit refund: ' + (err.message ?? err), 'error')
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false
+      btnEl.textContent = 'Označit jako refundováno'
+    }
+  }
 }
 
 // ── Admin Permanentky ─────────────────────────────────────────

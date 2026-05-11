@@ -163,6 +163,10 @@ create table if not exists public.bookings (
   cancelled_at      timestamptz,
   cancellation_type text check (cancellation_type in ('early','late')),
   stripe_payment_id text,
+  refund_status     text not null default 'not_required'
+                      check (refund_status in ('not_required','pending','completed')),
+  refund_note       text,
+  refunded_at       timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
@@ -171,6 +175,25 @@ create index if not exists idx_bookings_user_id        on public.bookings(user_i
 create index if not exists idx_bookings_lesson_id      on public.bookings(lesson_id);
 create index if not exists idx_bookings_status         on public.bookings(status);
 create index if not exists idx_bookings_stripe_payment on public.bookings(stripe_payment_id);
+
+alter table public.bookings add column if not exists refund_status text;
+alter table public.bookings add column if not exists refund_note text;
+alter table public.bookings add column if not exists refunded_at timestamptz;
+alter table public.bookings alter column refund_status set default 'not_required';
+update public.bookings
+set refund_status = 'not_required'
+where refund_status is null;
+update public.bookings
+set refund_status = 'pending'
+where status = 'cancelled'
+  and payment_type = 'single'
+  and coalesce(price_paid, 0) > 0
+  and refund_status = 'not_required';
+alter table public.bookings drop constraint if exists bookings_refund_status_check;
+alter table public.bookings
+  add constraint bookings_refund_status_check
+  check (refund_status in ('not_required','pending','completed'));
+alter table public.bookings alter column refund_status set not null;
 
 -- Jen jedna aktivní rezervace na uživatele a lekci (po zrušení lze znovu rezervovat)
 alter table public.bookings drop constraint if exists unique_active_booking;
@@ -418,6 +441,14 @@ begin
       set entries_remaining = entries_remaining + 1,
           status = case when status = 'depleted' then 'active' else status end
       where id = old.user_pass_id;
+    end if;
+
+    if coalesce(new.payment_type, old.payment_type) = 'single'
+       and coalesce(new.price_paid, old.price_paid, 0) > 0 then
+      new.refund_status := 'pending';
+      new.refunded_at := null;
+    else
+      new.refund_status := coalesce(new.refund_status, old.refund_status, 'not_required');
     end if;
 
     new.cancelled_at := coalesce(new.cancelled_at, now());
