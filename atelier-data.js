@@ -467,6 +467,30 @@ function setupTabResumeRefresh() {
 
 function renderAll() { renderKalendar(); renderKurzy() }
 
+async function refreshPublicData() {
+  await Promise.allSettled([
+    fetchCourses().catch(() => {}),
+    fetchLessons().catch(() => {}),
+    fetchUpcomingLessons().catch(() => {}),
+    currentUser?.id && typeof window.refreshUserBookings === 'function'
+      ? window.refreshUserBookings().catch(() => {})
+      : Promise.resolve(),
+  ])
+
+  renderAll()
+
+  const detailScreen = document.getElementById('screen-detail-kurzu')
+  if (detailScreen?.classList.contains('active') && window._detailCourseId) {
+    await renderCourseDetail(window._detailCourseId)
+  }
+
+  if (document.getElementById('screen-nastenka')?.classList.contains('active')) {
+    window.renderNastenkaMyCourses?.()
+  }
+}
+
+window.refreshPublicData = refreshPublicData
+
 /** Veřejný detail: HTML jen po projítí DOMPurify; prostý text zachovat s řádky (legacy data před editorem). */
 function _formatCourseDetailLong(raw) {
   const s = String(raw ?? '').trim()

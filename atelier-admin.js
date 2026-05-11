@@ -1280,6 +1280,11 @@ window.saveNewWorkshop = async () => {
 
     window.closeWorkshopModal?.()
     renderAdminKurzy()
+    try {
+      await window.refreshPublicData?.()
+    } catch (refreshErr) {
+      console.warn('[Admin] refreshPublicData po uložení workshopu:', refreshErr)
+    }
   } catch (err) {
     console.error('[Admin] saveNewWorkshop:', err)
     showErr(errEl, 'Chyba: ' + (err.message ?? 'Zkuste to znovu.'))
@@ -1781,25 +1786,7 @@ window.saveNewCourse = async () => {
       const { error } = await sb.from('courses').update({ ...payload, images: imageUrls }).eq('id', courseId)
       if (error) throw error
 
-      // Update all future active lessons — keeps bookings intact, only updates time/capacity/price
-      const { data: futureLessons } = await sb.from('lessons')
-        .select('id, start_time')
-        .eq('course_id', courseId)
-        .gt('start_time', new Date().toISOString())
-        .eq('status', 'active')
-      if (futureLessons?.length > 0) {
-        const [fH, fM] = timeFrom.split(':').map(Number)
-        const [tH, tM] = timeTo.split(':').map(Number)
-        await Promise.all(futureLessons.map(l => {
-          const d = new Date(l.start_time)
-          const s = new Date(d.getFullYear(), d.getMonth(), d.getDate(), fH, fM, 0, 0)
-          const e = new Date(d.getFullYear(), d.getMonth(), d.getDate(), tH, tM, 0, 0)
-          return sb.from('lessons').update({
-            start_time: s.toISOString(), end_time: e.toISOString(),
-            capacity, price_single: price,
-          }).eq('id', l.id)
-        }))
-      }
+      await _syncFutureCourseLessons(courseId, selectedDays, timeFrom, timeTo, capacity, price)
     } else {
       // New course: insert first (need ID for storage path)
       const { data, error } = await sb.from('courses')
@@ -1825,6 +1812,11 @@ window.saveNewCourse = async () => {
 
     window.closeNewCourseModal?.()
     renderAdminKurzy()
+    try {
+      await window.refreshPublicData?.()
+    } catch (refreshErr) {
+      console.warn('[Admin] refreshPublicData po uložení kurzu:', refreshErr)
+    }
   } catch (err) {
     console.error('[Admin] saveNewCourse:', err)
     showErr(errEl, 'Chyba: ' + (err.message ?? 'Zkuste to znovu.'))
@@ -1846,8 +1838,95 @@ async function _syncPassAssociations(courseId, selectedPassIds) {
   }
 }
 
+async function _syncFutureCourseLessons(courseId, days, timeFrom, timeTo, capacity, price) {
+  const nowIso = new Date().toISOString()
+  const { data: futureLessons, error: futureErr } = await sb.from('lessons')
+    .select('id, start_time, end_time')
+    .eq('course_id', courseId)
+    .gt('start_time', nowIso)
+    .eq('status', 'active')
+    .order('start_time')
+
+  if (futureErr) throw futureErr
+
+  const rows = futureLessons ?? []
+  const lessonIds = rows.map(l => l.id)
+  let bookedCountByLessonId = {}
+  if (lessonIds.length) {
+    const { data: bookings, error: bookingErr } = await sb.from('bookings')
+      .select('lesson_id')
+      .in('lesson_id', lessonIds)
+      .eq('status', 'booked')
+    if (bookingErr) throw bookingErr
+    for (const b of (bookings ?? [])) {
+      bookedCountByLessonId[b.lesson_id] = (bookedCountByLessonId[b.lesson_id] ?? 0) + 1
+    }
+  }
+
+  const bookedLessons = rows.filter(l => (bookedCountByLessonId[l.id] ?? 0) > 0)
+  const freeLessons = rows.filter(l => (bookedCountByLessonId[l.id] ?? 0) === 0)
+
+  let desiredLessons = _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, 4, true)
+  if (desiredLessons.length < bookedLessons.length) {
+    desiredLessons = _generateLessonsUntilCount(courseId, days, timeFrom, timeTo, capacity, price, bookedLessons.length, true)
+  }
+
+  const assignedUpdates = []
+  let slotIdx = 0
+
+  for (const lesson of bookedLessons) {
+    const target = desiredLessons[slotIdx++]
+    if (!target) throw new Error('Nepodařilo se zachovat obsazené termíny kurzu.')
+    assignedUpdates.push({
+      id: lesson.id,
+      start_time: target.start_time,
+      end_time: target.end_time,
+      capacity,
+      price_single: price,
+    })
+  }
+
+  const remainingSlots = desiredLessons.slice(slotIdx)
+  const reusableFree = freeLessons.slice(0, remainingSlots.length)
+  const extraFree = freeLessons.slice(remainingSlots.length)
+
+  reusableFree.forEach((lesson, idx) => {
+    const target = remainingSlots[idx]
+    assignedUpdates.push({
+      id: lesson.id,
+      start_time: target.start_time,
+      end_time: target.end_time,
+      capacity,
+      price_single: price,
+    })
+  })
+
+  for (const upd of assignedUpdates) {
+    const { error } = await sb.from('lessons').update({
+      start_time: upd.start_time,
+      end_time: upd.end_time,
+      capacity: upd.capacity,
+      price_single: upd.price_single,
+    }).eq('id', upd.id)
+    if (error) throw error
+  }
+
+  if (extraFree.length) {
+    const { error } = await sb.from('lessons').update({ status: 'cancelled' })
+      .in('id', extraFree.map(l => l.id))
+    if (error) throw error
+  }
+
+  const createdSlots = remainingSlots.slice(reusableFree.length)
+  if (createdSlots.length) {
+    const { error } = await sb.from('lessons').insert(createdSlots)
+    if (error) throw error
+  }
+}
+
 // Vygeneruje lekce na příštích `numWeeks` týdnů pro zvolené dny + čas
-function _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, numWeeks = 4) {
+function _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, numWeeks = 4, includeTodayIfFuture = false) {
+  const now = new Date()
   const today = new Date(); today.setHours(0,0,0,0)
   const [fH, fM] = timeFrom.split(':').map(Number)
   const [tH, tM] = timeTo.split(':').map(Number)
@@ -1856,7 +1935,11 @@ function _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, num
   for (const dayIdx of days) {           // 0 = pondělí … 6 = neděle
     const todayDow = (today.getDay()+6) % 7  // JS: 0=Sun → Mon=0
     let daysUntil  = (dayIdx - todayDow + 7) % 7
-    if (daysUntil === 0) daysUntil = 7       // nikdy nezačínáme dnes
+    if (daysUntil === 0) {
+      const todayStart = new Date(today)
+      todayStart.setHours(fH, fM, 0, 0)
+      if (!includeTodayIfFuture || todayStart <= now) daysUntil = 7
+    }
 
     for (let w = 0; w < numWeeks; w++) {
       const start = new Date(today)
@@ -1871,6 +1954,12 @@ function _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, num
     }
   }
   return lessons.sort((a,b) => a.start_time.localeCompare(b.start_time))
+}
+
+function _generateLessonsUntilCount(courseId, days, timeFrom, timeTo, capacity, price, minCount, includeTodayIfFuture = false) {
+  const perWeek = Math.max(1, days.length)
+  const weeks = Math.max(4, Math.ceil(minCount / perWeek) + 1)
+  return _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, weeks, includeTodayIfFuture).slice(0, minCount)
 }
 
 // ── Modal: účastníci lekce (admin) ───────────────────────────
