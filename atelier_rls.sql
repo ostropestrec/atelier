@@ -49,6 +49,45 @@ grant select, update         on public.users       to authenticated;
 grant select on public.lesson_availability         to anon, authenticated;
 
 -- ============================================================
+-- DROP POLICY IF EXISTS — aby šel soubor spouštět opakovaně
+-- ============================================================
+drop policy if exists "courses: veřejné čtení" on public.courses;
+drop policy if exists "courses: admin vidí vše" on public.courses;
+drop policy if exists "courses: lektor vidí vlastní neaktivní" on public.courses;
+drop policy if exists "courses: lektor vytváří" on public.courses;
+drop policy if exists "courses: lektor edituje vlastní" on public.courses;
+drop policy if exists "courses: admin maže" on public.courses;
+
+drop policy if exists "lessons: veřejné čtení aktivních" on public.lessons;
+drop policy if exists "lessons: lektor/admin vidí i zrušené" on public.lessons;
+drop policy if exists "lessons: lektor vytváří pro své kurzy" on public.lessons;
+drop policy if exists "lessons: lektor edituje vlastní" on public.lessons;
+
+drop policy if exists "passes: veřejné čtení aktivních" on public.passes;
+drop policy if exists "passes: lektor CRUD vlastní" on public.passes;
+drop policy if exists "passes: admin CRUD vše" on public.passes;
+
+drop policy if exists "users: číst vlastní" on public.users;
+drop policy if exists "users: admin vidí vše" on public.users;
+drop policy if exists "users: lektor vidí své zákazníky" on public.users;
+drop policy if exists "users: editovat vlastní" on public.users;
+drop policy if exists "users: vytvořit vlastní profil" on public.users;
+
+drop policy if exists "user_passes: číst vlastní" on public.user_passes;
+drop policy if exists "user_passes: lektor vidí pro své kurzy" on public.user_passes;
+drop policy if exists "user_passes: admin vidí vše" on public.user_passes;
+drop policy if exists "user_passes: admin vytvoří" on public.user_passes;
+drop policy if exists "user_passes: admin upravuje" on public.user_passes;
+
+drop policy if exists "bookings: číst vlastní" on public.bookings;
+drop policy if exists "bookings: lektor vidí na svých lekcích" on public.bookings;
+drop policy if exists "bookings: admin vidí vše" on public.bookings;
+drop policy if exists "bookings: vytvořit vlastní" on public.bookings;
+drop policy if exists "bookings: zákazník storní vlastní" on public.bookings;
+drop policy if exists "bookings: lektor edituje na svých lekcích" on public.bookings;
+drop policy if exists "bookings: admin edituje vše" on public.bookings;
+
+-- ============================================================
 -- 1. COURSES — veřejná nabídka
 -- READ:   kdokoliv (anon i authenticated)
 -- WRITE:  jen lektor-vlastník nebo admin
