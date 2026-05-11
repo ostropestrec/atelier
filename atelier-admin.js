@@ -229,6 +229,8 @@ async function fetchCoursesMap() {
 
 let _adminCustomersData = []
 let _adminCustomersQuery = ''
+let _adminCustomerHistoryUserId = null
+let _adminCustomerHistoryDisplayName = ''
 
 function _normalizeSearch(s) {
   return String(s ?? '')
@@ -241,6 +243,29 @@ function _normalizeSearch(s) {
 function _sortTs(iso) {
   const t = iso ? new Date(iso).getTime() : 0
   return Number.isFinite(t) ? t : 0
+}
+
+function _adminBookingStatusLabel(status) {
+  const map = {
+    booked: 'Aktivní',
+    attended: 'Absolvováno',
+    cancelled: 'Stornováno',
+    missed: 'Nedorazil/a',
+  }
+  return map[status] ?? (status || '—')
+}
+
+function _adminBookingSearchTokens(booking) {
+  const lessonStart = booking?.lesson?.start_time
+  if (!lessonStart) return []
+  const d = new Date(lessonStart)
+  if (Number.isNaN(d.getTime())) return []
+  const weekday = d.toLocaleDateString('cs-CZ', { weekday: 'short' })
+  const dateCs = fmtDate(lessonStart)
+  const dateTimeCs = fmtDateTime(lessonStart)
+  const timeCs = d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+  const dayMonth = d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
+  return [weekday, dateCs, dateTimeCs, timeCs, dayMonth, _adminBookingStatusLabel(booking?.status)]
 }
 
 function _renderAdminZakazniciList() {
@@ -265,6 +290,79 @@ function _renderAdminZakazniciList() {
 window.adminFilterZakaznici = (value) => {
   _adminCustomersQuery = String(value ?? '')
   _renderAdminZakazniciList()
+}
+
+function buildAdminCustomerHistoryModal() {
+  if (document.getElementById('modal-admin-customer-history')) return
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="modal-admin-customer-history" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
+      z-index:300;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;"
+      onclick="if(event.target===this)window.closeAdminCustomerHistoryModal?.()">
+      <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
+        width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
+        <div style="padding:18px 18px 4px;">
+          <div style="font-size:18px;font-weight:700;" id="mch-title">Historie lekcí</div>
+        </div>
+        <div id="mch-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
+        <div style="display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);">
+          <button type="button" class="btn-wide" onclick="window.closeAdminCustomerHistoryModal?.()">Zavřít</button>
+        </div>
+      </div>
+    </div>`)
+}
+
+function _adminCustomerHistoryHtml(user) {
+  const rows = user?.bookingHistory ?? []
+  if (!rows.length) {
+    return '<div class="empty" style="padding:12px 0;">Tento zákazník zatím nemá žádnou historii lekcí.</div>'
+  }
+  return `
+    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      ${rows.map(b => {
+        const title = loc(b.lesson?.course?.title) || 'Lekce'
+        const when = b.lesson?.start_time ? fmtDateTime(b.lesson.start_time) : '—'
+        const pay = b.payment_type === 'pass' ? 'Permanentka' : 'Jednorázově'
+        const status = _adminBookingStatusLabel(b.status)
+        const statusMap = {
+          'Aktivní': { bg: '#E1F5EE', c: '#085041' },
+          'Absolvováno': { bg: '#E1F5EE', c: '#085041' },
+          'Stornováno': { bg: '#FCEBEB', c: '#791F1F' },
+          'Nedorazil/a': { bg: '#FFF4E0', c: '#8B5C00' },
+        }
+        const st = statusMap[status] ?? { bg: '#F3F4F6', c: '#6b6b6b' }
+        return `
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start;">
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${esc(title)}</div>
+              <div style="font-size:11px;color:#6b6b6b;line-height:1.5;">${esc(when)} · ${esc(pay)}</div>
+              <div style="font-size:10px;color:#9b9b9b;margin-top:4px;">Rezervováno ${b.created_at ? fmtDate(b.created_at) : '—'}</div>
+            </div>
+            <span style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;background:${st.bg};color:${st.c};white-space:nowrap;">
+              ${esc(status)}
+            </span>
+          </div>`
+      }).join('')}
+    </div>`
+}
+
+window.openAdminCustomerHistoryModal = (userId, displayName = null) => {
+  buildAdminCustomerHistoryModal()
+  _adminCustomerHistoryUserId = userId
+  const user = _adminCustomersData.find(u => String(u.id) === String(userId))
+  _adminCustomerHistoryDisplayName = displayName || user?.name || user?.email || 'Zákazník'
+  const titleEl = document.getElementById('mch-title')
+  const bodyEl = document.getElementById('mch-body')
+  const modal = document.getElementById('modal-admin-customer-history')
+  if (!bodyEl || !modal) return
+  if (titleEl) titleEl.textContent = `Historie lekcí — ${_adminCustomerHistoryDisplayName}`
+  bodyEl.innerHTML = _adminCustomerHistoryHtml(user)
+  modal.style.display = 'flex'
+}
+
+window.closeAdminCustomerHistoryModal = () => {
+  const modal = document.getElementById('modal-admin-customer-history')
+  if (modal) modal.style.display = 'none'
+  _adminCustomerHistoryUserId = null
 }
 
 // ── Admin Dashboard ──────────────────────────────────────────
@@ -492,7 +590,7 @@ export async function renderAdminZakaznici() {
     if (userIds.length > 0) {
       const [{ data: bookings }, { data: passes }] = await Promise.all([
         sb.from('bookings')
-          .select('user_id, status, payment_type, created_at, lesson:lessons(start_time,course:courses(title))')
+          .select('id, user_id, status, payment_type, created_at, lesson:lessons(start_time,end_time,course:courses(title))')
           .in('user_id', userIds),
         sb.from('user_passes')
           .select('user_id, status, created_at, pass:passes(name,allowed_course_ids)')
@@ -527,6 +625,10 @@ export async function renderAdminZakaznici() {
         ? lastBookingPurchaseAt
         : lastPassPurchaseAt
       const activePassLabels = activePasses.map(up => loc(up.pass?.name) || 'Permanentka').filter(Boolean)
+      const bookingHistory = [...userBookings].sort((a, b) => {
+        const primary = _sortTs(b.lesson?.start_time) - _sortTs(a.lesson?.start_time)
+        return primary || (_sortTs(b.created_at) - _sortTs(a.created_at))
+      })
       const bookedCourseTitles = userBookings.map(b => loc(b.lesson?.course?.title)).filter(Boolean)
       const purchasedPassTitles = userPasses.map(up => loc(up.pass?.name)).filter(Boolean)
       const searchText = _normalizeSearch([
@@ -534,12 +636,14 @@ export async function renderAdminZakaznici() {
         user.email,
         ...bookedCourseTitles,
         ...purchasedPassTitles,
+        ...userBookings.flatMap(_adminBookingSearchTokens),
       ].join(' | '))
 
       return {
         ...user,
         activeLessonsCount: activeLessons.length,
         activePassLabels,
+        bookingHistory,
         lastPurchaseAt,
         sortAt: _sortTs(lastPurchaseAt) || _sortTs(user.created_at),
         searchText,
@@ -599,10 +703,14 @@ function _zakaznikRow(user) {
           </span>`).join('')}
       </div>
       <div style="flex-shrink:0;">
-        <button type="button" class="btn-small" title="Upravit zakoupené permanentky"
-          data-admin-user-passes-open="1"
-          data-user-id="${esc(user.id)}"
-          data-display-name="${esc(user.name || user.email || 'Zákazník')}">Permanentky</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button type="button" class="btn-small"
+            onclick="window.openAdminCustomerHistoryModal?.('${esc(user.id)}')">Historie</button>
+          <button type="button" class="btn-small" title="Upravit zakoupené permanentky"
+            data-admin-user-passes-open="1"
+            data-user-id="${esc(user.id)}"
+            data-display-name="${esc(user.name || user.email || 'Zákazník')}">Permanentky</button>
+        </div>
       </div>
     </div>`
 }
