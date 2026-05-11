@@ -1971,8 +1971,12 @@ async function buildMojeLekceMarkup() {
                   </div>
                 </div>
                 <div style="flex-shrink:0;">
-                  <button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
-                    onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">Účastníci</button>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
+                      onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">Účastníci</button>
+                    <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+                      onclick="event.stopPropagation();window.adminCancelLesson?.('${lid}')">Zrušit lekci</button>
+                  </div>
                 </div>
               </div>
             </div>

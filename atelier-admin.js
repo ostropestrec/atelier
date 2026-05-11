@@ -2293,12 +2293,16 @@ window.adminCancelLesson = async (lessonId) => {
         if (bErr) console.warn('[Admin] cancelLesson — bookings:', bErr)
         window.showToast?.('Lekce zrušena (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).', 'ok')
         renderAdminDashboard()
+        void window.renderMojeLekce?.()
+        void window.refreshPublicData?.()
         return
       }
       throw rpcErr
     }
     window.showToast?.('Lekce byla zrušena.', 'ok')
     renderAdminDashboard()
+    void window.renderMojeLekce?.()
+    void window.refreshPublicData?.()
   } catch (err) {
     console.error('[Admin] cancelLesson:', err)
     window.showToast?.('Nepodařilo se zrušit lekci: ' + (err.message ?? err), 'error')
