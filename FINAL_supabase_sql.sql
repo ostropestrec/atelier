@@ -607,6 +607,11 @@ returns uuid language sql stable security definer as $$
   select auth.uid();
 $$;
 
+create or replace function public.current_user_role()
+returns text language sql stable security definer as $$
+  select role from public.users where id = auth.uid();
+$$;
+
 create or replace function public.is_admin()
 returns boolean language sql stable security definer as $$
   select exists (
@@ -788,7 +793,7 @@ create policy "users: editovat vlastní"
   using (id = public.current_user_id())
   with check (
     id = public.current_user_id()
-    and role = (select role from public.users where id = public.current_user_id())
+    and role = public.current_user_role()
   );
 
 -- INSERT zajišťuje primárně handle_new_user trigger,
