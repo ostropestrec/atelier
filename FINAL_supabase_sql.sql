@@ -805,6 +805,7 @@ drop policy if exists "user_passes: číst vlastní"              on public.user
 drop policy if exists "user_passes: lektor vidí pro své kurzy" on public.user_passes;
 drop policy if exists "user_passes: admin vidí vše"            on public.user_passes;
 drop policy if exists "user_passes: uživatel vytvoří vlastní"  on public.user_passes;
+drop policy if exists "user_passes: admin vytvoří"             on public.user_passes;
 drop policy if exists "user_passes: admin upravuje"            on public.user_passes;
 
 create policy "user_passes: číst vlastní"
@@ -829,6 +830,11 @@ create policy "user_passes: admin vidí vše"
 create policy "user_passes: uživatel vytvoří vlastní"
   on public.user_passes for insert to authenticated
   with check (user_id = public.current_user_id());
+
+-- Admin může zákazníkovi permanentku připsat ručně
+create policy "user_passes: admin vytvoří"
+  on public.user_passes for insert to authenticated
+  with check (public.is_admin());
 
 -- Admin upravuje zakoupené permanentky zákazníků (vstupy, platnost, stav, cena)
 create policy "user_passes: admin upravuje"

@@ -520,6 +520,7 @@ function _zakaznikRow(user, bookingMap, lastMap, passMap) {
 
 let _mupEditUserId = null
 let _mupDisplayName = ''
+let _mupAvailablePasses = []
 
 function buildAdminCustomerPassesModal() {
   if (document.getElementById('modal-admin-user-passes')) return
@@ -544,6 +545,12 @@ function buildAdminCustomerPassesModal() {
   if (root && !root.dataset.mupDelegation) {
     root.dataset.mupDelegation = '1'
     root.addEventListener('click', (e) => {
+      const addBtn = e.target.closest('[data-mup-add]')
+      if (addBtn && root.contains(addBtn)) {
+        e.preventDefault()
+        void window.adminCreateUserPassManual?.()
+        return
+      }
       const btn = e.target.closest('[data-mup-save]')
       if (!btn || !root.contains(btn)) return
       e.preventDefault()
@@ -566,11 +573,12 @@ function buildAdminCustomerPassesModal() {
 })()
 
 function _mupPassesListHtml(passes) {
+  const addHtml = _mupAddFormHtml()
   if (!passes.length) {
-    return '<div class="empty" style="padding:12px 0;">Tento zákazník nemá žádnou permanentku.</div>'
+    return `${addHtml}<div class="empty" style="padding:12px 0;">Tento zákazník nemá žádnou permanentku.</div>`
   }
   const INP = 'width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;'
-  return passes.map(up => {
+  return addHtml + passes.map(up => {
     const name = loc(up.pass?.name) || 'Permanentka'
     const st = up.status || 'active'
     return `
@@ -611,16 +619,50 @@ function _mupPassesListHtml(passes) {
   }).join('')
 }
 
+function _mupAddFormHtml() {
+  const hasTemplates = _mupAvailablePasses.length > 0
+  return `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#fff;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Připsat permanentku ručně</div>
+      <div style="font-size:11px;color:#6b6b6b;margin-bottom:10px;">
+        Vytvoří novou permanentku zákazníka podle vybraného typu. Po připsání ji můžete dole ještě upravit.
+      </div>
+      ${hasTemplates ? `
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;">
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Typ permanentky</label>
+            <select id="mup-add-pass-id" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
+              ${_mupAvailablePasses.map((p, idx) => `
+                <option value="${esc(p.id)}" ${idx === 0 ? 'selected' : ''}>
+                  ${esc(loc(p.name) || 'Permanentka')} · ${Number(p.entries_total) || 0} vstupů · ${fmtPrice(p.price)}
+                </option>`).join('')}
+            </select>
+          </div>
+          <button type="button" class="btn-small primary" data-mup-add="1" style="white-space:nowrap;">Připsat</button>
+        </div>
+      ` : `<div style="font-size:12px;color:#9b9b9b;">Nejsou k dispozici žádné aktivní typy permanentek.</div>`}
+      <div id="mup-add-error" style="display:none;font-size:12px;color:#791F1F;margin-top:10px;"></div>
+    </div>`
+}
+
 async function _mupReloadBody() {
   const body = document.getElementById('mup-body')
   if (!body || !_mupEditUserId) return
   body.innerHTML = '<div style="font-size:12px;color:#9b9b9b;">Načítám…</div>'
-  const { data: passes, error } = await sb.from('user_passes')
-    .select('id, entries_total, entries_remaining, expires_at, status, price_paid, created_at, pass:passes(name)')
-    .eq('user_id', _mupEditUserId)
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  body.innerHTML = _mupPassesListHtml(passes ?? [])
+  const [userPassRes, passTemplatesRes] = await Promise.all([
+    sb.from('user_passes')
+      .select('id, entries_total, entries_remaining, expires_at, status, price_paid, created_at, pass:passes(name)')
+      .eq('user_id', _mupEditUserId)
+      .order('created_at', { ascending: false }),
+    sb.from('passes')
+      .select('id, name, entries_total, price, validity_weeks')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
+  ])
+  if (userPassRes.error) throw userPassRes.error
+  if (passTemplatesRes.error) throw passTemplatesRes.error
+  _mupAvailablePasses = passTemplatesRes.data ?? []
+  body.innerHTML = _mupPassesListHtml(userPassRes.data ?? [])
 }
 
 window.openAdminCustomerPassesModal = async (userId, displayName) => {
@@ -646,6 +688,63 @@ window.closeAdminCustomerPassesModal = () => {
   const m = document.getElementById('modal-admin-user-passes')
   if (m) m.style.display = 'none'
   _mupEditUserId = null
+  _mupAvailablePasses = []
+}
+
+window.adminCreateUserPassManual = async () => {
+  if (!_mupEditUserId) return
+  const errEl = document.getElementById('mup-add-error')
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
+
+  const select = document.getElementById('mup-add-pass-id')
+  const passId = select?.value
+  const tpl = _mupAvailablePasses.find(p => String(p.id) === String(passId))
+  if (!tpl) {
+    if (errEl) { errEl.textContent = 'Vyberte typ permanentky.'; errEl.style.display = 'block' }
+    return
+  }
+
+  const btn = document.querySelector('[data-mup-add]')
+  if (btn) { btn.disabled = true; btn.textContent = 'Připisuji…' }
+
+  try {
+    const weeks = Math.max(1, Number(tpl.validity_weeks) || 12)
+    const entriesTotal = Math.max(1, Number(tpl.entries_total) || 1)
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + weeks * 7)
+
+    const { error } = await sb.from('user_passes').insert({
+      user_id: _mupEditUserId,
+      pass_id: tpl.id,
+      entries_total: entriesTotal,
+      entries_remaining: entriesTotal,
+      price_paid: Number(tpl.price) || 0,
+      expires_at: expiresAt.toISOString(),
+      status: 'active',
+    })
+    if (error) throw error
+
+    window.showToast?.('Permanentka byla zákazníkovi připsána.', 'ok')
+    await _mupReloadBody()
+    void renderAdminZakaznici()
+  } catch (err) {
+    console.error('[Admin] adminCreateUserPassManual:', err)
+    const msg = String(err?.message ?? err ?? '')
+    const looksLikeMissingRls =
+      msg.includes('row-level security')
+      || msg.includes('permission denied')
+      || msg.includes('new row violates row-level security policy')
+    const uiMsg = looksLikeMissingRls
+      ? 'V databázi chybí admin INSERT politika pro user_passes. Spusťte SQL migraci z FINAL_supabase_sql.sql.'
+      : (err.message || 'Připsání se nepodařilo.')
+    if (errEl) {
+      errEl.textContent = uiMsg
+      errEl.style.display = 'block'
+    }
+    window.showToast?.('Chyba: ' + uiMsg, 'error')
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Připsat' }
+  }
 }
 
 window.adminSaveUserPassFromCard = async (userPassId) => {

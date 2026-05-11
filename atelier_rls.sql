@@ -260,7 +260,12 @@ create policy "user_passes: admin vidí vše"
   to authenticated
   using (public.is_admin());
 
--- INSERT: uživatel pro sebe (nákup z aplikace) nebo backend (Stripe).
+-- INSERT: uživatel pro sebe (nákup z aplikace) nebo admin ručně pro zákazníka.
+create policy "user_passes: admin vytvoří"
+  on public.user_passes for insert
+  to authenticated
+  with check (public.is_admin());
+
 -- UPDATE: admin může upravit zakoupenou permanentku zákazníka (správa vstupů / platnosti).
 create policy "user_passes: admin upravuje"
   on public.user_passes for update
