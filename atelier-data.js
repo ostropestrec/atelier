@@ -30,6 +30,9 @@ const PASS_ENTRIES_LIMIT_HINT_CS =
   'Dosáhli jste limitu své permanentky. Pro další lekce si prosím zakupte novou.'
 const PASS_ENTRIES_LIMIT_HINT_EN =
   "You've reached your pass limit. Please purchase a new pass for more lessons."
+const LESSONS_SELECT =
+  'lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots'
+const BOOKINGS_LIVE_REFRESH_COOLDOWN_MS = 4000
 
 function _toastPassEntriesLimitReached() {
   window.showToast?.(
@@ -385,7 +388,7 @@ async function fetchLessons(from = window.AppState.weekStart) {
   to.setDate(to.getDate() + 7)
   const { data, error } = await sb
     .from('lesson_availability')
-    .select('*')
+    .select(LESSONS_SELECT)
     .eq('status', 'active')
     .gte('start_time', from.toISOString())
     .lt('start_time',  to.toISOString())
@@ -398,7 +401,7 @@ async function fetchLessons(from = window.AppState.weekStart) {
 async function fetchUpcomingLessons() {
   const { data, error } = await sb
     .from('lesson_availability')
-    .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
+    .select(LESSONS_SELECT)
     .eq('status', 'active')
     .gte('start_time', new Date().toISOString())
     .order('start_time')
@@ -409,8 +412,21 @@ async function fetchUpcomingLessons() {
 
 // ── Realtime: živá obsazenost (debounce — tab / burst events nesmí zahltit UI) ──
 let _bookingsLiveTimer = null
+let _lastBookingsLiveRefreshAt = 0
+let _bookingsLiveSubscribed = false
 function _flushBookingsRealtime() {
   _bookingsLiveTimer = null
+  if (document.visibilityState !== 'visible') return
+  const now = Date.now()
+  const sinceLastRefresh = now - _lastBookingsLiveRefreshAt
+  if (sinceLastRefresh < BOOKINGS_LIVE_REFRESH_COOLDOWN_MS) {
+    _bookingsLiveTimer = setTimeout(
+      _flushBookingsRealtime,
+      BOOKINGS_LIVE_REFRESH_COOLDOWN_MS - sinceLastRefresh,
+    )
+    return
+  }
+  _lastBookingsLiveRefreshAt = now
   ;(async () => {
     console.log('[Debug] Realtime (bookings): refresh lekcí na pozadí (bez withTimeout)')
     try {
@@ -427,6 +443,8 @@ function _flushBookingsRealtime() {
 }
 
 function subscribeToLessons() {
+  if (_bookingsLiveSubscribed) return
+  _bookingsLiveSubscribed = true
   sb.channel('bookings-live')
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'bookings'

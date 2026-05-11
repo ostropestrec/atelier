@@ -29,6 +29,9 @@ export let userBookings = new Set()   // Set<lesson_id> aktivních rezervací
 export let userPasses   = []          // active user passes
 export let myBookings   = []          // active booked lessons (enriched)
 
+const PASS_RECONCILE_COOLDOWN_MS = 5 * 60 * 1000
+let _lastPassReconcileAt = 0
+
 const AVATAR_COLORS = [
   '#2854B9', '#FD8D40', '#E05C5C', '#4CAF50', '#9C27B0',
   '#00BCD4', '#795548', '#607D8B', '#E91E63', '#111827',
@@ -337,11 +340,18 @@ export async function loadUserBookings(userId) {
 
 export async function loadUserPasses(userId) {
   if (!userId) { userPasses = []; return }
-  try {
-    const { error: recErr } = await sb.rpc('reconcile_my_pass_balances')
-    if (recErr) console.warn('[Auth] reconcile_my_pass_balances:', recErr)
-  } catch (e) {
-    console.warn('[Auth] reconcile_my_pass_balances', e)
+  const now = Date.now()
+  if (now - _lastPassReconcileAt >= PASS_RECONCILE_COOLDOWN_MS) {
+    try {
+      const { error: recErr } = await sb.rpc('reconcile_my_pass_balances')
+      if (recErr) {
+        console.warn('[Auth] reconcile_my_pass_balances:', recErr)
+      } else {
+        _lastPassReconcileAt = now
+      }
+    } catch (e) {
+      console.warn('[Auth] reconcile_my_pass_balances', e)
+    }
   }
   const { data, error } = await sb
     .from('user_passes')
