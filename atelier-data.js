@@ -818,7 +818,7 @@ export function renderKurzy() {
     const desc     = loc(c.description_short)
     const ownerName = Array.isArray(c.owner) ? c.owner[0]?.name : c.owner?.name
     const soldOut  = !window.AppState.upcomingLessons.some(l => l.course_id === c.id && l.available_spots > 0)
-    const upcoming = window.AppState.upcomingLessons.filter(l => l.course_id === c.id).slice(0, 3)
+    const upcoming = window.AppState.upcomingLessons.filter(l => l.course_id === c.id)
     const pricePerEntry = c.price_single
 
     // Pre-select prvního dostupného termínu a jednorázový vstup
@@ -863,7 +863,7 @@ export function renderKurzy() {
           <div>
             ${buildCourseImage(c)}
             <div style="font-size:11px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
-            <div class="blbl">${lang === 'cs' ? 'Nejbližší termíny' : 'Upcoming dates'}</div>
+            <div class="blbl">${lang === 'cs' ? 'Vypsané termíny' : 'All scheduled dates'}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
               ${buildTermPills(upcoming, color, c.id)}
             </div>
@@ -1241,24 +1241,29 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId) => {
   const preselectedUp = passId
     ? activePasses.find(up => up.pass?.id === passId || up.id === passId)
     : null
-  const defaultPay = preselectedUp ? `up-${preselectedUp.id}` : 'single'
+  const defaultPass = preselectedUp || activePasses[0] || null
+  const allowSinglePayment = activePasses.length === 0
+  const defaultPay = defaultPass ? `up-${defaultPass.id}` : 'single'
 
   const payEl = document.getElementById('bk-payment-opts')
   if (payEl) {
     payEl.dataset.selected  = defaultPay
     payEl.dataset.color     = color
     payEl.dataset.courseid  = courseId
+    payEl.dataset.singleAllowed = allowSinglePayment ? '1' : '0'
     payEl.innerHTML = `
-      <label class="bk-opt ${defaultPay === 'single' ? 'bk-opt-sel' : ''}"
-             style="${defaultPay === 'single' ? `border-color:${color};border-width:1.5px;` : ''}"
-             onclick="window._bkSelectPayment(this,'single')">
-        <div class="bk-opt-radio ${defaultPay === 'single' ? 'on' : ''}"
-             style="border-color:${color};${defaultPay === 'single' ? `background:${color};` : ''}"></div>
-        <div style="flex:1;">
-          <div class="bnm">${lang === 'cs' ? 'Jednorázový vstup' : 'Single entry'}</div>
-          <div class="bsb">${fmtPrice(course.price_single)}</div>
-        </div>
-      </label>
+      ${allowSinglePayment ? `
+        <label class="bk-opt ${defaultPay === 'single' ? 'bk-opt-sel' : ''}"
+               style="${defaultPay === 'single' ? `border-color:${color};border-width:1.5px;` : ''}"
+               onclick="window._bkSelectPayment(this,'single')">
+          <div class="bk-opt-radio ${defaultPay === 'single' ? 'on' : ''}"
+               style="border-color:${color};${defaultPay === 'single' ? `background:${color};` : ''}"></div>
+          <div style="flex:1;">
+            <div class="bnm">${lang === 'cs' ? 'Jednorázový vstup' : 'Single entry'}</div>
+            <div class="bsb">${fmtPrice(course.price_single)}</div>
+          </div>
+        </label>
+      ` : ''}
       ${activePasses.map(up => {
         const sel = defaultPay === `up-${up.id}`
         return `
@@ -1320,10 +1325,20 @@ window.confirmBooking = async () => {
   const payVal   = payEl?.dataset.selected ?? 'single'
   const courseId = payEl?.dataset.courseid
   const course   = window.AppState.courses.find(c => c.id === courseId)
+  const singleAllowed = payEl?.dataset.singleAllowed !== '0'
 
   const isPass     = payVal.startsWith('up-')
   const userPassId = isPass ? payVal.replace('up-', '') : null
   const pricePaid  = isPass ? 0 : (course?.price_single ?? 0)
+  if (!isPass && !singleAllowed) {
+    window.showToast?.(
+      lang === 'cs'
+        ? 'Pokud máte aktivní permanentku pro tento kurz, jednorázový vstup není k dispozici.'
+        : 'Single entry is unavailable when you have an active pass for this course.',
+      'error',
+    )
+    return
+  }
 
   /** Obnoví text tlačítka podle aktuálního režimu výběru. */
   const resetBtn = () => {

@@ -1142,10 +1142,58 @@ window.cancelMyBooking = async (bookingId) => {
   }
 }
 
+function positionAvatarMenu() {
+  const menu = document.getElementById('av-menu')
+  const av = document.getElementById('av')
+  if (!menu || !av) return
+
+  const rect = av.getBoundingClientRect()
+  const gap = 8
+  const viewportPad = 12
+
+  const prevDisplay = menu.style.display
+  const prevVisibility = menu.style.visibility
+  const needsMeasure = !menu.classList.contains('on')
+  if (needsMeasure) {
+    menu.style.visibility = 'hidden'
+    menu.style.display = 'block'
+  }
+
+  const menuWidth = menu.offsetWidth || 160
+  const left = Math.min(
+    Math.max(viewportPad, rect.right - menuWidth),
+    window.innerWidth - menuWidth - viewportPad,
+  )
+  const top = rect.bottom + gap
+
+  menu.style.left = `${Math.round(left)}px`
+  menu.style.top = `${Math.round(top)}px`
+
+  if (needsMeasure) {
+    menu.style.display = prevDisplay
+    menu.style.visibility = prevVisibility
+  }
+}
+
 function toggleAvatarMenu() {
   const menu = document.getElementById('av-menu')
-  if (menu) menu.classList.toggle('on')
+  if (!menu) return
+  const nextOpen = !menu.classList.contains('on')
+  menu.classList.toggle('on', nextOpen)
+  if (nextOpen) {
+    positionAvatarMenu()
+  }
 }
+
+window.addEventListener('resize', () => {
+  const menu = document.getElementById('av-menu')
+  if (menu?.classList.contains('on')) positionAvatarMenu()
+})
+
+window.addEventListener('scroll', () => {
+  const menu = document.getElementById('av-menu')
+  if (menu?.classList.contains('on')) positionAvatarMenu()
+}, true)
 
 // ── Rerendery (registrované z atelier-data.js) ────────────────
 let rerenderCalendar       = () => {}
