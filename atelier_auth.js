@@ -54,6 +54,7 @@ window.closeDeleteAccountModal = () => {
 window.saveSettings = async () => saveSettings()
 window.confirmDeleteAccount = async () => confirmDeleteAccount()
 window.changePassword = async () => {
+  const CHANGE_PASSWORD_TIMEOUT_MS = 15000
   const currentPw = document.getElementById('set-pw-current')?.value ?? ''
   const pw1 = document.getElementById('set-pw1')?.value ?? ''
   const pw2 = document.getElementById('set-pw2')?.value ?? ''
@@ -65,8 +66,27 @@ window.changePassword = async () => {
     const payload = currentPw.trim()
       ? { password: pw1, current_password: currentPw }
       : { password: pw1 }
-    const { error } = await sb.auth.updateUser(payload)
-    if (error) throw error
+
+    // Některé auth odpovědi mohou v prohlížeči viset příliš dlouho.
+    // UI raději po timeoutu odblokujeme a dáme uživateli jasnou další akci.
+    const result = await Promise.race([
+      sb.auth.updateUser(payload)
+        .then(({ error }) => ({ kind: 'result', error }))
+        .catch(error => ({ kind: 'thrown', error })),
+      new Promise(resolve => setTimeout(() => resolve({ kind: 'timeout' }), CHANGE_PASSWORD_TIMEOUT_MS)),
+    ])
+
+    if (result?.kind === 'timeout') {
+      window.showToast?.(
+        'Uložení hesla trvá příliš dlouho. Heslo se mohlo uložit, ale klient nedostal odpověď. Ověř ho prosím v anonymním okně novým přihlášením.',
+        'error',
+      )
+      return
+    }
+
+    if (result?.kind === 'thrown') throw result.error
+    if (result?.error) throw result.error
+
     window.showToast?.(langPick('✓ Heslo bylo uloženo. Už ho můžeš znovu použít k přihlášení.', '✓ Password saved.'), 'ok')
     ;['set-pw-current', 'set-pw1', 'set-pw2'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   } catch (err) {
