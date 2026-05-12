@@ -124,10 +124,7 @@ function _syncCardPrimaryButton(courseId) {
     btn.textContent = lang === 'cs' ? 'Koupit permanentku' : 'Buy pass'
     return
   }
-  const n = st.paymentType === 'pass' && Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
-  btn.textContent = n && st.paymentType === 'pass'
-    ? (lang === 'cs' ? `Rezervovat vybrané (${n})` : `Book selected (${n})`)
-    : (lang === 'cs' ? 'Rezervovat' : 'Book')
+  btn.textContent = lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'
 }
 
 function _syncPopupPrimaryButton() {
@@ -1019,7 +1016,7 @@ function buildBuyPanel(c, color) {
     <div id="card-msg-${c.id}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
     <button class="btn-res" id="res-btn-${c.id}" style="background:${color};"
       onclick="window.reserveFromCard('${c.id}')">
-      ${lang === 'cs' ? 'Rezervovat' : 'Book'}
+      ${lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'}
     </button>`
 }
 
@@ -1868,7 +1865,7 @@ async function renderCourseDetail(courseId) {
       ${upcoming.some(l => l.available_spots > 0)
         ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
              onclick="window.openBookingPopup?.('${courseId}')">
-             ${lang === 'cs' ? 'Pokračovat' : 'Continue'}
+             ${lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'}
            </button>`
         : `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
              ${lang === 'cs' ? 'Lekce je plně obsazena.' : 'All sessions are full.'}
