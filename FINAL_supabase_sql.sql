@@ -36,27 +36,36 @@ create table if not exists public.users (
 );
 
 create table if not exists public.courses (
-  id                 uuid primary key default gen_random_uuid(),
-  owner_id           uuid not null references public.users(id) on delete restrict,
-  title              jsonb not null,
-  description_short  jsonb,
-  description_long   jsonb,
-  images             text[],
-  color_code         text not null default '#2854B9',
-  is_active          boolean not null default true,
-  is_workshop        boolean not null default false,
-  cancellation_hours integer not null default 24
-                       check (cancellation_hours in (6, 24, 48)),
-  min_participants   integer not null default 1
-                       check (min_participants >= 1),
-  capacity_default   integer not null default 12
-                       check (capacity_default >= 1),
-  price_single       numeric(10,2) not null check (price_single >= 0),
-  created_at         timestamptz not null default now(),
-  updated_at         timestamptz not null default now(),
+  id                   uuid primary key default gen_random_uuid(),
+  owner_id             uuid not null references public.users(id) on delete restrict,
+  title                jsonb not null,
+  description_short    jsonb,
+  description_long     jsonb,
+  images               text[],
+  color_code           text not null default '#2854B9',
+  is_active            boolean not null default true,
+  is_workshop          boolean not null default false,
+  cancellation_hours   integer not null default 24
+                         check (cancellation_hours in (6, 24, 48)),
+  min_participants     integer not null default 1
+                         check (min_participants >= 1),
+  capacity_default     integer not null default 12
+                         check (capacity_default >= 1),
+  price_single         numeric(10,2) not null check (price_single >= 0),
+  schedule_days        integer[] not null default '{}'::integer[],
+  schedule_time_start  time,
+  schedule_time_end    time,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
   constraint courses_min_participants_valid
     check (min_participants <= capacity_default)
 );
+
+-- Idempotent top-up for projects created before these columns existed.
+alter table public.courses
+  add column if not exists schedule_days       integer[] not null default '{}'::integer[],
+  add column if not exists schedule_time_start time,
+  add column if not exists schedule_time_end   time;
 
 create table if not exists public.lessons (
   id           uuid primary key default gen_random_uuid(),
