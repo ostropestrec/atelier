@@ -4,9 +4,9 @@
 
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.5/+esm'
 
-/** Povolené značky odpovídají toolbaru Quill (tučné, kurzíva, podtržení, odrážky). */
+/** Povolené značky odpovídají toolbaru Quill (nadpisy, tučné, kurzíva, podtržení, odrážky). */
 const RICH_TEXT_CONFIG = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li'],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h2', 'h3'],
   ALLOWED_ATTR: [],
   ALLOW_DATA_ATTR: false,
 }

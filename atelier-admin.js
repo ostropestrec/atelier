@@ -56,7 +56,7 @@ function _ensureMcLongQuill() {
   _quillMcLong = new Q('#mc-long-editor', {
     theme: 'snow',
     modules: {
-      toolbar: [['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
+      toolbar: [[{ header: [2, 3, false] }], ['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
     },
     placeholder: 'Podrobný popis pro stránku detailu kurzu…',
   })
@@ -70,7 +70,7 @@ function _ensureMwLongQuill() {
   _quillMwLong = new Q('#mw-long-editor', {
     theme: 'snow',
     modules: {
-      toolbar: [['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
+      toolbar: [[{ header: [2, 3, false] }], ['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
     },
     placeholder: 'Podrobný popis programu workshopu…',
   })
