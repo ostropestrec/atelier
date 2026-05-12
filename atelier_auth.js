@@ -1298,12 +1298,17 @@ function renderProtectedSections(user) {
                 <div class="bk-left">
                   <span class="dot" style="background:${color}"></span>
                   <div style="min-width:0">
-                    <div class="bk-title">${escapeHtml(title || 'Lekce')}</div>
+                    <div class="bk-title">
+                      <a href="javascript:void(0)" onclick="window.openDetail?.('${lesson?.course?.id ?? ''}')"
+                        style="color:inherit;text-decoration:none;">
+                        ${escapeHtml(title || 'Lekce')}
+                      </a>
+                    </div>
                     <div class="bk-sub">${escapeHtml(when)} · ${escapeHtml(owner)}</div>
                   </div>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;">
-                  <span class="pill ok">Přihlášena</span>
+                  <span class="pill ok">PŘIHLÁŠENO</span>
                   ${canUserCancelBooking(b)
                     ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">Odhlásit</button>`
                     : ''}

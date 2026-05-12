@@ -705,7 +705,7 @@ export function renderKalendar() {
       <div class="evn" style="color:${color};">${name}</div>
       <div class="evt" style="color:${color};">${timeStr}</div>
       ${course?.is_workshop ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP</div>` : ''}
-      ${enrolled ? `<div class="evb" style="color:${color};">✓ ${lang === 'cs' ? 'PŘIHLÁŠENA' : 'ENROLLED'}</div>` : ''}
+      ${enrolled ? `<div class="evb" style="color:${color};">✓ ${lang === 'cs' ? 'PŘIHLÁŠENO' : 'ENROLLED'}</div>` : ''}
       ${full && !enrolled ? `<div class="evb" style="color:${color};">${lang === 'cs' ? 'PLNO' : 'FULL'}</div>` : ''}
     `
 
@@ -938,7 +938,7 @@ export function renderKurzy() {
             <div style="font-size:11px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
             <div class="blbl">${lang === 'cs' ? 'Vypsané termíny' : 'All scheduled dates'}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-              ${buildTermPills(upcoming, color, c.id)}
+              ${buildTermPills(upcoming, color, c.id, false)}
             </div>
             <button class="btn-detail" onclick="openDetail('${c.id}')">
               ${lang === 'cs' ? 'Detail kurzu →' : 'Course detail →'}
@@ -964,7 +964,7 @@ function buildCourseImage(c) {
        </div>`
 }
 
-function buildTermPills(upcoming, color, courseId) {
+function buildTermPills(upcoming, color, courseId, interactive = true) {
   if (!upcoming.length) {
     return `<span style="font-size:10px;color:#9b9b9b;">${lang === 'cs' ? 'Žádné termíny' : 'No dates available'}</span>`
   }
@@ -982,9 +982,9 @@ function buildTermPills(upcoming, color, courseId) {
       style="font-size:10px;padding:3px 9px;border-radius:var(--btn-radius);
              border:${sel ? `1.5px solid ${color}` : '0.5px solid rgba(0,0,0,.08)'};
              color:${sel ? color : '#6b6b6b'};
-             cursor:${full ? 'default' : 'pointer'};
+             cursor:${interactive && !full ? 'pointer' : 'default'};
              ${full ? 'opacity:.5;' : ''}"
-      ${!full ? `onclick="window.pickTerm(this,'${color}','${courseId}')"` : ''}
+      ${interactive && !full ? `onclick="window.pickTerm(this,'${color}','${courseId}')"` : ''}
     >${label}${full ? ` (${lang === 'cs' ? 'plno' : 'full'})` : ''}</span>`
   }).join('')
 }
