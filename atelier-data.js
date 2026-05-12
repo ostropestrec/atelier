@@ -1862,8 +1862,7 @@ async function renderCourseDetail(courseId) {
       ${upcoming.length ? `
         <div style="margin-top:18px;">
           <div class="blbl" style="margin-bottom:8px;">${lang === 'cs' ? 'Nejbližší termíny' : 'Upcoming dates'}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId)}</div>
-          <div id="detail-pass-indicator-${courseId}" style="display:none;font-size:12px;color:var(--muted);margin-top:12px;line-height:1.45;"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId, false)}</div>
         </div>` : ''}
 
       ${upcoming.some(l => l.available_spots > 0)
