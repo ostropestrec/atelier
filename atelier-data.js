@@ -974,6 +974,45 @@ function buildBuyPanel(c, color) {
     </button>`
 }
 
+async function fetchPassTemplatesForCourse(courseId) {
+  const { data, error } = await sb
+    .from('passes')
+    .select('id, name, entries_total, price, validity_weeks')
+    .eq('is_active', true)
+    .contains('allowed_course_ids', [courseId])
+
+  if (error) throw error
+  return data ?? []
+}
+
+function buildPassPurchaseCards(passRows, courseId, color, compact = false) {
+  return (passRows ?? []).map(p => {
+    const name = loc(p.name)
+    const perEntry = fmtPrice(p.price / p.entries_total)
+    const wrapStyle = compact
+      ? 'border:0.5px solid rgba(0,0,0,.08);border-radius:12px;padding:10px 12px;background:#fff;'
+      : 'border:0.5px solid rgba(0,0,0,.08);'
+    return `
+      <div class="bo" style="${wrapStyle}">
+        <div class="brow">
+          <span class="bnm">${name}</span>
+          <span style="font-size:11px;font-weight:500;color:${color};">${fmtPrice(p.price)}</span>
+        </div>
+        <div class="bsb" style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:10px;">
+          <span>${p.entries_total} ${lang === 'cs' ? 'vstupů' : 'entries'} · ${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}</span>
+          <button
+            id="buy-btn-${p.id}"
+            style="font-size:10px;padding:3px 9px;border-radius:var(--btn-radius);
+                   border:1px solid ${color};color:${color};
+                   background:transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;"
+            onclick="event.stopPropagation();window.buyPass('${p.id}',${p.entries_total},${p.price},'${courseId}',this)">
+            ${lang === 'cs' ? 'Koupit' : 'Buy'}
+          </button>
+        </div>
+      </div>`
+  }).join('')
+}
+
 // Lazy load platebních možností při rozbalení kurzu
 async function loadPassesForCourse(courseId) {
   const panel     = document.getElementById(`pass-panel-${courseId}`)
@@ -1034,36 +1073,17 @@ async function loadPassesForCourse(courseId) {
   // ── 2. Uživatel nemá permanentku → ukážeme jednorázový vstup + nabídka koupě ──
   if (singleDiv) singleDiv.style.display = ''
 
-  const { data, error } = await sb
-    .from('passes')
-    .select('id, name, entries_total, price, validity_weeks')
-    .eq('is_active', true)
-    .contains('allowed_course_ids', [courseId])
+  let data = []
+  try {
+    data = await fetchPassTemplatesForCourse(courseId)
+  } catch (error) {
+    console.warn('[loadPassesForCourse]', error)
+    panel.innerHTML = ''
+    return
+  }
 
-  if (error || !data?.length) { panel.innerHTML = ''; return }
-
-  panel.innerHTML = data.map(p => {
-    const name     = loc(p.name)
-    const perEntry = fmtPrice(p.price / p.entries_total)
-    return `
-      <div class="bo" style="border:0.5px solid rgba(0,0,0,.08);">
-        <div class="brow">
-          <span class="bnm">${name}</span>
-          <span style="font-size:11px;font-weight:500;color:${color};">${fmtPrice(p.price)}</span>
-        </div>
-        <div class="bsb" style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-          <span>${p.entries_total} ${lang === 'cs' ? 'vstupů' : 'entries'} · ${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}</span>
-          <button
-            id="buy-btn-${p.id}"
-            style="font-size:10px;padding:3px 9px;border-radius:var(--btn-radius);
-                   border:1px solid ${color};color:${color};
-                   background:transparent;cursor:pointer;white-space:nowrap;"
-            onclick="event.stopPropagation();window.buyPass('${p.id}',${p.entries_total},${p.price},'${courseId}',this)">
-            ${lang === 'cs' ? 'Koupit' : 'Buy'}
-          </button>
-        </div>
-      </div>`
-  }).join('')
+  if (!data?.length) { panel.innerHTML = ''; return }
+  panel.innerHTML = buildPassPurchaseCards(data, courseId, color)
 }
 
 window.buyPass = async (passId, entriesTotal, price, courseId, btn) => {
@@ -1088,6 +1108,11 @@ window.buyPass = async (passId, entriesTotal, price, courseId, btn) => {
 
     await loadUserPasses(currentUser.id)
     await loadPassesForCourse(courseId)
+    const bookingPopup = document.getElementById('pop-booking')
+    if (bookingPopup?.style.display === 'flex') {
+      const selectedLessonId = document.getElementById('bk-lesson-select')?.value || null
+      await window.openBookingPopup?.(courseId, passId, selectedLessonId)
+    }
     window.showToast?.(lang === 'cs' ? '✓ Permanentka zakoupena.' : '✓ Pass purchased.', 'ok')
   } catch (err) {
     console.error('[buyPass]', err)
@@ -1274,6 +1299,14 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId) => {
     const ids = up.pass?.allowed_course_ids
     return !ids?.length || ids.includes(courseId)
   })
+  let purchasablePasses = []
+  if (activePasses.length === 0) {
+    try {
+      purchasablePasses = await fetchPassTemplatesForCourse(courseId)
+    } catch (err) {
+      console.warn('[Booking popup] passes:', err)
+    }
+  }
   const preselectedUp = passId
     ? activePasses.find(up => up.pass?.id === passId || up.id === passId)
     : null
@@ -1315,6 +1348,20 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId) => {
           </label>`
       }).join('')}
     `
+  }
+
+  const buyPanel = document.getElementById('bk-pass-buy-panel')
+  if (buyPanel) {
+    if (activePasses.length === 0 && purchasablePasses.length > 0) {
+      buyPanel.style.display = 'block'
+      buyPanel.innerHTML = `
+        <div class="blbl" style="margin-bottom:6px;">${lang === 'cs' ? 'Permanentky ke koupi' : 'Passes to buy'}</div>
+        <div style="display:grid;gap:8px;">${buildPassPurchaseCards(purchasablePasses, courseId, color, true)}</div>
+      `
+    } else {
+      buyPanel.style.display = 'none'
+      buyPanel.innerHTML = ''
+    }
   }
 
   const confirmBtn = document.getElementById('bk-confirm-btn')
