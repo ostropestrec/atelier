@@ -575,15 +575,13 @@ function _nastenkaCourseRow(cid, sub) {
   const color = course?.color_code ?? '#2854B9'
   return `
       <div class="booking-item" style="margin-bottom:10px;">
-        <div class="bk-left" style="min-width:0;flex:1;">
+        <button type="button" class="bk-link" onclick="window.openDetail?.('${cid}')">
           <span class="dot" style="background:${color};flex-shrink:0;"></span>
           <div style="min-width:0">
             <div class="bk-title">${_escHtml(title)}</div>
             <div class="bk-sub">${sub}</div>
           </div>
-        </div>
-        <button type="button" class="btn-small" style="flex-shrink:0;"
-          onclick="window.openDetail?.('${cid}')">${lang === 'cs' ? 'Detail' : 'Detail'}</button>
+        </button>
       </div>`
 }
 
@@ -607,15 +605,24 @@ function renderNastenkaMyCourses() {
   const regular = ids.filter(id => !_isWorkshopCourseId(id))
   const wshop = ids.filter(id => _isWorkshopCourseId(id))
 
-  const subK = lang === 'cs' ? 'Aktivní rezervace v kurzu' : 'Active booking in this course'
-  const subW = lang === 'cs' ? 'Aktivní rezervace ve workshopu' : 'Active booking in this workshop'
+  const fmtNastenkaCourseWhen = cid => {
+    const rows = (myBookings ?? [])
+      .filter(b => b.lesson?.course?.id === cid && b.lesson?.start_time)
+      .sort((a, b) => new Date(a.lesson.start_time) - new Date(b.lesson.start_time))
+    const iso = rows[0]?.lesson?.start_time
+    if (!iso) return lang === 'cs' ? 'Aktivní rezervace' : 'Active booking'
+    const d = new Date(iso)
+    const day = d.toLocaleDateString(lang === 'cs' ? 'cs-CZ' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric' })
+    const time = d.toLocaleTimeString(lang === 'cs' ? 'cs-CZ' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+    return `${day} · ${time}`
+  }
 
   if (!regular.length) {
     wrapK.style.display = 'none'
     elK.innerHTML = ''
   } else {
     wrapK.style.display = 'block'
-    elK.innerHTML = regular.map(cid => _nastenkaCourseRow(cid, subK)).join('')
+    elK.innerHTML = regular.map(cid => _nastenkaCourseRow(cid, fmtNastenkaCourseWhen(cid))).join('')
   }
 
   if (!wshop.length) {
@@ -623,7 +630,7 @@ function renderNastenkaMyCourses() {
     elW.innerHTML = ''
   } else {
     wrapW.style.display = 'block'
-    elW.innerHTML = wshop.map(cid => _nastenkaCourseRow(cid, subW)).join('')
+    elW.innerHTML = wshop.map(cid => _nastenkaCourseRow(cid, fmtNastenkaCourseWhen(cid))).join('')
   }
 }
 

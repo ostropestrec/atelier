@@ -646,6 +646,14 @@
     .pass-count{ font-size: 16px; font-weight: 700; color: var(--primary); }
     .bar{ height: 6px; background: rgba(17,24,39,.08); border-radius: 999px; overflow:hidden; margin-top: 10px;}
     .bar > i{ display:block; height:100%; width: 0%; background: var(--primary); border-radius: 999px; }
+    .nastenka-grid{
+      display:grid;
+      grid-template-columns:minmax(0, 1.35fr) minmax(0, 1fr);
+      gap:20px;
+      align-items:start;
+    }
+    .nastenka-main-col, .nastenka-side-col{ min-width:0; }
+    .nastenka-side-col > div:first-child .section-h{ margin-top:0; }
     .booking-item{
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -659,8 +667,33 @@
     }
     .dot{ width:8px; height:8px; border-radius:50%; flex:0 0 8px; margin-top: 6px; }
     .bk-left{ display:flex; gap:10px; align-items:flex-start; min-width:0; }
+    .bk-link{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      min-width:0;
+      flex:1;
+      background:transparent;
+      border:none;
+      padding:0;
+      margin:0;
+      text-align:left;
+      cursor:pointer;
+      color:inherit;
+      font:inherit;
+    }
     .bk-title{ font-size: 14px; font-weight: 600; }
     .bk-sub{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .bk-link:hover .bk-title,
+    .bk-link:focus-visible .bk-title{
+      text-decoration:underline;
+      text-underline-offset:2px;
+    }
+    .bk-link:focus-visible{
+      outline:2px solid rgba(40,84,185,.25);
+      outline-offset:6px;
+      border-radius:10px;
+    }
     .pill{
       font-size: 12px; font-weight: 600;
       padding: 7px 10px; border-radius: var(--btn-radius);
@@ -669,6 +702,9 @@
       white-space: nowrap;
     }
     .pill.ok{ background: rgba(40,84,185,.10); color: var(--primary); border-color: rgba(40,84,185,.18); }
+    @media (max-width: 900px){
+      .nastenka-grid{ grid-template-columns:1fr; gap:0; }
+    }
     .btn-small{
       padding: 9px 12px; border-radius: var(--btn-radius); border: 1px solid var(--border);
       background: transparent; cursor:pointer; font-size: 13px; font-weight:600;
@@ -872,16 +908,22 @@
 <!-- ── Screen: Nástěnka ── -->
 <div class="screen active" id="screen-nastenka">
   <div class="sec-title">Nástěnka</div>
-  <div id="nastenka-content"></div>
+  <div class="nastenka-grid">
+    <div class="nastenka-main-col">
+      <div id="nastenka-content"></div>
+    </div>
 
-  <div id="nastenka-courses-wrap" style="display:none;">
-    <div class="section-h" id="nastenka-courses-h">Moje kurzy</div>
-    <div id="nastenka-courses"></div>
-  </div>
+    <div class="nastenka-side-col">
+      <div id="nastenka-courses-wrap" style="display:none;">
+        <div class="section-h" id="nastenka-courses-h">Moje kurzy</div>
+        <div id="nastenka-courses"></div>
+      </div>
 
-  <div id="nastenka-workshops-wrap" style="display:none;">
-    <div class="section-h">Moje workshopy</div>
-    <div id="nastenka-workshops"></div>
+      <div id="nastenka-workshops-wrap" style="display:none;">
+        <div class="section-h">Moje workshopy</div>
+        <div id="nastenka-workshops"></div>
+      </div>
+    </div>
   </div>
 </div>
 
