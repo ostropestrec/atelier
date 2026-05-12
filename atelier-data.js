@@ -1184,7 +1184,7 @@ window.buyPass = async (passId, entriesTotal, price, courseId, btn, preselectedL
     await loadPassesForCourse(courseId)
     const bookingPopup = document.getElementById('pop-booking')
     if (bookingPopup?.style.display === 'flex') {
-      const selectedLessonId = preselectedLessonId ?? document.getElementById('bk-lesson-select')?.value || null
+      const selectedLessonId = preselectedLessonId ?? (document.getElementById('bk-lesson-select')?.value || null)
       await window.openBookingPopup?.(courseId, passId, selectedLessonId)
     }
     window.showToast?.(lang === 'cs' ? '✓ Permanentka zakoupena.' : '✓ Pass purchased.', 'ok')
