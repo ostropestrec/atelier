@@ -1762,7 +1762,7 @@ async function renderCourseDetail(courseId) {
   const descLongBlock = _formatCourseDetailLong(descLong)
   const imageUrls = courseImageUrls(course)
   const ownerName = Array.isArray(course.owner) ? course.owner[0]?.name : course.owner?.name
-  const upcoming  = window.AppState.upcomingLessons.filter(l => l.course_id === courseId).slice(0, 3)
+  const upcoming  = window.AppState.upcomingLessons.filter(l => l.course_id === courseId)
 
   const ownedForDetail = userPasses.filter(up => {
     if (up.entries_remaining <= 0) return false
@@ -1861,14 +1861,14 @@ async function renderCourseDetail(courseId) {
 
       ${upcoming.length ? `
         <div style="margin-top:18px;">
-          <div class="blbl" style="margin-bottom:8px;">${lang === 'cs' ? 'Nejbližší termíny' : 'Upcoming dates'}</div>
+          <div class="blbl" style="margin-bottom:8px;">${lang === 'cs' ? 'Vypsané termíny' : 'Scheduled dates'}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId, false)}</div>
         </div>` : ''}
 
       ${upcoming.some(l => l.available_spots > 0)
         ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
              onclick="window.openBookingPopup?.('${courseId}')">
-             ${lang === 'cs' ? 'Rezervovat' : 'Book'}
+             ${lang === 'cs' ? 'Pokračovat' : 'Continue'}
            </button>`
         : `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
              ${lang === 'cs' ? 'Lekce je plně obsazena.' : 'All sessions are full.'}
