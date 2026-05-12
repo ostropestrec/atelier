@@ -55,6 +55,16 @@ window.saveSettings = async () => saveSettings()
 window.confirmDeleteAccount = async () => confirmDeleteAccount()
 
 const CHANGE_PASSWORD_TIMEOUT_MS = 15000
+const PROFILE_UPDATE_TIMEOUT_MS = 12000
+const SIGN_OUT_TIMEOUT_MS = 6000
+
+/** Obalí libovolné asynchronní volání timeoutem; ten brání zamrznutí UI při nedostupném serveru. */
+function _withTimeout(promise, ms, label) {
+  return Promise.race([
+    Promise.resolve(promise).then(value => ({ kind: 'ok', value }), error => ({ kind: 'err', error })),
+    new Promise(resolve => setTimeout(() => resolve({ kind: 'timeout', label }), ms)),
+  ])
+}
 
 function _buildPasswordChangePayload() {
   const currentPw = document.getElementById('set-pw-current')?.value ?? ''
@@ -518,9 +528,46 @@ export async function signInWithProvider(provider) {
 }
 
 // ── Sign out ──────────────────────────────────────────────────
+/**
+ * Odhlášení s timeoutem. Pokud Supabase do SIGN_OUT_TIMEOUT_MS neodpoví
+ * (např. visící síť, mrtvý token), provedeme lokální cleanup, ať UI nezamrzne.
+ */
 export async function signOut() {
-  await sb.auth.signOut()
-  // Zbytek řeší onAuthStateChange → SIGNED_OUT
+  const previousUserId = currentUser?.id ?? null
+
+  const result = await _withTimeout(
+    sb.auth.signOut({ scope: 'local' }),
+    SIGN_OUT_TIMEOUT_MS,
+    'sign-out',
+  )
+
+  if (result.kind === 'err') {
+    console.warn('[Auth] signOut() vrátil chybu:', result.error?.message ?? result.error)
+  } else if (result.kind === 'timeout') {
+    console.warn('[Auth] signOut() timeout, dělám lokální cleanup.')
+  }
+
+  // Lokální cleanup spustíme vždy. Pokud onAuthStateChange → SIGNED_OUT
+  // přijde později, jen znovu projde stejnými řádky (idempotentní).
+  if (currentUser?.id === previousUserId) {
+    currentUser = null
+    userBookings.clear()
+    userPasses = []
+    myBookings = []
+    window.AppState.user = null
+    window.AppState.role = 'uzivatel'
+    window.__userRole = 'uzivatel'
+    try { renderAuthUI(null) } catch (_) {}
+    try { renderProtectedSections(null) } catch (_) {}
+    try { rerenderCalendar() } catch (_) {}
+  }
+
+  if (result.kind === 'timeout') {
+    window.showToast?.(
+      'Server neodpověděl, ale byla jsi odhlášena lokálně. Zkus stránku obnovit.',
+      'ok',
+    )
+  }
 }
 
 // aby fungovalo onclick="window.signOut?.()" v index.html
@@ -946,13 +993,26 @@ async function saveSettings() {
   try {
     passwordPayload = _buildPasswordChangePayload()
 
-    const { data, error } = await sb
+    const profileQuery = sb
       .from('users')
       .update({ name, reminder_hours, avatar_color })
       .eq('id', currentUser.id)
       .select('id, email, name, role, is_ghost, reminder_hours, avatar_color')
       .single()
+
+    const profileResult = await _withTimeout(profileQuery, PROFILE_UPDATE_TIMEOUT_MS, 'profile-update')
+
+    if (profileResult.kind === 'timeout') {
+      window.showToast?.(
+        'Uložení nastavení trvá příliš dlouho. Server pravděpodobně neodpověděl — zkus to znovu nebo obnov stránku.',
+        'error',
+      )
+      return
+    }
+    if (profileResult.kind === 'err') throw profileResult.error
+    const { data, error } = profileResult.value
     if (error) throw error
+
     currentUser = { ...currentUser, ...data }
     renderAuthUI(currentUser)
     renderProtectedSections(currentUser)
