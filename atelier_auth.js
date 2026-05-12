@@ -125,8 +125,97 @@ function langPick(cs, en) {
   return l.startsWith('en') ? en : cs
 }
 
+window.__passwordRecoveryMode = false
+
+function _readAuthRedirectState() {
+  const search = new URLSearchParams(window.location.search)
+  const hash = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
+  return {
+    error: search.get('error') || hash.get('error') || '',
+    errorCode: search.get('error_code') || hash.get('error_code') || '',
+    errorDescription: search.get('error_description') || hash.get('error_description') || '',
+    type: search.get('type') || hash.get('type') || '',
+  }
+}
+
+function _cleanAuthRedirectUrl() {
+  try {
+    const url = new URL(window.location.href)
+    ;['error', 'error_code', 'error_description', 'code', 'type'].forEach(k => url.searchParams.delete(k))
+    const hash = new URLSearchParams((url.hash || '').replace(/^#/, ''))
+    const authHashKeys = ['access_token', 'refresh_token', 'expires_at', 'expires_in', 'token_type', 'type', 'error', 'error_code', 'error_description']
+    const hasAuthHash = authHashKeys.some(k => hash.has(k))
+    if (hasAuthHash) url.hash = ''
+    history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`)
+  } catch (_) { /* ignore */ }
+}
+
+function _syncPasswordRecoveryUi() {
+  const helperEl = document.getElementById('set-pw-helper')
+  const currentFieldEl = document.getElementById('set-pw-current-field')
+  const currentPwEl = document.getElementById('set-pw-current')
+  const currentLabelEl = document.getElementById('set-pw-current-label')
+  const recovery = !!window.__passwordRecoveryMode
+
+  if (helperEl) {
+    helperEl.textContent = recovery
+      ? 'Obnova hesla přes e-mailový odkaz: vyplňte nové heslo a potvrzení, pak klikněte na „Uložit změny“. Současné heslo není potřeba.'
+      : 'Nastavte nebo změňte heslo pro přihlášení e-mailem a heslem. Pokud to bude Supabase vyžadovat, vyplňte i současné heslo. Heslo se uloží spolu s tlačítkem „Uložit změny“ níže.'
+  }
+  if (currentFieldEl) currentFieldEl.style.display = recovery ? 'none' : ''
+  if (currentPwEl) {
+    currentPwEl.disabled = recovery
+    if (recovery) currentPwEl.value = ''
+  }
+  if (currentLabelEl) {
+    currentLabelEl.textContent = recovery ? 'Současné heslo (není potřeba)' : 'Současné heslo'
+  }
+}
+
+function _enterPasswordRecoveryMode() {
+  window.__passwordRecoveryMode = true
+  _syncPasswordRecoveryUi()
+  requestAnimationFrame(() => {
+    window.nav?.('nastaveni')
+    window.showToast?.(
+      'Odkaz pro obnovu hesla je platný. V Nastavení vyplň nové heslo a klikni na „Uložit změny“.',
+      'ok',
+    )
+    document.getElementById('set-pw1')?.focus()
+  })
+}
+
+function _handleAuthRedirectFeedback() {
+  const info = _readAuthRedirectState()
+  if (!info.errorCode && !info.error && !info.type) return info
+
+  if (info.errorCode === 'otp_expired') {
+    requestAnimationFrame(() => {
+      window.showToast?.('Odkaz pro obnovu hesla vypršel nebo už byl použit. Pošli si prosím nový.', 'error')
+      window.openAuthPopup?.()
+    })
+    _cleanAuthRedirectUrl()
+    return info
+  }
+
+  if (info.error || info.errorCode) {
+    requestAnimationFrame(() => {
+      const detail = decodeURIComponent(String(info.errorDescription || '').replace(/\+/g, ' '))
+      window.showToast?.(
+        detail || 'Přihlašovací nebo obnovovací odkaz je neplatný. Zkuste si vyžádat nový.',
+        'error',
+      )
+      window.openAuthPopup?.()
+    })
+    _cleanAuthRedirectUrl()
+  }
+
+  return info
+}
+
 // ── Inicializace ──────────────────────────────────────────────
 export async function initAuth() {
+  const redirectInfo = _handleAuthRedirectFeedback()
   let initSession = null
   try {
     const { data } = await sb.auth.getSession()
@@ -138,9 +227,14 @@ export async function initAuth() {
   try {
     if (initSession) {
       await onSessionChange(initSession)
+      if (redirectInfo?.type === 'recovery') {
+        _cleanAuthRedirectUrl()
+        _enterPasswordRecoveryMode()
+      }
     } else {
       renderAuthUI(null)
       renderProtectedSections(null)
+      _syncPasswordRecoveryUi()
     }
   } catch (err) {
     console.error('[Auth] onSessionChange selhal:', err)
@@ -182,19 +276,27 @@ export async function initAuth() {
         await onSessionChange(session)
         handlePendingBooking()
         break
+      case 'PASSWORD_RECOVERY':
+        await onSessionChange(session)
+        _cleanAuthRedirectUrl()
+        _enterPasswordRecoveryMode()
+        break
       case 'SIGNED_OUT':
         currentUser = null
         userBookings.clear()
         window.AppState.user = null
         window.AppState.role = 'uzivatel'
+        window.__passwordRecoveryMode = false
         renderAuthUI(null)
         renderProtectedSections(null)
+        _syncPasswordRecoveryUi()
         rerenderCalendar()
         break
       case 'USER_UPDATED':
         await loadUserProfile(session.user.id)
         renderAuthUI(currentUser)
         renderProtectedSections(currentUser)
+        _syncPasswordRecoveryUi()
         break
       case 'TOKEN_REFRESHED':
         break
@@ -995,6 +1097,7 @@ function renderSettings(user) {
       previewEl.style.background = '#2854B9'
     }
     if (colorsEl) colorsEl.innerHTML = ''
+    _syncPasswordRecoveryUi()
     return
   }
 
@@ -1002,6 +1105,7 @@ function renderSettings(user) {
   if (emailEl) emailEl.value = user.email ?? ''
   if (remEl) remEl.value = user.reminder_hours != null ? String(user.reminder_hours) : ''
   _renderAvatarColorSettings(user)
+  _syncPasswordRecoveryUi()
 }
 
 async function saveSettings() {
@@ -1048,6 +1152,10 @@ async function saveSettings() {
 
     const passwordResult = await _savePasswordSettingsIfNeeded(passwordPayload)
     if (passwordResult.status === 'saved') {
+      if (window.__passwordRecoveryMode && passwordPayload) {
+        window.__passwordRecoveryMode = false
+        _syncPasswordRecoveryUi()
+      }
       window.showToast?.('Změny profilu i hesla byly uloženy.', 'ok')
     } else if (passwordResult.status === 'timeout') {
       window.showToast?.(
