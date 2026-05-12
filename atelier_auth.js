@@ -54,6 +54,7 @@ window.closeDeleteAccountModal = () => {
 window.saveSettings = async () => saveSettings()
 window.confirmDeleteAccount = async () => confirmDeleteAccount()
 window.changePassword = async () => {
+  const currentPw = document.getElementById('set-pw-current')?.value ?? ''
   const pw1 = document.getElementById('set-pw1')?.value ?? ''
   const pw2 = document.getElementById('set-pw2')?.value ?? ''
   if (pw1.length < 8)  { alert('Heslo musí mít alespoň 8 znaků.'); return }
@@ -61,14 +62,24 @@ window.changePassword = async () => {
   const btn = document.getElementById('set-pw-btn')
   if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
   try {
-    const { error } = await sb.auth.updateUser({ password: pw1 })
+    const payload = currentPw.trim()
+      ? { password: pw1, current_password: currentPw }
+      : { password: pw1 }
+    const { error } = await sb.auth.updateUser(payload)
     if (error) throw error
     window.showToast?.(langPick('✓ Heslo bylo uloženo. Už ho můžeš znovu použít k přihlášení.', '✓ Password saved.'), 'ok')
-    ;['set-pw1', 'set-pw2'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
+    ;['set-pw-current', 'set-pw1', 'set-pw2'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
   } catch (err) {
     console.error('[Auth] changePassword:', err)
-    const msg = err?.message ?? String(err)
-    window.showToast?.(langPick('Nepodařilo se uložit heslo: ', 'Could not save password: ') + msg, 'error')
+    const rawMsg = String(err?.message ?? err ?? '')
+    const msg = rawMsg.toLowerCase()
+    let uiMsg = rawMsg
+    if (msg.includes('reauthentication') || msg.includes('update password requires') || msg.includes('current password')) {
+      uiMsg = 'Tato změna vyžaduje i současné heslo. Doplň ho do prvního pole a zkus to znovu.'
+    } else if (msg.includes('same password')) {
+      uiMsg = 'Nové heslo musí být jiné než současné.'
+    }
+    window.showToast?.(langPick('Nepodařilo se uložit heslo: ', 'Could not save password: ') + uiMsg, 'error')
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Uložit heslo' }
   }
