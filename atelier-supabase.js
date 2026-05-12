@@ -8,13 +8,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1?bundle'
 
 // ── Konfigurace (pevně v souboru — tento projekt nepoužívá .env v repu) ──
-const SUPABASE_URL_RAW = 'https://ijjjucxjmowesokbmjgd.supabase.co'
+const SUPABASE_URL_RAW = 'https://xnsglebcrwwldxtkuavx.supabase.co'
 /** Jedna canonical base URL — bez koncového „/“, createClient neskladá „//auth“ ani dvojí segmenty. */
 const SUPABASE_URL = String(SUPABASE_URL_RAW)
   .trim()
   .replace(/\/+$/, '')
 
-const SUPABASE_ANON = 'sb_publishable_ptD30AGQ9-j7X-WdYiqCSw_ciZtgpQR'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhuc2dsZWJjcnd3bGR4dGt1YXZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NDcwNTgsImV4cCI6MjA5NDEyMzA1OH0.hAM2_WkSXWYkYqnB-HN1VgedTYNQGXEsM6w-ciOyT9c'
 
 if (typeof SUPABASE_URL !== 'string' || !SUPABASE_URL.trim().startsWith('http')) {
   console.error('[Supabase] KRITICKÁ CHYBA: SUPABASE_URL je prázdná nebo neplatná — zkontroluj atelier-supabase.js')
