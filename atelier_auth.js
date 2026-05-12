@@ -53,56 +53,61 @@ window.closeDeleteAccountModal = () => {
 }
 window.saveSettings = async () => saveSettings()
 window.confirmDeleteAccount = async () => confirmDeleteAccount()
-window.changePassword = async () => {
-  const CHANGE_PASSWORD_TIMEOUT_MS = 15000
+
+const CHANGE_PASSWORD_TIMEOUT_MS = 15000
+
+function _buildPasswordChangePayload() {
   const currentPw = document.getElementById('set-pw-current')?.value ?? ''
   const pw1 = document.getElementById('set-pw1')?.value ?? ''
   const pw2 = document.getElementById('set-pw2')?.value ?? ''
-  if (pw1.length < 8)  { alert('Heslo musí mít alespoň 8 znaků.'); return }
-  if (pw1 !== pw2)     { alert('Hesla se neshodují.'); return }
-  const btn = document.getElementById('set-pw-btn')
-  if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
-  try {
-    const payload = currentPw.trim()
-      ? { password: pw1, current_password: currentPw }
-      : { password: pw1 }
+  const wantsChange = !!(currentPw || pw1 || pw2)
+  if (!wantsChange) return null
+  if (!pw1 || !pw2) throw new Error('Pro změnu hesla vyplň obě pole nového hesla.')
+  if (pw1.length < 8) throw new Error('Heslo musí mít alespoň 8 znaků.')
+  if (pw1 !== pw2) throw new Error('Hesla se neshodují.')
+  return currentPw.trim()
+    ? { password: pw1, current_password: currentPw }
+    : { password: pw1 }
+}
 
-    // Některé auth odpovědi mohou v prohlížeči viset příliš dlouho.
-    // UI raději po timeoutu odblokujeme a dáme uživateli jasnou další akci.
-    const result = await Promise.race([
-      sb.auth.updateUser(payload)
-        .then(({ error }) => ({ kind: 'result', error }))
-        .catch(error => ({ kind: 'thrown', error })),
-      new Promise(resolve => setTimeout(() => resolve({ kind: 'timeout' }), CHANGE_PASSWORD_TIMEOUT_MS)),
-    ])
+function _clearPasswordSettingsFields() {
+  ;['set-pw-current', 'set-pw1', 'set-pw2'].forEach(id => {
+    const e = document.getElementById(id)
+    if (e) e.value = ''
+  })
+}
 
-    if (result?.kind === 'timeout') {
-      window.showToast?.(
-        'Uložení hesla trvá příliš dlouho. Heslo se mohlo uložit, ale klient nedostal odpověď. Ověř ho prosím v anonymním okně novým přihlášením.',
-        'error',
-      )
-      return
-    }
+async function _savePasswordSettingsIfNeeded(payload) {
+  if (!payload) return { changed: false, status: 'noop' }
 
-    if (result?.kind === 'thrown') throw result.error
-    if (result?.error) throw result.error
+  const result = await Promise.race([
+    sb.auth.updateUser(payload)
+      .then(({ error }) => ({ kind: 'result', error }))
+      .catch(error => ({ kind: 'thrown', error })),
+    new Promise(resolve => setTimeout(() => resolve({ kind: 'timeout' }), CHANGE_PASSWORD_TIMEOUT_MS)),
+  ])
 
-    window.showToast?.(langPick('✓ Heslo bylo uloženo. Už ho můžeš znovu použít k přihlášení.', '✓ Password saved.'), 'ok')
-    ;['set-pw-current', 'set-pw1', 'set-pw2'].forEach(id => { const e = document.getElementById(id); if (e) e.value = '' })
-  } catch (err) {
-    console.error('[Auth] changePassword:', err)
+  if (result?.kind === 'timeout') {
+    return { changed: true, status: 'timeout' }
+  }
+
+  if (result?.kind === 'thrown') throw result.error
+  if (result?.error) throw result.error
+
+  _clearPasswordSettingsFields()
+  return { changed: true, status: 'saved' }
+}
+
+function _mapPasswordChangeError(err) {
     const rawMsg = String(err?.message ?? err ?? '')
     const msg = rawMsg.toLowerCase()
-    let uiMsg = rawMsg
-    if (msg.includes('reauthentication') || msg.includes('update password requires') || msg.includes('current password')) {
-      uiMsg = 'Tato změna vyžaduje i současné heslo. Doplň ho do prvního pole a zkus to znovu.'
-    } else if (msg.includes('same password')) {
-      uiMsg = 'Nové heslo musí být jiné než současné.'
-    }
-    window.showToast?.(langPick('Nepodařilo se uložit heslo: ', 'Could not save password: ') + uiMsg, 'error')
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Uložit heslo' }
+  if (msg.includes('reauthentication') || msg.includes('update password requires') || msg.includes('current password')) {
+    return 'Tato změna vyžaduje i současné heslo. Doplň ho do prvního pole a zkus to znovu.'
   }
+  if (msg.includes('same password')) {
+    return 'Nové heslo musí být jiné než současné.'
+  }
+  return rawMsg
 }
 
 function langPick(cs, en) {
@@ -935,9 +940,12 @@ async function saveSettings() {
     ? (remEl.value === '' ? null : Number(remEl.value))
     : (currentUser.reminder_hours ?? 24)
   const avatar_color = selectedAvatarBtn?.getAttribute('data-avatar-color') || currentUser.avatar_color || '#2854B9'
+  let passwordPayload = null
 
   if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
   try {
+    passwordPayload = _buildPasswordChangePayload()
+
     const { data, error } = await sb
       .from('users')
       .update({ name, reminder_hours, avatar_color })
@@ -949,10 +957,22 @@ async function saveSettings() {
     renderAuthUI(currentUser)
     renderProtectedSections(currentUser)
     renderSettings(currentUser)
-    window.showToast?.('Změny byly uloženy.', 'ok')
+
+    const passwordResult = await _savePasswordSettingsIfNeeded(passwordPayload)
+    if (passwordResult.status === 'saved') {
+      window.showToast?.('Změny profilu i hesla byly uloženy.', 'ok')
+    } else if (passwordResult.status === 'timeout') {
+      window.showToast?.(
+        'Profil byl uložen. U hesla se potvrzení opozdilo, ale změna se mohla uložit. Ověř ho prosím novým přihlášením v anonymním okně.',
+        'ok',
+      )
+    } else {
+      window.showToast?.('Změny byly uloženy.', 'ok')
+    }
   } catch (err) {
     console.error('saveSettings:', err)
-    window.showToast?.('Nepodařilo se uložit změny: ' + (err.message ?? err), 'error')
+    const passwordErr = _mapPasswordChangeError(err)
+    window.showToast?.('Nepodařilo se uložit změny: ' + passwordErr, 'error')
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Uložit změny' }
   }
