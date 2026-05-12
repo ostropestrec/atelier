@@ -533,6 +533,8 @@ export async function signInWithProvider(provider) {
   })
   if (error) console.error(`signInWithProvider(${provider}):`, error)
 }
+// Inline onclick v auth popupu běží v globálním scope, proto musí být OAuth handler na window.
+window.signInWithProvider = signInWithProvider
 
 // ── Sign out ──────────────────────────────────────────────────
 /**
