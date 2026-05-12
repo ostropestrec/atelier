@@ -1139,10 +1139,13 @@ const _SIDEBAR_CFG = {
     { id: 'kurzy',     label: 'Kurzy' },
   ],
   lektor: [
-    { id: 'nastenka',   label: 'Nástěnka' },
-    { id: 'kalendar',   label: 'Kalendář' },
-    { id: 'kurzy',      label: 'Kurzy' },
-    { id: 'moje-lekce', label: 'Moje lekce' },
+    { section: 'PŘEHLED' },
+    { id: 'nastenka',          label: 'Nástěnka' },
+    { id: 'kalendar',          label: 'Kalendář' },
+    { id: 'moje-lekce',        label: 'Moje lekce' },
+    { section: 'SPRÁVA' },
+    { id: 'admin-kurzy',        label: 'Kurzy' },
+    { id: 'admin-permanentky',  label: 'Permanentky' },
   ],
   admin: [
     { section: 'PŘEHLED' },
@@ -1165,10 +1168,10 @@ const _BOTTOM_NAV = {
     { id: 'kurzy',     label: 'Kurzy',     icon: _SVG.book },
   ],
   lektor: [
-    { id: 'nastenka',   label: 'Nástěnka',    icon: _SVG.home },
-    { id: 'kalendar',   label: 'Kalendář',    icon: _SVG.cal  },
-    { id: 'kurzy',      label: 'Kurzy',       icon: _SVG.book },
-    { id: 'moje-lekce', label: 'Moje lekce',  icon: _SVG.clip },
+    { id: 'nastenka',     label: 'Nástěnka',   icon: _SVG.home },
+    { id: 'kalendar',     label: 'Kalendář',   icon: _SVG.cal  },
+    { id: 'moje-lekce',   label: 'Moje lekce', icon: _SVG.clip },
+    { id: 'admin-kurzy',  label: 'Kurzy',      icon: _SVG.book },
   ],
   admin: [
     { id: 'admin-dashboard', label: 'Přehled',  icon: _SVG.home },

@@ -1134,9 +1134,13 @@
   // Aktivní screen
   function nav(id, el) {
     console.log('[Debug] nav()', id, '— jen přepnutí screenu + hooky, NE volá init()')
-    const adminSections   = new Set(['sprava', 'admin-dashboard', 'admin-kurzy', 'admin-zakaznici', 'admin-platby', 'admin-permanentky'])
-    const lektorSections  = new Set(['moje-lekce'])
-    const protectedAll    = new Set(['nastaveni', 'moje-lekce', ...adminSections])
+    // Sekce přístupné jen adminovi (lektor jejich tlačítka v sidebaru ani nevidí, ale nav() je extra ochrana)
+    const adminOnlySections = new Set(['sprava', 'admin-dashboard', 'admin-zakaznici', 'admin-platby'])
+    // Správa kurzů a permanentek — admin i lektor (RLS scopuje lektora na vlastní)
+    const staffSections     = new Set(['admin-kurzy', 'admin-permanentky'])
+    // Lekce, které učím — admin i lektor
+    const lektorSections    = new Set(['moje-lekce'])
+    const protectedAll      = new Set(['nastaveni', ...lektorSections, ...staffSections, ...adminOnlySections])
 
     if (protectedAll.has(id) && !(window.isAuthenticated?.())) {
       window.openAuthPopup?.()
@@ -1144,7 +1148,8 @@
     }
     const role = window.__userRole ?? 'uzivatel'
     if (lektorSections.has(id) && role !== 'lektor' && role !== 'admin') return
-    if (adminSections.has(id) && role !== 'admin') return
+    if (staffSections.has(id)  && role !== 'lektor' && role !== 'admin') return
+    if (adminOnlySections.has(id) && role !== 'admin') return
 
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
     document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'))

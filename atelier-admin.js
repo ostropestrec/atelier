@@ -6,6 +6,35 @@ import { sb } from './atelier-supabase.js'
 import { currentUser } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 
+// ── Role-aware scoping helpers ──────────────────────────────
+// Admin vidí všechno; lektor jen vlastní (owner_id = jeho uid). RLS to zaručuje na DB straně,
+// ale i v UI musíme explicitně filtrovat, jinak by lektor v seznamu kurzů viděl všechny veřejné
+// (active) kurzy / permanentky a klikat na cizí, kde mu update tiše selže.
+function _roleNow() {
+  return window.__userRole ?? window.AppState?.role ?? 'uzivatel'
+}
+function _isStaffLektor() {
+  return _roleNow() === 'lektor'
+}
+function _isStaffAdmin() {
+  return _roleNow() === 'admin'
+}
+/** Pokud je aktuální uživatel lektor, přidá .eq('owner_id', currentUser.id). Admin/uzivatel beze změny. */
+function _scopeOwnerQuery(query) {
+  if (_isStaffLektor() && currentUser?.id) {
+    return query.eq('owner_id', currentUser.id)
+  }
+  return query
+}
+/** Po storno akcích: admin překreslí dashboard, lektor svou „Moje lekce" — kde akci typicky inicioval. */
+function _refreshStaffViewAfterCancel() {
+  if (_isStaffAdmin()) {
+    void renderAdminDashboard()
+  } else if (_isStaffLektor()) {
+    void window.renderMojeLekce?.()
+  }
+}
+
 // ── Konstanty ─────────────────────────────────────────────────
 const PRESET_COLORS = [
   '#2854B9', '#E05C5C', '#4CAF50', '#FF9800', '#9C27B0',
@@ -493,6 +522,8 @@ window.closeAdminCustomerHistoryModal = () => {
 
 // ── Admin Dashboard ──────────────────────────────────────────
 export async function renderAdminDashboard() {
+  // Dashboard agreguje statistiky napříč všemi lektory — pro lektora není relevantní (a RLS by mu vrátila částečná čísla).
+  if (!_isStaffAdmin()) return
   const el = document.getElementById('admin-dash-content')
   if (!el) return
 
@@ -671,13 +702,15 @@ export async function renderAdminKurzy() {
   }
   try {
     await adminRace((async () => {
-    const { data: courses, error } = await sb.from('courses')
+    const baseQuery = sb.from('courses')
       .select('id, title, color_code, is_active, is_workshop, capacity_default, price_single, cancellation_hours, owner:users!owner_id(id,name)')
       .order('title->cs')
+    const { data: courses, error } = await _scopeOwnerQuery(baseQuery)
     if (error) throw error
+    const pageTitle = _isStaffLektor() ? 'Moje kurzy' : 'Kurzy'
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div class="page-title">Kurzy</div>
+        <div class="page-title">${pageTitle}</div>
         <div style="display:flex;gap:8px;">
           <button class="btn-small" onclick="window.adminNewWorkshop?.()">+ Nový workshop</button>
           <button class="btn-small" onclick="window.adminNewCourse?.()">+ Nový kurz</button>
@@ -741,6 +774,8 @@ function _courseCard(course) {
 
 // ── Admin Zákazníci ──────────────────────────────────────────
 export async function renderAdminZakaznici() {
+  // Zákazníci jsou admin-only sekce — lektor v sidebaru nevidí, ale ochrana navíc.
+  if (!_isStaffAdmin()) return
   const el = document.getElementById('admin-zakaznici-content')
   if (!el) return
   const prevHtml = el.innerHTML
@@ -1204,6 +1239,8 @@ window.adminSaveUserPassFromCard = async (userPassId) => {
 
 // ── Admin Platby ─────────────────────────────────────────────
 export async function renderAdminPlatby() {
+  // Platby jsou admin-only — lektor nemá přístup k souhrnu plateb napříč ateliérem.
+  if (!_isStaffAdmin()) return
   const el = document.getElementById('admin-platby-content')
   if (!el) return
   const prevHtml = el.innerHTML
@@ -1500,9 +1537,10 @@ export async function renderAdminPermanentky() {
   else el.innerHTML = `<div class="empty" style="padding:40px;">Načítám permanentky…</div>`
   try {
     await adminRace((async () => {
-    const { data: passes, error } = await sb.from('passes')
+    const basePassesQuery = sb.from('passes')
       .select('id, name, entries_total, price, validity_weeks, is_active, allowed_course_ids')
       .order('created_at', { ascending: false })
+    const { data: passes, error } = await _scopeOwnerQuery(basePassesQuery)
     if (error) throw error
 
     const allCourseIds = [...new Set((passes ?? []).flatMap(p => p.allowed_course_ids ?? []))]
@@ -1512,9 +1550,10 @@ export async function renderAdminPermanentky() {
       courseMap = Object.fromEntries((courses ?? []).map(c => [c.id, c]))
     }
 
+    const pageTitle = _isStaffLektor() ? 'Moje permanentky' : 'Správa permanentek'
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div class="page-title">Správa permanentek</div>
+        <div class="page-title">${pageTitle}</div>
         <button class="btn-small" onclick="window.openPassModal?.()">+ Nová permanentka</button>
       </div>
       ${passes?.length
@@ -1625,8 +1664,12 @@ window.openPassModal = async (passId = null) => {
   const listEl = document.getElementById('mp-courses-list')
   listEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">Načítám kurzy…</div>`
 
+  // Lektor přidává permanentku jen ke svým kurzům (RLS by stejně cizí update zablokovala).
+  const coursesQuery = _scopeOwnerQuery(
+    sb.from('courses').select('id, title, color_code').eq('is_active', true).eq('is_workshop', false).order('title->cs')
+  )
   const [{ data: courses }, existingData] = await Promise.all([
-    sb.from('courses').select('id, title, color_code').eq('is_active', true).eq('is_workshop', false).order('title->cs'),
+    coursesQuery,
     passId ? sb.from('passes').select('*').eq('id', passId).single() : Promise.resolve({ data: null }),
   ])
 
@@ -2355,8 +2398,12 @@ async function _openCourseModal(courseId = null) {
   let courseData = { data: null }
   let modalDataFailed = false
   try {
+    // Lektor v modalu kurzu vidí jen své vlastní permanentky — cizí by mu RLS UPDATE tiše neumožnil.
+    const passesQuery = _scopeOwnerQuery(
+      sb.from('passes').select('id, name, entries_total, price').eq('is_active', true).order('created_at')
+    )
     const [passRes, cRes] = await Promise.all([
-      sb.from('passes').select('id, name, entries_total, price').eq('is_active', true).order('created_at'),
+      passesQuery,
       courseId
         ? sb.from('courses').select('*').eq('id', courseId).single()
         : Promise.resolve({ data: null }),
@@ -2542,7 +2589,10 @@ window.saveNewCourse = async () => {
 
 // Přidá / odebere courseId z allowed_course_ids na permanentkách
 async function _syncPassAssociations(courseId, selectedPassIds) {
-  const { data: allPasses } = await sb.from('passes').select('id, allowed_course_ids')
+  // Lektor vidí jen své vlastní permanentky — i RLS by mu update cizí tiše zablokovala.
+  const { data: allPasses } = await _scopeOwnerQuery(
+    sb.from('passes').select('id, allowed_course_ids')
+  )
   for (const pass of (allPasses ?? [])) {
     const current = pass.allowed_course_ids ?? []
     const shouldHave = selectedPassIds.includes(pass.id)
@@ -2767,7 +2817,7 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
           'ok',
         )
         if (lessonId) await window.adminOpenLessonDetail?.(lessonId)
-        void renderAdminDashboard()
+        _refreshStaffViewAfterCancel()
         return
       } catch (fallbackErr) {
         console.error('[Admin] adminCancelCustomerBooking fallback failed:', fallbackErr)
@@ -2781,7 +2831,7 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
     }
     window.showToast?.('Rezervace byla zrušena. Zákazník obdrží e-mail z fronty.', 'ok')
     if (lessonId) await window.adminOpenLessonDetail?.(lessonId)
-    void renderAdminDashboard()
+    _refreshStaffViewAfterCancel()
   } catch (err) {
     console.error('[Admin] adminCancelCustomerBooking:', err)
     window.showToast?.('Nepodařilo se zrušit rezervaci: ' + (err.message ?? err), 'error')
@@ -2914,7 +2964,7 @@ window.adminCancelLesson = async (lessonId) => {
         if (lErr) throw lErr
         if (bErr) console.warn('[Admin] cancelLesson — bookings:', bErr)
         window.showToast?.('Lekce zrušena (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).', 'ok')
-        renderAdminDashboard()
+        if (_isStaffAdmin()) renderAdminDashboard()
         void window.renderMojeLekce?.()
         void window.refreshPublicData?.()
         return
@@ -2922,7 +2972,7 @@ window.adminCancelLesson = async (lessonId) => {
       throw rpcErr
     }
     window.showToast?.('Lekce byla zrušena.', 'ok')
-    renderAdminDashboard()
+    if (_isStaffAdmin()) renderAdminDashboard()
     void window.renderMojeLekce?.()
     void window.refreshPublicData?.()
   } catch (err) {

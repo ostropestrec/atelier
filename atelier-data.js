@@ -178,8 +178,12 @@ async function init() {
     if (window.__authReady) await window.__authReady
     console.log('[App] Auth ready (tab resume sync je ' + (ENABLE_TAB_RESUME_SYNC ? 'ZAP' : 'VY') + 'PNUTÝ)')
 
-    // 3) Admin modul (~135 KB) jen pro adminy — lazy import paralelně s dokončením datových fetchů.
-    const adminLoad = (window.AppState.role === 'admin')
+    // 3) Admin modul (~135 KB) jen pro staff (admin nebo lektor) — lazy import paralelně s daty.
+    //    Lektor používá z admin modulu: správu kurzů/workshopů, permanentek a akce v „Moje lekce"
+    //    (otevření účastníků, storno lekce, storno rezervace zákazníka). RLS scopuje vše na vlastní.
+    const _role = window.AppState.role
+    const _isStaff = _role === 'admin' || _role === 'lektor'
+    const adminLoad = _isStaff
       ? import('./atelier-admin.js').catch(e => {
           console.error('[App] Lazy import atelier-admin.js selhal:', e)
           return null
@@ -196,7 +200,10 @@ async function init() {
     window.AppState.initialized = true
     renderAll()
 
-    const defaultPage = window.AppState.role === 'admin' ? 'admin-dashboard' : 'nastenka'
+    // Defaultní obrazovka podle role: admin → dashboard, lektor → vlastní lekce, ostatní → nástěnka.
+    const defaultPage = _role === 'admin'
+      ? 'admin-dashboard'
+      : (_role === 'lektor' ? 'moje-lekce' : 'nastenka')
     window.nav?.(defaultPage)
 
     subscribeToLessons()
