@@ -148,33 +148,14 @@ async function init() {
   }
   window.__atelierInitStarted = true
 
-  console.log('[App] Inicializace start — spouští se jen při loadu modulu; nav() jen přehazuje screeny a volá hooky')
+  console.log('[App] Inicializace start — public data v paralele s auth (žádné serializované waterfally)')
   showAppLoader()
   try {
     logSupabaseClientDebug()
 
-    if (window.__authReady) await window.__authReady
-    console.log('[App] Auth ready — jediný první krok: await supabase.auth.getSession() (bez časového limitu)…')
-
-    try {
-      const sessionResult = await sb.auth.getSession()
-      if (sessionResult?.error) {
-        console.error('[App] getSession vrátil error — plný objekt:')
-        console.dir(sessionResult.error, { depth: null })
-        showRetryScreen()
-        return
-      }
-      console.log('[Debug] getSession po startu: OK (žádný error v odpovědi)')
-    } catch (e) {
-      console.error('[App] getSession vyhodilo výjimku — plný objekt:')
-      console.dir(e, { depth: null })
-      showRetryScreen()
-      return
-    }
-
-    console.log('[App] Jednorázově stahuji kurzy + lekce (bez withTimeout; tab resume sync je ' + (ENABLE_TAB_RESUME_SYNC ? 'ZAP' : 'VY') + 'PNUTÝ)…')
-
-    await Promise.all([
+    // 1) Kurzy + lekce jsou veřejné — nepotřebují přihlášeného uživatele.
+    //    Spouštíme je hned, paralelně s auth. Auth modul mezitím dělá getSession + hydrataci profilu/passes/bookings.
+    const dataFetches = Promise.all([
       fetchCourses().catch(e => {
         console.warn('[Debug] Init: fetchCourses chyba — pokračuji s prázdnými kurzy:', e?.message ?? e)
         console.dir(e, { depth: null })
@@ -191,7 +172,26 @@ async function init() {
         return null
       }),
     ])
+
+    // 2) Počkat na auth (getSession + případná hydratace profilu, již běží od loadu atelier_auth.js).
+    //    Druhé getSession() z dřívější verze odstraněno — auth modul ho právě dokončil, opakování je čisté plýtvání RTT.
+    if (window.__authReady) await window.__authReady
+    console.log('[App] Auth ready (tab resume sync je ' + (ENABLE_TAB_RESUME_SYNC ? 'ZAP' : 'VY') + 'PNUTÝ)')
+
+    // 3) Admin modul (~135 KB) jen pro adminy — lazy import paralelně s dokončením datových fetchů.
+    const adminLoad = (window.AppState.role === 'admin')
+      ? import('./atelier-admin.js').catch(e => {
+          console.error('[App] Lazy import atelier-admin.js selhal:', e)
+          return null
+        })
+      : null
+
+    // 4) Počkat na public data (auth už doběhl, takže `currentUser` je k dispozici pro render).
+    await dataFetches
     console.log('[App] První kolo dat dokončeno')
+
+    // 5) Pokud uživatel přistává na admin sekci, musí být admin modul načten dříve, než nav() pošle hook.
+    if (adminLoad) await adminLoad
 
     window.AppState.initialized = true
     renderAll()

@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" crossorigin>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1294,12 +1293,11 @@
 </div>
 
 <!-- Lokální moduly: spouštěj server z této složky (např. `python -m http.server`), jinak
-     GET /atelier-data.js / atelier_auth.js vrátí 404. Knihovna Supabase se tahá z esm.sh v atelier-supabase.js. -->
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin></script>
-<!-- ── Supabase moduly — POŘADÍ JE DŮLEŽITÉ ── -->
+     GET /atelier-data.js / atelier_auth.js vrátí 404. Knihovna Supabase se tahá z esm.sh v atelier-supabase.js.
+     Quill (WYSIWYG) se lazy-loaduje v atelier-admin.js až při otevření modálu kurzu.
+     atelier-admin.js se lazy-importuje v atelier-data.js až pro adminy. -->
 <script type="module" src="atelier-data.js"></script>
 <script type="module" src="atelier_auth.js"></script>
-<script type="module" src="atelier-admin.js"></script>
 
 </body>
 </html>

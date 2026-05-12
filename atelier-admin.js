@@ -26,9 +26,51 @@ const MAX_COURSE_PHOTOS = 4
 const MAX_PHOTO_UPLOAD_BYTES = 10 * 1024 * 1024
 const COMPRESS_OVER_BYTES = 5 * 1024 * 1024
 
-/** WYSIWYG (Quill ze &lt;script&gt; v index.html — ne React-Quill) */
+/** WYSIWYG: Quill se lazy-loaduje až při prvním otevření admin modálu kurzu/workshopu (~63 KB JS + CSS). */
 let _quillMcLong = null
 let _quillMwLong = null
+const QUILL_CSS_URL = 'https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css'
+const QUILL_JS_URL  = 'https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js'
+
+let _quillLoadPromise = null
+function _ensureQuillLoaded() {
+  if (typeof window !== 'undefined' && typeof window.Quill === 'function') return Promise.resolve()
+  if (_quillLoadPromise) return _quillLoadPromise
+  _quillLoadPromise = new Promise((resolve) => {
+    if (typeof document === 'undefined') return resolve()
+    if (!document.querySelector('link[data-quill-css="1"]')) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = QUILL_CSS_URL
+      link.crossOrigin = 'anonymous'
+      link.dataset.quillCss = '1'
+      document.head.appendChild(link)
+    }
+    if (typeof window.Quill === 'function') return resolve()
+    const existing = document.querySelector('script[data-quill-js="1"]')
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => resolve(), { once: true })
+      return
+    }
+    const script = document.createElement('script')
+    script.src = QUILL_JS_URL
+    script.crossOrigin = 'anonymous'
+    script.async = true
+    script.dataset.quillJs = '1'
+    script.onload = () => resolve()
+    script.onerror = (e) => {
+      console.warn('[Admin] Lazy načtení Quillu selhalo — modál ohlásí chybu:', e)
+      resolve()
+    }
+    document.head.appendChild(script)
+  })
+  return _quillLoadPromise
+}
+
+// Prewarm: admin modul se loaduje jen pro adminy, takže Quill bezpečně předtáhneme — k otevření modálu
+// stejně dojde téměř určitě, a tady aspoň běží paralelně s prvním renderem admin sekce.
+_ensureQuillLoaded().catch(() => {})
 
 function _getQuillCtor() {
   const Q = typeof window !== 'undefined' ? window.Quill : null
@@ -90,21 +132,23 @@ function _pasteSanitizedIntoQuill(q, sanitizedHtml) {
   }
 }
 
-function _setMcLongHtml(html) {
+async function _setMcLongHtml(html) {
+  await _ensureQuillLoaded()
   _destroyMcLongQuill()
   const q = _ensureMcLongQuill()
   if (!q) {
-    console.warn('[Admin] Quill není dostupný (chybí skript v index.html).')
+    console.warn('[Admin] Quill není dostupný (lazy-load selhal — zkuste obnovit stránku).')
     return
   }
   _pasteSanitizedIntoQuill(q, sanitizeCourseRichText(html))
 }
 
-function _setMwLongHtml(html) {
+async function _setMwLongHtml(html) {
+  await _ensureQuillLoaded()
   _destroyMwLongQuill()
   const q = _ensureMwLongQuill()
   if (!q) {
-    console.warn('[Admin] Quill není dostupný (chybí skript v index.html).')
+    console.warn('[Admin] Quill není dostupný (lazy-load selhal — zkuste obnovit stránku).')
     return
   }
   _pasteSanitizedIntoQuill(q, sanitizeCourseRichText(html))
@@ -1789,7 +1833,7 @@ window._wsPickColor = (color) => {
   })
 }
 
-window.adminNewWorkshop = () => {
+window.adminNewWorkshop = async () => {
   buildWorkshopModal()
   _wsSelectedColor = PRESET_COLORS[0]
   _mwExistingImages = []
@@ -1807,7 +1851,7 @@ window.adminNewWorkshop = () => {
   document.getElementById('mw-time-from').value = '09:00'
   document.getElementById('mw-time-to').value   = '12:00'
   window._wsPickColor?.(PRESET_COLORS[0])
-  _setMwLongHtml('')
+  await _setMwLongHtml('')
   document.getElementById('modal-workshop').style.display = 'flex'
 }
 
@@ -1852,7 +1896,7 @@ window.adminEditWorkshop = async (courseId) => {
     document.getElementById('mw-time-to').value   = `${pad(end.getHours())}:${pad(end.getMinutes())}`
   }
 
-  _setMwLongHtml(course ? loc(course.description_long) : '')
+  await _setMwLongHtml(course ? loc(course.description_long) : '')
   document.getElementById('modal-workshop').style.display = 'flex'
 }
 
@@ -2386,7 +2430,7 @@ async function _openCourseModal(courseId = null) {
     }
   }
 
-  _setMcLongHtml(course ? loc(course.description_long) : '')
+  await _setMcLongHtml(course ? loc(course.description_long) : '')
   document.getElementById('modal-course').style.display = 'flex'
 }
 

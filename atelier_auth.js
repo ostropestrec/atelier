@@ -256,10 +256,13 @@ async function onSessionChange(session) {
   try {
     console.log('[Auth] onSessionChange:', session.user.email)
     try {
+      // Ghost merge musí proběhnout PŘED loadUserProfile (případně přepíše id existujícího ghost
+      // záznamu na auth.user.id). Pro vracející se uživatele je celá funkce no-op díky localStorage flagu.
       await mergeGhostIfNeeded(session.user)
-      await loadUserProfile(session.user.id)
-      await loadUserBookings(session.user.id)
+      // Profil, rezervace, permanentky a moje lekce jsou nezávislé — všechny paralelně.
       await Promise.all([
+        loadUserProfile(session.user.id),
+        loadUserBookings(session.user.id),
         loadUserPasses(session.user.id),
         loadMyBookings(session.user.id),
       ])
@@ -386,18 +389,22 @@ export async function loadUserBookings(userId) {
 
 export async function loadUserPasses(userId) {
   if (!userId) { userPasses = []; return }
+  // Reconcile je idempotentní a slouží k údržbě — nesmí blokovat první render.
+  // Spustíme ho fire-and-forget; pokud doběhne za chvíli, příští refresh už uvidí přepočítané zůstatky.
   const now = Date.now()
   if (now - _lastPassReconcileAt >= PASS_RECONCILE_COOLDOWN_MS) {
-    try {
-      const { error: recErr } = await sb.rpc('reconcile_my_pass_balances')
-      if (recErr) {
-        console.warn('[Auth] reconcile_my_pass_balances:', recErr)
-      } else {
-        _lastPassReconcileAt = now
-      }
-    } catch (e) {
-      console.warn('[Auth] reconcile_my_pass_balances', e)
-    }
+    _lastPassReconcileAt = now
+    sb.rpc('reconcile_my_pass_balances')
+      .then(({ error: recErr }) => {
+        if (recErr) {
+          console.warn('[Auth] reconcile_my_pass_balances:', recErr)
+          _lastPassReconcileAt = 0
+        }
+      })
+      .catch(e => {
+        console.warn('[Auth] reconcile_my_pass_balances', e)
+        _lastPassReconcileAt = 0
+      })
   }
   const { data, error } = await sb
     .from('user_passes')
@@ -574,7 +581,25 @@ export async function signOut() {
 window.signOut = signOut
 
 // ── Ghost → plný účet ─────────────────────────────────────────
+/** Stav „ghost už byl vyřešen pro tento e-mail" cachujeme v localStorage, ať na každém loadu nepouštíme zbytečný SELECT. */
+const _GHOST_FLAG_PREFIX = 'atelier:ghost_resolved:'
+function _ghostResolvedKey(email) {
+  return _GHOST_FLAG_PREFIX + String(email ?? '').trim().toLowerCase()
+}
+function _isGhostResolved(email) {
+  try { return localStorage.getItem(_ghostResolvedKey(email)) === '1' }
+  catch (_) { return false }
+}
+function _markGhostResolved(email) {
+  try { localStorage.setItem(_ghostResolvedKey(email), '1') }
+  catch (_) { /* localStorage zablokovaný — to nevadí, příště se provede znovu */ }
+}
+
 async function mergeGhostIfNeeded(authUser) {
+  if (!authUser?.email) return
+  // Returning user → přeskočit (95 % loadů). Flag se nastavuje vždy po prvním úspěšném ověření.
+  if (_isGhostResolved(authUser.email)) return
+
   const { data } = await sb
     .from('users')
     .select('id, is_ghost')
@@ -587,6 +612,7 @@ async function mergeGhostIfNeeded(authUser) {
       .update({ is_ghost: false, id: authUser.id })
       .eq('email', authUser.email)
   }
+  _markGhostResolved(authUser.email)
 }
 
 // ── Pending booking (rezervace čekající na přihlášení) ────────
