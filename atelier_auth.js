@@ -1247,6 +1247,7 @@ const _SIDEBAR_CFG = {
     { id: 'nastenka',  label: 'Přehled' },
     { id: 'kalendar',  label: 'Kalendář' },
     { id: 'kurzy',     label: 'Kurzy' },
+    { id: 'permanentky', label: 'Permanentky' },
   ],
   lektor: [
     { section: 'PŘEHLED' },

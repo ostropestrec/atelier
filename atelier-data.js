@@ -519,7 +519,11 @@ function setupTabResumeRefresh() {
   window.addEventListener('focus', run, { passive: true })
 }
 
-function renderAll() { renderKalendar(); renderKurzy() }
+function renderAll() {
+  renderKalendar()
+  renderKurzy()
+  if (document.getElementById('screen-permanentky')?.classList.contains('active')) void renderPermanentkyShop()
+}
 
 async function refreshPublicData() {
   await Promise.allSettled([
@@ -1131,11 +1135,18 @@ window.buyPass = async (passId, entriesTotal, price, courseId, btn, preselectedL
     if (error) throw error
 
     await loadUserPasses(currentUser.id)
-    await loadPassesForCourse(courseId)
-    const bookingPopup = document.getElementById('pop-booking')
-    if (bookingPopup?.style.display === 'flex') {
-      const selectedLessonId = preselectedLessonId ?? (document.getElementById('bk-lesson-select')?.value || null)
-      await window.openBookingPopup?.(courseId, passId, selectedLessonId)
+    if (courseId) {
+      await loadPassesForCourse(courseId)
+      const bookingPopup = document.getElementById('pop-booking')
+      if (bookingPopup?.style.display === 'flex') {
+        const selectedLessonId = preselectedLessonId ?? (document.getElementById('bk-lesson-select')?.value || null)
+        await window.openBookingPopup?.(courseId, passId, selectedLessonId)
+      }
+    } else {
+      window.renderProfile?.()
+      if (document.getElementById('screen-permanentky')?.classList.contains('active')) {
+        void renderPermanentkyShop()
+      }
     }
     window.showToast?.(lang === 'cs' ? '✓ Permanentka zakoupena.' : '✓ Pass purchased.', 'ok')
   } catch (err) {
@@ -1149,7 +1160,7 @@ window.buyPass = async (passId, entriesTotal, price, courseId, btn, preselectedL
       btn.disabled = false
       btn.textContent = originalBtnText || (lang === 'cs' ? 'Koupit permanentku' : 'Buy pass')
     }
-    _syncCardPrimaryButton(courseId)
+    if (courseId) _syncCardPrimaryButton(courseId)
     _syncPopupPrimaryButton()
   }
 }
@@ -2185,12 +2196,89 @@ async function renderMojeLekce() {
 
 window.renderMojeLekce = renderMojeLekce
 
+async function renderPermanentkyShop() {
+  const container = document.getElementById('permanentky-shop-content')
+  if (!container) return
+
+  container.innerHTML = `<div class="empty" style="padding:28px;">${lang === 'cs' ? 'Načítám…' : 'Loading…'}</div>`
+
+  try {
+    const { data: passes, error } = await sb
+      .from('passes')
+      .select('id, name, entries_total, price, validity_weeks, allowed_course_ids')
+      .eq('is_active', true)
+      .order('created_at')
+
+    if (error) throw error
+
+    const rows = passes ?? []
+    if (!rows.length) {
+      container.innerHTML = `<div class="empty" style="padding:28px;">${lang === 'cs' ? 'Žádné permanentky momentálně nejsou v nabídce.' : 'No passes are available right now.'}</div>`
+      return
+    }
+
+    const courses = window.AppState.courses ?? []
+    const courseTitle = cid => loc(courses.find(c => String(c.id) === String(cid))?.title) || ''
+
+    container.innerHTML = rows.map(p => {
+      const name = _escHtml(loc(p.name) || (lang === 'cs' ? 'Permanentka' : 'Pass'))
+      const total = Number(p.entries_total) || 0
+      const priceNum = Number(p.price) || 0
+      const perEntry = total > 0 ? fmtPrice(priceNum / total) : '—'
+      const ids = Array.isArray(p.allowed_course_ids) ? p.allowed_course_ids : []
+      let coursesHtml
+      if (!ids.length) {
+        coursesHtml = _escHtml(lang === 'cs' ? 'Platí na všechny kurzy' : 'Valid for all courses')
+      } else {
+        const labels = ids.map(courseTitle).filter(Boolean)
+        coursesHtml = labels.length
+          ? `${lang === 'cs' ? 'Kurzy: ' : 'Courses: '}${labels.map(l => _escHtml(l)).join(', ')}`
+          : _escHtml(lang === 'cs' ? 'Vybrané kurzy (viz detail)' : 'Selected courses')
+      }
+      const weeks = p.validity_weeks != null ? Number(p.validity_weeks) : null
+      const validityHtml = weeks && weeks > 0
+        ? _escHtml(lang === 'cs' ? `Platnost po zakoupení: ${weeks} týdnů` : `Valid for ${weeks} weeks after purchase`)
+        : ''
+      const refCourseId = ids.length ? ids[0] : ''
+      const priceEsc = fmtPrice(priceNum)
+      const buyLabel = lang === 'cs' ? 'Koupit permanentku' : 'Buy pass'
+      const metaBits = [
+        `${total} ${lang === 'cs' ? 'vstupů' : 'entries'}`,
+        `${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}`,
+      ]
+      const safePassId = String(p.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+      const safeCourseId = refCourseId ? String(refCourseId).replace(/\\/g, '\\\\').replace(/'/g, "\\'") : ''
+      const onClickAttr = refCourseId
+        ? `window.buyPass('${safePassId}', ${total}, ${priceNum}, '${safeCourseId}', this)`
+        : `window.buyPass('${safePassId}', ${total}, ${priceNum}, null, this)`
+
+      return `
+        <div class="pass-shop-card">
+          <div class="pass-shop-title">${name}</div>
+          <div class="pass-shop-meta">${metaBits.map(_escHtml).join(' · ')}${validityHtml ? `<br />${validityHtml}` : ''}<br />${coursesHtml}</div>
+          <div class="pass-shop-price-row">
+            <span class="pass-shop-price">${priceEsc}</span>
+            <span class="pass-shop-per">${lang === 'cs' ? 'Celková cena' : 'Total price'}</span>
+          </div>
+          <button type="button" class="btn-res" style="width:100%;padding:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:var(--primary);"
+            onclick="${onClickAttr}">${buyLabel}</button>
+        </div>`
+    }).join('')
+  } catch (e) {
+    console.error('[renderPermanentkyShop]', e)
+    container.innerHTML = `<div class="empty" style="padding:28px;color:#791F1F;">${lang === 'cs' ? 'Nepodařilo se načíst permanentky.' : 'Could not load passes.'}</div>`
+  }
+}
+
+window.renderPermanentkyShop = renderPermanentkyShop
+
 // ── Navigace: index.html volá globální `nav()` → __appNavHooks na konci těla ──
 ;(window.__appNavHooks ??= []).push((id) => {
   console.log('[Debug] __appNavHooks (atelier-data): lokální render pro', id)
   if (id === 'kurzy')        renderKurzy()
   if (id === 'kalendar')     renderKalendar()
   if (id === 'moje-lekce')   void renderMojeLekce()
+  if (id === 'permanentky')  void renderPermanentkyShop()
   if (id === 'detail-kurzu') renderCourseDetail(window._detailCourseId)
 })
 

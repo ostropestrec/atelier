@@ -3,7 +3,7 @@
 // ============================================================
 
 import { sb } from './atelier-supabase.js'
-import { currentUser, buildUserGreetingHtml } from './atelier_auth.js'
+import { currentUser } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 
 // ── Role-aware scoping helpers ──────────────────────────────
@@ -653,8 +653,6 @@ export async function renderAdminDashboard() {
       ${todayLessons.length ? todayLessons.map(l => _lessonRow(l)).join('') : `<div class="empty">Dnes nejsou žádné lekce.</div>`}
       <div class="admin-section-title">Nadcházející tento týden</div>
       ${weekLessons.length ? weekLessons.map(l => _lessonRow(l, true)).join('') : `<div class="empty">Tento týden nejsou další lekce.</div>`}
-      <div class="admin-section-title">Můj účet</div>
-      ${buildUserGreetingHtml(currentUser)}
       ${adminMyLessonsHtml}
     `
     })(), 'admin-dashboard')

@@ -661,11 +661,27 @@
       background: #fff;
       margin-bottom: 10px;
     }
-    .pass-top{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .pass-top{ display:flex; justify-content:space-between; gap:12px; align-items:center; }
     .pass-name{ font-size: 14px; font-weight: 600; }
     .pass-meta{ font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .pass-count{ font-size: 16px; font-weight: 700; color: var(--primary); }
+    .pass-count{ font-size: 26px; font-weight: 700; color: var(--primary); line-height: 1.05; letter-spacing: -0.02em; flex-shrink: 0; }
     .bar{ height: 6px; background: rgba(17,24,39,.08); border-radius: 999px; overflow:hidden; margin-top: 10px;}
+    /* Katalog permanentek (uživatelská sekce) */
+    .pass-shop-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: #fff;
+      margin-bottom: 12px;
+    }
+    .pass-shop-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; line-height: 1.35; }
+    .pass-shop-meta { font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 12px; }
+    .pass-shop-price-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+      margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .pass-shop-price { font-size: 17px; font-weight: 700; color: var(--primary); }
+    .pass-shop-per { font-size: 11px; color: var(--anno); }
     .bar > i{ display:block; height:100%; width: 0%; background: var(--primary); border-radius: 999px; }
     .booking-item{
       border: 1px solid var(--border);
@@ -875,8 +891,6 @@
     #admin-dash-content .page-title{ margin-bottom: 24px !important; }
     #admin-dash-content .page-title + .admin-stat-grid{ margin-top: 0; }
     #admin-dash-content .admin-stat-grid + .admin-section-title{ margin-top: 0; }
-    #admin-dash-content .admin-section-title + .profile-head{ margin-top: 0; }
-    #admin-dash-content .profile-head + .admin-section-title{ margin-top: 0; }
     #admin-dash-content .empty{ margin-bottom: 4px; }
 
     /* ── Admin lekce řádek ── */
@@ -994,6 +1008,12 @@
 <div class="screen" id="screen-kurzy">
   <div class="sec-title">Kurzy</div>
   <!-- Karty kurzů renderuje atelier-data.js do tohoto containeru -->
+</div>
+
+<!-- ── Screen: Permanentky (nákupní katalog, běžný uživatel) ── -->
+<div class="screen" id="screen-permanentky">
+  <div class="sec-title">Permanentky</div>
+  <div id="permanentky-shop-content"></div>
 </div>
 
 <!-- ── Screen: Kalendář ── -->
@@ -1182,7 +1202,7 @@
     const staffSections     = new Set(['admin-kurzy', 'admin-permanentky'])
     // Lekce, které učím — admin i lektor
     const lektorSections    = new Set(['moje-lekce'])
-    const protectedAll      = new Set(['nastaveni', ...lektorSections, ...staffSections, ...adminOnlySections])
+    const protectedAll      = new Set(['nastaveni', 'permanentky', ...lektorSections, ...staffSections, ...adminOnlySections])
 
     if (protectedAll.has(id) && !(window.isAuthenticated?.())) {
       window.openAuthPopup?.()
