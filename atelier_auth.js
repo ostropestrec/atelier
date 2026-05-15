@@ -1362,7 +1362,7 @@ function pickPassTheme(hex) {
 
 function passCardSurface(hex) {
   const h = pickPassTheme(hex)
-  return `background:linear-gradient(168deg, ${h}26 0%, #ffffff 92%);border:1px solid ${h}48;`
+  return `background:${h}18;border:1px solid ${h}44;`
 }
 
 /** Kurzy na aktivní permanentce (stejné pilulky jako katalog / admin). */

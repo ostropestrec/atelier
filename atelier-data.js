@@ -148,7 +148,7 @@ function passThemeHex(hex) {
 }
 function passCardSurfaceCss(hex) {
   const h = passThemeHex(hex)
-  return `background:linear-gradient(168deg, ${h}26 0%, #ffffff 92%);border:1px solid ${h}48;`
+  return `background:${h}18;border:1px solid ${h}44;`
 }
 
 /** Kurzy permanentky jako pill štítky (uživ. katalog) */
@@ -2225,7 +2225,7 @@ async function renderCourseDetail(courseId) {
         ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
         ${(passes ?? []).map(p => {
           const pc = passThemeHex(p.color_code)
-          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:linear-gradient(90deg, ${pc}18, transparent);">
+          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;">
             <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
           </div>`
         }).join('')}
@@ -2625,7 +2625,7 @@ async function renderPermanentkyShop() {
       const coursesHtml = passShopCourseTagsBlock(ids, courseTitle, pc)
       const weeks = p.validity_weeks != null ? Number(p.validity_weeks) : null
       const validityBlock = weeks && weeks > 0
-        ? `<div class="pass-shop-accent" style="background:linear-gradient(135deg,${pc}22,${pc}08);border:1px solid ${pc}40;">${_escHtml(_passShopValidityLine(weeks))}</div>`
+        ? `<div class="pass-shop-accent" style="background:${pc}14;border:1px solid ${pc}38;">${_escHtml(_passShopValidityLine(weeks))}</div>`
         : ''
       const refCourseId = ids.length ? ids[0] : ''
       const priceEsc = fmtPrice(priceNum)

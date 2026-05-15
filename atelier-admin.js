@@ -78,7 +78,7 @@ function _passHexOrDefault(hex) {
 
 function _passCardSurfaceStyle(hex) {
   const h = _passHexOrDefault(hex)
-  return `background:linear-gradient(168deg, ${h}24 0%, #ffffff 93%);border:1px solid ${h}44;`
+  return `background:${h}18;border:1px solid ${h}44;`
 }
 
 const MAX_COURSE_PHOTOS = 4
