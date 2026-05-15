@@ -1280,7 +1280,6 @@ const _SIDEBAR_CFG = {
     { id: 'permanentky', key: 'nav.passes' },
   ],
   lektor: [
-    { section: 'nav.sectionOverview' },
     { id: 'nastenka',          key: 'nav.overview' },
     { id: 'kalendar',          key: 'nav.calendar' },
     { id: 'moje-lekce',        key: 'nav.myLessons' },
@@ -1289,7 +1288,6 @@ const _SIDEBAR_CFG = {
     { id: 'admin-permanentky',  key: 'nav.passes' },
   ],
   admin: [
-    { section: 'nav.sectionOverview' },
     { id: 'admin-dashboard', key: 'nav.overview' },
     { id: 'kalendar',        key: 'nav.calendar' },
     { id: 'moje-lekce',     key: 'nav.myLessons' },
