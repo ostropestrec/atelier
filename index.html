@@ -669,10 +669,11 @@
     }
     #screen-nastenka > .sec-title{
       margin-bottom: 24px;
-      color: #FD8D40; /* stejná oranžová jako přepínač jazyka */
+      color: #FD8D40 !important;
     }
-    #nastenka-content .section-h{
-      color: #FD8D40;
+    /* Vyšší specificita než .section-h — musí přebít šedou z obecného pravidla */
+    #screen-nastenka #nastenka-content .section-h{
+      color: #FD8D40 !important;
     }
     #nastenka-content .profile-head + .section-h{ margin-top: 0; }
     #nastenka-content .card-meta{ margin-top: 12px; margin-bottom: 8px; }
@@ -991,9 +992,9 @@
       margin: 0;
     }
     .side-section-label.side-section-label--sep {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border);
+      margin-top: 28px;
+      padding-top: 8px;
+      border-top: none;
     }
 
     /* ── Admin stat karty ── */
@@ -1009,16 +1010,27 @@
     .admin-stat-value { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
     .admin-stat-label { font-size: 11px; color: var(--anno); }
 
-    /* ── Admin sekce nadpis (Přehled + další admin obrazovky) ── */
+    /* ── Admin sekce nadpis (přehled, platby, sekce z buildStaffLessonsSectionHtml …) ── */
     .admin-section-title {
       font-size: 11px; font-weight: 600; letter-spacing: .14em;
-      text-transform: uppercase; color: var(--rail-label);
+      text-transform: uppercase;
+      color: #FD8D40 !important;
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
     }
     #admin-dash-content .page-title{ margin-bottom: 24px !important; }
     #admin-dash-content .page-title + .admin-stat-grid{ margin-top: 0; }
     #admin-dash-content .admin-stat-grid + .admin-section-title{ margin-top: 0; }
     #admin-dash-content .empty{ margin-bottom: 4px; }
+
+    /* Lektor / admin: „Moje lekce“ (horní nadpis obrazovky + dynamický obsah) */
+    #screen-moje-lekce .sec-title {
+      color: #FD8D40 !important;
+    }
+
+    /* Sidebar: nadpis oddělení (např. SPRÁVA) — stejná akcentová oranžová */
+    #sidebar .side-section-label {
+      color: #FD8D40 !important;
+    }
 
     /* ── Admin lekce řádek ── */
     .admin-lesson-row {
