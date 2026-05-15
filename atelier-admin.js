@@ -40,16 +40,31 @@ const PRESET_COLORS = [
   '#2854B9', '#E05C5C', '#4CAF50', '#FF9800', '#9C27B0',
   '#00BCD4', '#795548', '#607D8B', '#E91E63', '#FF5722',
 ]
+/** Paleta jen pro permanentky — odlišná od kurzů/workshopů */
+const PASS_PALETTE = [
+  '#0D9488', '#4338CA', '#A21CAF', '#B45309', '#047857',
+  '#7E22CE', '#BE185D', '#0369A1', '#15803D', '#A16207',
+]
 const DAYS_CS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
 
 // ── Stav modálů ──────────────────────────────────────────────
 let _ncSelectedDays  = new Set()
 let _ncSelectedColor = PRESET_COLORS[0]
 let _wsSelectedColor = PRESET_COLORS[0]
+let _mpSelectedColor = PASS_PALETTE[0]
 let _ncExistingImages = []
 let _ncNewFiles       = []
 let _mwExistingImages = []
 let _mwNewFiles       = []
+
+function _passHexOrDefault(hex) {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : PASS_PALETTE[0]
+}
+
+function _passCardSurfaceStyle(hex) {
+  const h = _passHexOrDefault(hex)
+  return `background:linear-gradient(168deg, ${h}24 0%, #ffffff 93%);border:1px solid ${h}44;`
+}
 
 const MAX_COURSE_PHOTOS = 4
 const MAX_PHOTO_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -1590,7 +1605,7 @@ export async function renderAdminPermanentky() {
   try {
     await adminRace((async () => {
     const basePassesQuery = sb.from('passes')
-      .select('id, name, entries_total, price, validity_weeks, is_active, allowed_course_ids')
+      .select('id, name, entries_total, price, validity_weeks, is_active, allowed_course_ids, color_code')
       .order('created_at', { ascending: false })
     const { data: passes, error } = await _scopeOwnerQuery(basePassesQuery)
     if (error) throw error
@@ -1626,9 +1641,11 @@ export async function renderAdminPermanentky() {
 
 function _passCard(pass, courseMap) {
   const name = loc(pass.name) || 'Permanentka'
+  const tint = _passCardSurfaceStyle(pass.color_code)
+  const ph = _passHexOrDefault(pass.color_code)
   const courseNames = (pass.allowed_course_ids ?? []).map(id => loc(courseMap[id]?.title)).filter(Boolean)
   return `
-    <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:#fff;">
+    <div style="border-radius:12px;padding:14px 16px;margin-bottom:10px;${tint}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(name)}</div>
@@ -1641,11 +1658,11 @@ function _passCard(pass, courseMap) {
             <div style="display:flex;gap:5px;flex-wrap:wrap;">
               ${courseNames.map(n => `
                 <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;
-                  background:var(--primary-100);color:var(--primary);">${esc(n)}</span>`).join('')}
+                  background:${ph}22;color:${ph};">${esc(n)}</span>`).join('')}
             </div>` : `<div style="font-size:11px;color:#9b9b9b;">Není přiřazena k žádnému kurzu</div>`}
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:10px;">${fmtPrice(pass.price)}</div>
+          <div style="font-size:18px;font-weight:700;color:${ph};margin-bottom:10px;">${fmtPrice(pass.price)}</div>
           <div style="display:flex;gap:8px;">
             <button class="btn-small" onclick="window.openPassModal?.('${esc(pass.id)}')">Upravit</button>
             <button class="btn-small danger" onclick="window.adminDeletePass?.('${esc(pass.id)}')">Smazat</button>
@@ -1659,6 +1676,12 @@ function _passCard(pass, courseMap) {
 function buildPassModal() {
   if (document.getElementById('modal-pass')) return
   const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:#fff;outline:none;box-sizing:border-box;'
+  const passColorDots = PASS_PALETTE.map(c => `
+    <button type="button" data-mp-color="${c}" onclick="window._mpPickColor?.('${c}')"
+      title="${c}"
+      style="width:32px;height:32px;border-radius:50%;background:${c};cursor:pointer;flex-shrink:0;
+        border:3px solid transparent;transition:box-shadow .15s,border-color .15s;">
+    </button>`).join('')
   document.body.insertAdjacentHTML('beforeend', `
     <div id="modal-pass" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
       z-index:300;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;"
@@ -1686,6 +1709,15 @@ function buildPassModal() {
             <div>
               <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Platnost (týdny)</label>
               <input id="mp-weeks" type="number" min="1" value="12" style="${INP}" />
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Barva karty permanentky</label>
+            <div style="font-size:11px;color:#6b6b6b;line-height:1.45;margin-bottom:10px;">
+              Vlastní paleta barev (nezávislá na kurzech) — určuje nádech pozadí permanentky v aplikaci.
+            </div>
+            <div id="mp-colors" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              ${passColorDots}
             </div>
           </div>
           <div style="margin-bottom:12px;">
@@ -1731,6 +1763,11 @@ window.openPassModal = async (passId = null) => {
     document.getElementById('mp-entries').value = pass.entries_total
     document.getElementById('mp-price').value   = pass.price
     document.getElementById('mp-weeks').value   = pass.validity_weeks
+    _mpSelectedColor = PASS_PALETTE.includes(pass.color_code)
+      ? pass.color_code
+      : PASS_PALETTE[0]
+  } else {
+    _mpSelectedColor = PASS_PALETTE[0]
   }
 
   const existingIds = pass?.allowed_course_ids ?? []
@@ -1751,12 +1788,25 @@ window.openPassModal = async (passId = null) => {
     }).join('')
   }
 
+  window._mpPickColor?.(_mpSelectedColor)
+
   document.getElementById('modal-pass').style.display = 'flex'
 }
 
 window.closePassModal = () => {
   const m = document.getElementById('modal-pass')
   if (m) m.style.display = 'none'
+}
+
+window._mpPickColor = (color) => {
+  if (!PASS_PALETTE.includes(color)) return
+  _mpSelectedColor = color
+  document.querySelectorAll('#mp-colors button').forEach(btn => {
+    const c = btn.getAttribute('data-mp-color')
+    const active = c === color
+    btn.style.border = active ? '3px solid #fff' : '3px solid transparent'
+    btn.style.boxShadow = active ? `0 0 0 2.5px ${c}` : 'none'
+  })
 }
 
 window.savePass = async () => {
@@ -1779,12 +1829,14 @@ window.savePass = async () => {
   if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
 
   try {
+    const color_code = PASS_PALETTE.includes(_mpSelectedColor) ? _mpSelectedColor : PASS_PALETTE[0]
     const payload = {
       name: { cs: name },
       entries_total: entries,
       price,
       validity_weeks: weeks,
       allowed_course_ids: courseIds,
+      color_code,
       is_active: true,
     }
     let error

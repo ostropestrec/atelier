@@ -34,6 +34,15 @@ const LESSONS_SELECT =
   'lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots'
 const BOOKINGS_LIVE_REFRESH_COOLDOWN_MS = 4000
 
+const DEFAULT_PASS_THEME = '#0D9488'
+function passThemeHex(hex) {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : DEFAULT_PASS_THEME
+}
+function passCardSurfaceCss(hex) {
+  const h = passThemeHex(hex)
+  return `background:linear-gradient(168deg, ${h}26 0%, #ffffff 92%);border:1px solid ${h}48;`
+}
+
 function _toastPassEntriesLimitReached() {
   window.showToast?.(
     lang === 'cs' ? PASS_ENTRIES_LIMIT_HINT_CS : PASS_ENTRIES_LIMIT_HINT_EN,
@@ -968,7 +977,7 @@ function buildBuyPanel(c, color) {
 async function fetchPassTemplatesForCourse(courseId) {
   const { data, error } = await sb
     .from('passes')
-    .select('id, name, entries_total, price, validity_weeks')
+    .select('id, name, entries_total, price, validity_weeks, color_code')
     .eq('is_active', true)
     .contains('allowed_course_ids', [courseId])
 
@@ -980,13 +989,15 @@ function buildPassPurchaseCards(passRows, courseId, color, compact = false, sele
   return (passRows ?? []).map(p => {
     const name = loc(p.name)
     const perEntry = fmtPrice(p.price / p.entries_total)
-    const wrapStyle = compact
-      ? 'border:0.5px solid rgba(0,0,0,.08);border-radius:12px;padding:10px 12px;background:#fff;'
-      : 'border:0.5px solid rgba(0,0,0,.08);'
+    const pc = passThemeHex(p.color_code)
     const selected = String(selectedTemplateId ?? '') === String(p.id)
+    const compactPad = compact ? 'padding:10px 12px;' : ''
+    const wrapStyle = `${compactPad}border-radius:12px;${passCardSurfaceCss(pc)}${
+      selected ? `border-width:1.5px;border-color:${pc};` : ''
+    }`
     return `
       <div class="bo bo-pay"
-        style="${wrapStyle}${selected ? `border-color:${color};border-width:1.5px;` : ''}"
+        style="${wrapStyle}"
         data-pay-type="buy-pass"
         data-color="${color}"
         data-course-id="${courseId}"
@@ -996,11 +1007,11 @@ function buildPassPurchaseCards(passRows, courseId, color, compact = false, sele
         onclick="window.selectPayment(this,'${courseId}','buy-pass','${p.id}','${p.entries_total}','${p.price}')">
         <div class="brow">
           <span class="bnm">${name}</span>
-          <span style="font-size:11px;font-weight:500;color:${color};">${fmtPrice(p.price)}</span>
+          <span style="font-size:11px;font-weight:500;color:${pc};">${fmtPrice(p.price)}</span>
         </div>
         <div class="bsb" style="margin-top:4px;">
           ${p.entries_total} ${lang === 'cs' ? 'vstupů' : 'entries'} · ${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}
-          <span style="display:block;margin-top:3px;color:${color};font-weight:500;">
+          <span style="display:block;margin-top:3px;color:${pc};font-weight:500;">
             ${lang === 'cs' ? 'Permanentka ke koupi' : 'Pass available to buy'}
           </span>
         </div>
@@ -1052,14 +1063,15 @@ async function loadPassesForCourse(courseId) {
       const exp  = up.expires_at
         ? new Date(up.expires_at).toLocaleDateString(lang === 'cs' ? 'cs-CZ' : 'en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })
         : null
+      const pc = passThemeHex(up.pass?.color_code)
       return `
         <div class="bo bo-pay"
-          style="${sel ? `border-color:${color};border-width:1.5px;` : 'border:0.5px solid rgba(0,0,0,.12);'}"
+          style="${passCardSurfaceCss(pc)}${sel ? `border-width:1.5px;border-color:${pc};` : ''}"
           data-pay-type="pass" data-color="${color}" data-course-id="${courseId}"
           onclick="window.selectPayment(this,'${courseId}','pass','${up.id}')">
           <div class="brow">
             <span class="bnm">${name}</span>
-            <span style="font-size:11px;font-weight:600;color:${color};">${up.entries_remaining} ${lang === 'cs' ? 'vstupů' : 'entries'}</span>
+            <span style="font-size:11px;font-weight:600;color:${pc};">${up.entries_remaining} ${lang === 'cs' ? 'vstupů' : 'entries'}</span>
           </div>
           <div class="bsb">${exp ? (lang === 'cs' ? `Platí do ${exp}` : `Valid until ${exp}`) : ''}</div>
         </div>`
@@ -1405,6 +1417,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
     payEl.innerHTML = `
       ${allowSinglePayment ? `
         <label class="bk-opt ${defaultPay === 'single' ? 'bk-opt-sel' : ''}"
+               data-accent-color="${color}"
                style="${defaultPay === 'single' ? `border-color:${color};border-width:1.5px;` : ''}"
                onclick="window._bkSelectPayment(this,'single')">
           <div class="bk-opt-radio ${defaultPay === 'single' ? 'on' : ''}"
@@ -1417,12 +1430,14 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
       ` : ''}
       ${activePasses.map(up => {
         const sel = defaultPay === `up-${up.id}`
+        const pc = passThemeHex(up.pass?.color_code)
         return `
           <label class="bk-opt ${sel ? 'bk-opt-sel' : ''}"
-                 style="${sel ? `border-color:${color};border-width:1.5px;` : ''}"
+                 data-accent-color="${pc}"
+                 style="${passCardSurfaceCss(pc)}${sel ? `border-color:${pc};border-width:1.5px;` : ''}"
                  onclick="window._bkSelectPayment(this,'up-${up.id}')">
             <div class="bk-opt-radio ${sel ? 'on' : ''}"
-                 style="border-color:${color};${sel ? `background:${color};` : ''}"></div>
+                 style="border-color:${pc};${sel ? `background:${pc};` : ''}"></div>
             <div style="flex:1;">
               <div class="bnm">${loc(up.pass?.name ?? {})}</div>
               <div class="bsb">${up.entries_remaining} ${lang === 'cs' ? 'vstupů zbývá' : 'entries left'}</div>
@@ -1432,20 +1447,22 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
       ${activePasses.length === 0 ? purchasablePasses.map(p => {
         const sel = defaultPay === `tpl-${p.id}`
         const perEntry = fmtPrice(p.price / p.entries_total)
+        const pc = passThemeHex(p.color_code)
         return `
           <label class="bk-opt ${sel ? 'bk-opt-sel' : ''}"
-                 style="${sel ? `border-color:${color};border-width:1.5px;` : ''}"
+                 data-accent-color="${pc}"
+                 style="${passCardSurfaceCss(pc)}${sel ? `border-color:${pc};border-width:1.5px;` : ''}"
                  data-buy-pass-template-id="${p.id}"
                  data-buy-pass-entries="${p.entries_total}"
                  data-buy-pass-price="${p.price}"
                  onclick="window._bkSelectPayment(this,'tpl-${p.id}')">
             <div class="bk-opt-radio ${sel ? 'on' : ''}"
-                 style="border-color:${color};${sel ? `background:${color};` : ''}"></div>
+                 style="border-color:${pc};${sel ? `background:${pc};` : ''}"></div>
             <div style="flex:1;">
               <div class="bnm">${loc(p.name)}</div>
               <div class="bsb">
                 ${p.entries_total} ${lang === 'cs' ? 'vstupů' : 'entries'} · ${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}
-                <span style="display:block;margin-top:3px;color:${color};font-weight:500;">
+                <span style="display:block;margin-top:3px;color:${pc};font-weight:500;">
                   ${lang === 'cs' ? 'Permanentka ke koupi' : 'Pass available to buy'}
                 </span>
               </div>
@@ -1476,15 +1493,31 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
 window._bkSelectPayment = (el, value) => {
   const payEl = document.getElementById('bk-payment-opts')
   if (!payEl) return
-  const color = payEl.dataset.color ?? '#2854B9'
+  const courseFallback = payEl.dataset.color ?? '#2854B9'
   payEl.dataset.selected = value
-  payEl.querySelectorAll('.bk-opt').forEach(o => { o.classList.remove('bk-opt-sel'); o.style.borderColor = ''; o.style.borderWidth = '' })
-  payEl.querySelectorAll('.bk-opt-radio').forEach(r => { r.classList.remove('on'); r.style.background = '' })
+  payEl.querySelectorAll('.bk-opt').forEach(o => {
+    o.classList.remove('bk-opt-sel')
+    const accent = o.dataset.accentColor || courseFallback
+    o.style.borderColor = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}55` : ''
+    o.style.borderWidth = '1px'
+  })
+  payEl.querySelectorAll('.bk-opt-radio').forEach(r => {
+    r.classList.remove('on')
+    const label = r.closest('.bk-opt')
+    const acc = label?.dataset.accentColor || courseFallback
+    r.style.borderColor = acc
+    r.style.background = acc && /^#[0-9A-Fa-f]{6}$/.test(acc) ? 'transparent' : ''
+  })
   el.classList.add('bk-opt-sel')
-  el.style.borderColor = color
+  const accent = el.dataset.accentColor || courseFallback
+  el.style.borderColor = accent
   el.style.borderWidth = '1.5px'
   const radio = el.querySelector('.bk-opt-radio')
-  if (radio) { radio.classList.add('on'); radio.style.background = color }
+  if (radio) {
+    radio.classList.add('on')
+    radio.style.borderColor = accent
+    radio.style.background = accent
+  }
 
   const courseId = payEl.dataset.courseid
   const course = window.AppState.courses.find(c => c.id === courseId)
@@ -1771,7 +1804,7 @@ async function renderCourseDetail(courseId) {
   try {
     const res = await sb
       .from('passes')
-      .select('id, name, price, entries_total')
+      .select('id, name, price, entries_total, color_code')
       .eq('is_active', true)
       .contains('allowed_course_ids', [courseId])
     if (res.error) console.warn('[Debug] Detail kurzu — passes:', res.error)
@@ -1832,7 +1865,12 @@ async function renderCourseDetail(courseId) {
       <div class="detail-info-table">
         <div class="detail-info-row"><span class="lbl">${lang === 'cs' ? 'Lektor/ka' : 'Instructor'}</span><span class="val">${ownerName ?? '—'}</span></div>
         ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${lang === 'cs' ? 'Termíny' : 'Schedule'}</span><span class="val">${scheduleDays}</span></div>` : ''}
-        ${(passes ?? []).map(p => `<div class="detail-info-row"><span class="lbl">${loc(p.name)}</span><span class="val">${fmtPrice(p.price)}</span></div>`).join('')}
+        ${(passes ?? []).map(p => {
+          const pc = passThemeHex(p.color_code)
+          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:linear-gradient(90deg, ${pc}18, transparent);">
+            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
+          </div>`
+        }).join('')}
         <div class="detail-info-row"><span class="lbl">${lang === 'cs' ? 'Storno zdarma' : 'Free cancellation'}</span><span class="val">${course.cancellation_hours}h ${lang === 'cs' ? 'předem' : 'ahead'}</span></div>
       </div>
 
@@ -2205,7 +2243,7 @@ async function renderPermanentkyShop() {
   try {
     const { data: passes, error } = await sb
       .from('passes')
-      .select('id, name, entries_total, price, validity_weeks, allowed_course_ids')
+      .select('id, name, entries_total, price, validity_weeks, allowed_course_ids, color_code')
       .eq('is_active', true)
       .order('created_at')
 
@@ -2220,11 +2258,13 @@ async function renderPermanentkyShop() {
     const courses = window.AppState.courses ?? []
     const courseTitle = cid => loc(courses.find(c => String(c.id) === String(cid))?.title) || ''
 
-    container.innerHTML = rows.map(p => {
+    container.innerHTML = `<div class="pass-shop-grid">${rows.map(p => {
       const name = _escHtml(loc(p.name) || (lang === 'cs' ? 'Permanentka' : 'Pass'))
+      const pc = passThemeHex(p.color_code)
+      const surf = passCardSurfaceCss(pc)
       const total = Number(p.entries_total) || 0
       const priceNum = Number(p.price) || 0
-      const perEntry = total > 0 ? fmtPrice(priceNum / total) : '—'
+      const perEntryRaw = total > 0 ? fmtPrice(priceNum / total) : '—'
       const ids = Array.isArray(p.allowed_course_ids) ? p.allowed_course_ids : []
       let coursesHtml
       if (!ids.length) {
@@ -2236,16 +2276,18 @@ async function renderPermanentkyShop() {
           : _escHtml(lang === 'cs' ? 'Vybrané kurzy (viz detail)' : 'Selected courses')
       }
       const weeks = p.validity_weeks != null ? Number(p.validity_weeks) : null
-      const validityHtml = weeks && weeks > 0
-        ? _escHtml(lang === 'cs' ? `Platnost po zakoupení: ${weeks} týdnů` : `Valid for ${weeks} weeks after purchase`)
+      const validityBlock = weeks && weeks > 0
+        ? `<div class="pass-shop-accent" style="background:linear-gradient(135deg,${pc}22,${pc}08);border:1px solid ${pc}40;">${_escHtml(lang === 'cs' ? `Platnost po zakoupení: ${weeks} ${weeks === 1 ? 'týden' : weeks < 5 ? 'týdny' : 'týdnů'}` : `Valid for ${weeks} week${weeks === 1 ? '' : 's'} after purchase`)}</div>`
         : ''
       const refCourseId = ids.length ? ids[0] : ''
       const priceEsc = fmtPrice(priceNum)
       const buyLabel = lang === 'cs' ? 'Koupit permanentku' : 'Buy pass'
-      const metaBits = [
-        `${total} ${lang === 'cs' ? 'vstupů' : 'entries'}`,
-        `${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}`,
-      ]
+      const entriesLabel = lang === 'cs' ? 'vstupů' : 'entries'
+      const perSlash = lang === 'cs' ? 'vstup' : 'entry'
+      const chipPer = total > 0
+        ? `${_escHtml(perEntryRaw)}/${_escHtml(perSlash)}`
+        : '—'
+
       const safePassId = String(p.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
       const safeCourseId = refCourseId ? String(refCourseId).replace(/\\/g, '\\\\').replace(/'/g, "\\'") : ''
       const onClickAttr = refCourseId
@@ -2253,17 +2295,21 @@ async function renderPermanentkyShop() {
         : `window.buyPass('${safePassId}', ${total}, ${priceNum}, null, this)`
 
       return `
-        <div class="pass-shop-card">
-          <div class="pass-shop-title">${name}</div>
-          <div class="pass-shop-meta">${metaBits.map(_escHtml).join(' · ')}${validityHtml ? `<br />${validityHtml}` : ''}<br />${coursesHtml}</div>
-          <div class="pass-shop-price-row">
-            <span class="pass-shop-price">${priceEsc}</span>
-            <span class="pass-shop-per">${lang === 'cs' ? 'Celková cena' : 'Total price'}</span>
+        <div class="pass-shop-card" style="${surf}">
+          <div class="pass-shop-head">
+            <div class="pass-shop-title">${name}</div>
+            <div class="pass-shop-price" style="color:${pc};">${priceEsc}</div>
           </div>
-          <button type="button" class="btn-res" style="width:100%;padding:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:var(--primary);"
-            onclick="${onClickAttr}">${buyLabel}</button>
+          <div class="pass-shop-stats">
+            <span class="pass-shop-chip" style="background:${pc}26;color:${pc};"><strong>${total}</strong> ${_escHtml(entriesLabel)}</span>
+            <span class="pass-shop-chip pass-shop-chip--neutral" style="background:${pc}12;color:var(--anno);">${chipPer}</span>
+          </div>
+          ${validityBlock}
+          <div class="pass-shop-scope">${coursesHtml}</div>
+          <button type="button" class="btn-res" style="width:100%;padding:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:${pc};"
+            onclick="${onClickAttr}">${_escHtml(buyLabel)}</button>
         </div>`
-    }).join('')
+    }).join('')}</div>`
   } catch (e) {
     console.error('[renderPermanentkyShop]', e)
     container.innerHTML = `<div class="empty" style="padding:28px;color:#791F1F;">${lang === 'cs' ? 'Nepodařilo se načíst permanentky.' : 'Could not load passes.'}</div>`

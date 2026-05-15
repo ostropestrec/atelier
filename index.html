@@ -667,21 +667,88 @@
     .pass-count{ font-size: 26px; font-weight: 700; color: var(--primary); line-height: 1.05; letter-spacing: -0.02em; flex-shrink: 0; }
     .bar{ height: 6px; background: rgba(17,24,39,.08); border-radius: 999px; overflow:hidden; margin-top: 10px;}
     /* Katalog permanentek (uživatelská sekce) */
+    .pass-shop-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 640px) {
+      .pass-shop-grid { grid-template-columns: 1fr; }
+    }
     .pass-shop-card {
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 16px;
       background: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .pass-shop-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-bottom: 12px;
       margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
     }
-    .pass-shop-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; line-height: 1.35; }
-    .pass-shop-meta { font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 12px; }
-    .pass-shop-price-row {
-      display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-      margin-bottom: 12px; flex-wrap: wrap;
+    .pass-shop-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--text);
     }
-    .pass-shop-price { font-size: 17px; font-weight: 700; color: var(--primary); }
-    .pass-shop-per { font-size: 11px; color: var(--anno); }
+    .pass-shop-price {
+      flex-shrink: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+    .pass-shop-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .pass-shop-chip {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 11px;
+      border-radius: var(--radius);
+      background: var(--primary-100);
+      color: var(--primary);
+    }
+    .pass-shop-chip.pass-shop-chip--neutral {
+      background: var(--muted-surface);
+      color: var(--anno);
+      font-weight: 500;
+    }
+    .pass-shop-chip strong {
+      font-weight: 700;
+    }
+    .pass-shop-accent {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text);
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(40, 84, 185, .06);
+      border: 1px solid rgba(40, 84, 185, .12);
+    }
+    .pass-shop-scope {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 14px;
+      flex: 1;
+    }
+    .pass-shop-card > .btn-res { margin-top: auto; }
     .bar > i{ display:block; height:100%; width: 0%; background: var(--primary); border-radius: 999px; }
     .booking-item{
       border: 1px solid var(--border);

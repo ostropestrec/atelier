@@ -512,7 +512,7 @@ export async function loadUserPasses(userId) {
     .from('user_passes')
     .select(`
       id, entries_total, entries_remaining, cancellation_count, expires_at, status,
-      pass:passes ( id, name, entries_total, price, validity_weeks, allowed_course_ids )
+      pass:passes ( id, name, entries_total, price, validity_weeks, allowed_course_ids, color_code )
     `)
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -1326,6 +1326,15 @@ function renderNavigation(user) {
 
 }
 
+function pickPassTheme(hex) {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : '#0D9488'
+}
+
+function passCardSurface(hex) {
+  const h = pickPassTheme(hex)
+  return `background:linear-gradient(168deg, ${h}26 0%, #ffffff 92%);border:1px solid ${h}48;`
+}
+
 // ── Chráněné sekce: profil / přehled uživatele ─────────────────
 export function buildUserGreetingHtml(user) {
   if (!user) return ''
@@ -1353,17 +1362,18 @@ export function buildUserOverviewHtml(user) {
         const remaining = Number(up.entries_remaining ?? 0) || 0
         const used = Math.max(0, total - remaining)
         const pct = total ? Math.round((used / total) * 100) : 0
+        const ph = pickPassTheme(p?.color_code)
         const exp = up.expires_at ? fmtDate(up.expires_at) : ''
         return `
-          <div class="pass-item">
+          <div class="pass-item" style="${passCardSurface(ph)}">
             <div class="pass-top">
               <div>
                 <div class="pass-name">${escapeHtml(name)}</div>
                 <div class="pass-meta">${remaining} z ${total} vstupů · platí do ${escapeHtml(exp)}</div>
               </div>
-              <div class="pass-count">${remaining}</div>
+              <div class="pass-count" style="color:${ph};">${remaining}</div>
             </div>
-            <div class="bar"><i style="width:${pct}%"></i></div>
+            <div class="bar"><i style="width:${pct}%;background:${ph};"></i></div>
           </div>
         `
       })
