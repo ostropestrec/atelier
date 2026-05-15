@@ -80,6 +80,9 @@ export const UI_TRANSLATIONS = {
       deleteAccountLead:
         'Trvalé smazání účtu. Aktivní permanentky zanikají bez nároku na automatickou refundaci.',
       deleteAccountBtn: 'Smazat můj účet',
+      deleteAccountSuccessToast:
+        'Účet byl anonymizován. Budoucí rezervace byly zrušeny a permanentky zneplatněny. Nyní jste odhlášeni.',
+      deleteAccountFailToast: 'Smazání účtu se nezdařilo. Zkuste to později nebo nás kontaktujte.',
       popKalClose: 'Zavřít',
       popBookingCancel: 'Zrušit',
       signOut: 'Odhlásit se',
@@ -622,6 +625,9 @@ export const UI_TRANSLATIONS = {
       deleteAccountLead:
         'Permanently delete your account. Active passes lapse with no automatic refund.',
       deleteAccountBtn: 'Delete my account',
+      deleteAccountSuccessToast:
+        'Your account has been anonymised. Future bookings were cancelled and passes invalidated. You are now signed out.',
+      deleteAccountFailToast: 'Account deletion failed. Please try again later or contact us.',
       popKalClose: 'Close',
       popBookingCancel: 'Cancel',
       signOut: 'Sign out',

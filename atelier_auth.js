@@ -1208,29 +1208,50 @@ async function confirmDeleteAccount() {
   const btn = document.getElementById('del-continue')
   if (btn) { btn.disabled = true; btn.textContent = 'Probíhá…' }
 
-  // Preferovaná cesta: RPC, která běží jako security definer.
-  // Pokud RPC není nasazená, spadne to do catch a upozorníme.
   try {
-    const { data, error } = await sb.rpc('request_account_deletion', {
-      p_reason: 'user_initiated',
-      p_ip_hash: null,
+    const { data, error } = await sb.functions.invoke('delete-account', {
+      body: { reason: 'user_initiated' },
     })
-    if (error) throw error
-    console.log('request_account_deletion:', data)
+
+    if (error) {
+      let msg = t(_uiLocale(), 'pages.deleteAccountFailToast')
+      try {
+        const body = await error.context?.json?.()
+        if (body?.error && typeof body.error === 'string') msg = body.error
+      } catch (_) { /* ponechat výchozí msg */ }
+      console.error('confirmDeleteAccount:', error)
+      window.showToast?.(msg, 'error')
+      if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat →' }
+      return
+    }
+
+    if (data?.error) {
+      window.showToast?.(String(data.error), 'error')
+      if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat →' }
+      return
+    }
+
+    window.closeDeleteAccountModal?.()
+    window.showToast?.(t(_uiLocale(), 'pages.deleteAccountSuccessToast'), 'ok')
+
+    try { await signOut() } catch (_) {}
+
+    try {
+      window.nav?.('nastenka')
+    } catch (navErr) {
+      console.warn('confirmDeleteAccount nav:', navErr)
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat →' }
   } catch (e) {
     console.error('confirmDeleteAccount:', e)
-    alert('Smazání účtu není na backendu ještě aktivní. Je potřeba nasadit SQL funkci `request_account_deletion` (pošlu ji do `FINAL_supabase_sql.sql`).')
+    window.showToast?.(
+      t(_uiLocale(), 'pages.deleteAccountFailToast')
+        + (e?.message ? ` (${e.message})` : ''),
+      'error',
+    )
     if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat →' }
-    return
   }
-
-  // Lokální UI cleanup
-  window.closeDeleteAccountModal?.()
-  alert('✓ Účet byl anonymizován. Budoucí rezervace byly zrušeny a permanentky zneplatněny.')
-
-  // odhlásíme uživatele (session v auth už zůstane, ale profil email se změnil)
-  try { await signOut() } catch (_) {}
-  if (btn) { btn.disabled = false; btn.textContent = 'Pokračovat →' }
 }
 
 // ── Navigace podle role ───────────────────────────────────────
