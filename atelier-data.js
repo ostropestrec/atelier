@@ -1146,10 +1146,207 @@ async function loadPassesForCourse(courseId) {
   _syncCardPrimaryButton(courseId)
 }
 
-window.buyPass = async (passId, entriesTotal, price, courseId, btn, preselectedLessonId = null) => {
+function resolveExternalStripeUrl(ctx) {
+  const cfg = window.__externalStripePayments || {}
+  if (ctx.kind === 'pass') {
+    const m = cfg.byPassId || {}
+    return m[ctx.passId] ?? m[String(ctx.passId)] ?? cfg.passDefault ?? ''
+  }
+  if (ctx.kind === 'lesson-single') {
+    const m = cfg.byCourseId || {}
+    return m[ctx.courseId] ?? m[String(ctx.courseId)] ?? cfg.singleLessonDefault ?? ''
+  }
+  return ''
+}
+
+function _finalizeExternalStripeUrl(url) {
+  if (!url || !currentUser?.email) return url
+  try {
+    const u = new URL(url, window.location.href)
+    if (!u.searchParams.has('prefilled_email'))
+      u.searchParams.set('prefilled_email', currentUser.email)
+    return u.href
+  } catch {
+    const sep = String(url).includes('?') ? '&' : '?'
+    return `${url}${sep}prefilled_email=${encodeURIComponent(currentUser.email)}`
+  }
+}
+
+function buildExternalStripePaySummary(ctx) {
+  const lines = []
+  if (ctx.kind === 'pass') {
+    lines.push(`${lang === 'cs' ? 'Permanentka' : 'Pass'}: ${_escHtml(ctx.passTitle || '—')}`)
+    lines.push(
+      `${lang === 'cs' ? 'Cena' : 'Price'}: <strong>${_escHtml(fmtPrice(Number(ctx.price) || 0))}</strong>`,
+    )
+    if (ctx.lessonWhen) {
+      lines.push(
+        `${lang === 'cs' ? 'Zvolený termín (rezervaci dokončíme po zaplacení)' : 'Selected session (booking completed after payment)'}: ${_escHtml(ctx.lessonWhen)}`,
+      )
+    }
+  } else {
+    lines.push(`${lang === 'cs' ? 'Kurz' : 'Course'}: ${_escHtml(ctx.courseTitle || '—')}`)
+    if (ctx.lessonWhen) {
+      lines.push(`${lang === 'cs' ? 'Termín' : 'Session'}: ${_escHtml(ctx.lessonWhen)}`)
+    }
+    lines.push(
+      `${lang === 'cs' ? 'Cena' : 'Price'}: <strong>${_escHtml(fmtPrice(Number(ctx.price) || 0))}</strong>`,
+    )
+  }
+  return lines.map(l => `<div class="ep-line">${l}</div>`).join('')
+}
+
+window.openExternalStripePaymentModal = ctx => {
+  const pop = document.getElementById('pop-external-pay')
+  if (!pop) {
+    console.warn('[Payment] Missing #pop-external-pay in index.html')
+    return
+  }
+  const rawUrl = resolveExternalStripeUrl(ctx)
+  const stripeUrl = rawUrl ? _finalizeExternalStripeUrl(rawUrl) : ''
+  window._externalPayCtx = { ...ctx, stripeUrl, rawUrl }
+
+  const title = document.getElementById('ep-title')
+  const lead = document.getElementById('ep-lead')
+  const sum = document.getElementById('ep-summary')
+  const btn = document.getElementById('ep-stripe-btn')
+  const warn = document.getElementById('ep-no-url')
+  if (title) title.textContent = lang === 'cs' ? 'Způsob platby' : 'Payment method'
+  if (lead) {
+    lead.textContent =
+      lang === 'cs'
+        ? 'Platba proběhne pouze na zabezpečených stránkách Stripe (mimo tuto aplikaci). Aplikace nezpracovává kartové údaje ani platby.'
+        : 'Payment is handled only on Stripe’s secure checkout (outside this app). This app does not process card data or payments.'
+  }
+  if (sum) sum.innerHTML = buildExternalStripePaySummary(ctx)
+  if (warn) {
+    warn.style.display = stripeUrl ? 'none' : 'block'
+    warn.textContent =
+      lang === 'cs'
+        ? 'Pro tuto položku není nastaven odkaz Stripe. V index.html doplňte window.__externalStripePayments (passDefault / singleLessonDefault / byPassId / byCourseId).'
+        : 'No Stripe link is configured for this item. Fill in window.__externalStripePayments (passDefault / singleLessonDefault / byPassId / byCourseId).'
+  }
+  if (btn) {
+    btn.disabled = !stripeUrl
+    btn.style.background = '#635bff'
+    btn.style.color = '#fff'
+    btn.textContent = lang === 'cs' ? 'Zaplatit přes Stripe' : 'Pay with Stripe'
+  }
+  const back = document.getElementById('ep-back-btn')
+  if (back) back.textContent = lang === 'cs' ? 'Zpět' : 'Back'
+
+  const bk = document.getElementById('pop-booking')
+  if (ctx.reopenBookingPopup && bk) bk.style.display = 'none'
+
+  pop.style.display = 'flex'
+}
+
+window.confirmExternalStripePayment = () => {
+  const ctx = window._externalPayCtx
+  if (!ctx?.stripeUrl) {
+    window.showToast?.(
+      lang === 'cs' ? 'Chybí odkaz na Stripe.' : 'Stripe link is missing.',
+      'error',
+    )
+    return
+  }
+  window.open(ctx.stripeUrl, '_blank', 'noopener,noreferrer')
+  document.getElementById('pop-external-pay').style.display = 'none'
+  const pb = document.getElementById('pop-booking')
+  if (pb) pb.style.display = 'none'
+  window.showToast?.(
+    lang === 'cs'
+      ? 'Otevřeli jsme Stripe v nové záložce. Rezervaci nebo permanentku zaktivníme po přijetí platby.'
+      : 'Stripe opened in a new tab. We will activate your booking or pass once payment is received.',
+    'ok',
+  )
+  window._externalPayCtx = null
+}
+
+window.cancelExternalStripePayment = () => {
+  const pop = document.getElementById('pop-external-pay')
+  if (pop) pop.style.display = 'none'
+  const ctx = window._externalPayCtx
+  window._externalPayCtx = null
+  if (ctx?.reopenBookingPopup) {
+    const bk = document.getElementById('pop-booking')
+    if (bk) bk.style.display = 'flex'
+  }
+}
+
+/** Uživatel má aktivní permanentku vycházející ze stejné šablony (passes.id). */
+function _userOwnsActivePassTemplate(templatePassId) {
+  if (templatePassId == null || templatePassId === '') return false
+  const want = String(templatePassId)
+  return (userPasses ?? []).some(up => {
+    const tid = up.pass?.id ?? up.pass_id
+    return tid != null && String(tid) === want
+  })
+}
+
+/** Obecné potvrzení, že uživatel chce nákup dokončit. */
+function _confirmUserWantsToCompletePurchase() {
+  return window.confirm(
+    lang === 'cs'
+      ? 'Přejete si tento nákup skutečně uskutečnit?'
+      : 'Do you want to complete this purchase?',
+  )
+}
+
+window.buyPass = async (
+  passId,
+  entriesTotal,
+  price,
+  courseId,
+  btn,
+  preselectedLessonId = null,
+  extra = {},
+) => {
   if (!currentUser) { window.openAuthPopup?.(); return }
 
+  if (!_confirmUserWantsToCompletePurchase()) return
+
+  if (_userOwnsActivePassTemplate(passId)) {
+    const ok = window.confirm(
+      lang === 'cs'
+        ? 'Už máte aktivní permanentku stejného typu. Opravdu chcete koupit znovu? (může jít o duplicitní nákup.)'
+        : 'You already have an active pass of this type. Buy again anyway? This may be a duplicate purchase.',
+    )
+    if (!ok) return
+  }
+
+  const priceNum = Number(price) || 0
   const originalBtnText = btn?.textContent ?? ''
+  const passTitle = (extra.passTitle && String(extra.passTitle).trim()) || (lang === 'cs' ? 'Permanentka' : 'Pass')
+  const reopenBooking = !!extra.reopenBooking
+
+  const les = preselectedLessonId
+    ? window.AppState.upcomingLessons?.find(l => String(l.lesson_id ?? l.id) === String(preselectedLessonId))
+    : null
+  const lessonWhen = les?.start_time ? fmtLessonPill(les.start_time) : ''
+
+  if (priceNum > 0) {
+    if (btn) btn.disabled = true
+    try {
+      window.openExternalStripePaymentModal?.({
+        kind: 'pass',
+        passId,
+        passTitle,
+        price: priceNum,
+        lessonWhen,
+        reopenBookingPopup: reopenBooking,
+      })
+    } finally {
+      if (btn) {
+        btn.disabled = false
+        btn.textContent = originalBtnText || (lang === 'cs' ? 'Koupit permanentku' : 'Buy pass')
+      }
+      if (courseId) _syncCardPrimaryButton(courseId)
+      _syncPopupPrimaryButton()
+    }
+    return
+  }
+
   if (btn) { btn.disabled = true; btn.textContent = lang === 'cs' ? 'Kupuji…' : 'Buying…' }
 
   try {
@@ -1196,6 +1393,18 @@ window.buyPass = async (passId, entriesTotal, price, courseId, btn, preselectedL
     if (courseId) _syncCardPrimaryButton(courseId)
     _syncPopupPrimaryButton()
   }
+}
+
+window._buyPassShopClick = el => {
+  if (!el?.dataset) return
+  const id = el.dataset.buyPassId
+  if (!id) return
+  const total = Number(el.dataset.buyPassEntries || 0)
+  const price = Number(el.dataset.buyPassPrice || 0)
+  const courseRaw = el.dataset.buyPassCourse
+  const courseId = courseRaw && String(courseRaw).trim() ? courseRaw : null
+  const passTitle = el.dataset.buyPassTitle || ''
+  void window.buyPass(id, total, price, courseId, el, null, { passTitle, reopenBooking: false })
 }
 
 window.toggleC = id => {
@@ -1581,7 +1790,16 @@ window.confirmBooking = async () => {
       window.showToast?.(lang === 'cs' ? 'Vyberte platnou permanentku.' : 'Select a valid pass.', 'error')
       return
     }
-    await window.buyPass?.(buyPassTemplateId, buyPassEntriesTotal, buyPassPrice, courseId, confirmBtn, selectedLessonId)
+    const passTitle = buyPassMetaEl?.querySelector('.bnm')?.textContent?.trim() || ''
+    await window.buyPass?.(
+      buyPassTemplateId,
+      buyPassEntriesTotal,
+      buyPassPrice,
+      courseId,
+      confirmBtn,
+      selectedLessonId,
+      { passTitle, reopenBooking: true },
+    )
     return
   }
 
@@ -1607,6 +1825,24 @@ window.confirmBooking = async () => {
       return
     }
     lessonIds = [lessonId]
+  }
+
+  const priceNum = Number(pricePaid) || 0
+  if (!isPass && !isBuyPass && priceNum > 0) {
+    const lesson_id = lessonIds[0]
+    const courseTitle = loc(course?.title) || ''
+    const lesRow = window.AppState.upcomingLessons.find(l => String(l.lesson_id ?? l.id) === String(lesson_id))
+    const lessonWhen = lesRow?.start_time ? fmtLessonPill(lesRow.start_time) : ''
+    if (!_confirmUserWantsToCompletePurchase()) return
+    window.openExternalStripePaymentModal?.({
+      kind: 'lesson-single',
+      courseId,
+      courseTitle,
+      price: priceNum,
+      lessonWhen,
+      reopenBookingPopup: true,
+    })
+    return
   }
 
   console.log('[Booking] Popup reserve start', { lessonIds, payVal, courseId })
@@ -2301,11 +2537,10 @@ async function renderPermanentkyShop() {
         ? `${_escHtml(perEntryRaw)}/${_escHtml(perSlash)}`
         : '—'
 
-      const safePassId = String(p.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-      const safeCourseId = refCourseId ? String(refCourseId).replace(/\\/g, '\\\\').replace(/'/g, "\\'") : ''
-      const onClickAttr = refCourseId
-        ? `window.buyPass('${safePassId}', ${total}, ${priceNum}, '${safeCourseId}', this)`
-        : `window.buyPass('${safePassId}', ${total}, ${priceNum}, null, this)`
+      const passIdAttr = _escHtml(String(p.id))
+      const courseIdAttr = refCourseId ? _escHtml(String(refCourseId)) : ''
+      const passTitleRaw = loc(p.name) || (lang === 'cs' ? 'Permanentka' : 'Pass')
+      const passTitleAttr = _escHtml(passTitleRaw)
 
       return `
         <div class="pass-shop-card" style="${surf}">
@@ -2320,7 +2555,12 @@ async function renderPermanentkyShop() {
           ${validityBlock}
           <div class="pass-shop-scope">${coursesHtml}</div>
           <button type="button" class="btn-res" style="width:100%;padding:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:${pc};"
-            onclick="${onClickAttr}">${_escHtml(buyLabel)}</button>
+            onclick="window._buyPassShopClick?.(this)"
+            data-buy-pass-id="${passIdAttr}"
+            data-buy-pass-entries="${total}"
+            data-buy-pass-price="${priceNum}"
+            data-buy-pass-course="${courseIdAttr}"
+            data-buy-pass-title="${passTitleAttr}">${_escHtml(buyLabel)}</button>
         </div>`
     }).join('')}</div>`
   } catch (e) {

@@ -599,6 +599,34 @@
     .evt { font-size: 8px; opacity: .8; }
     .evb { font-size: 8px; font-weight: 600; margin-top: 1px; }
 
+    /* ── Externí platba (Stripe) — druhý dialog ── */
+    .ep-pay-lead {
+      font-size: 13px;
+      color: var(--anno);
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .ep-summary {
+      font-size: 13px;
+      line-height: 1.55;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(17, 24, 39, .05);
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .ep-line + .ep-line { margin-top: 6px; }
+    .ep-no-url {
+      font-size: 12px;
+      color: #7a1f1f;
+      margin-bottom: 12px;
+      line-height: 1.45;
+    }
+    #ep-stripe-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
     /* ── Popup overlay ── */
     .pop-overlay {
       display: none; position: fixed; inset: 0;
@@ -995,6 +1023,16 @@
   </style>
 </head>
 <body>
+  <script>
+  // Externí Stripe Checkout / Payment Links — peníze nejdou přes tuto SPA.
+  // Doplň URL z Stripe Dashboard; volitelně per permanentka / per kurz.
+  window.__externalStripePayments = window.__externalStripePayments || {
+    passDefault: '',
+    singleLessonDefault: '',
+    byPassId: {},
+    byCourseId: {},
+  }
+  </script>
 
 <div class="layout-shell">
 
@@ -1280,6 +1318,24 @@
         Potvrdit rezervaci
       </button>
       <button class="pop-close" onclick="document.getElementById('pop-booking').style.display='none'">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Platba Stripe (druhý krok — mimo aplikaci) ── -->
+<div class="pop-overlay" id="pop-external-pay" onclick="if(event.target===this)window.cancelExternalStripePayment?.()">
+  <div class="pop-sheet" role="dialog" aria-modal="true" aria-labelledby="ep-title">
+    <div class="pop-body">
+      <div id="ep-title" style="font-size:17px;font-weight:600;margin-bottom:10px;">Způsob platby</div>
+      <p id="ep-lead" class="ep-pay-lead"></p>
+      <div id="ep-summary" class="ep-summary" aria-live="polite"></div>
+      <div id="ep-no-url" class="ep-no-url" style="display:none;"></div>
+      <button type="button" id="ep-stripe-btn" class="btn-res"
+        style="width:100%;padding:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;background:#635bff;color:#fff;"
+        onclick="window.confirmExternalStripePayment?.()">
+        Zaplatit přes Stripe
+      </button>
+      <button type="button" id="ep-back-btn" class="pop-close" onclick="window.cancelExternalStripePayment?.()">Zpět</button>
     </div>
   </div>
 </div>
