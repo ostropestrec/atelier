@@ -43,6 +43,21 @@ function passCardSurfaceCss(hex) {
   return `background:linear-gradient(168deg, ${h}26 0%, #ffffff 92%);border:1px solid ${h}48;`
 }
 
+/** Kurzy permanentky jako pill štítky (uživ. katalog) */
+function passShopCourseTagsBlock(ids, courseTitle, pc) {
+  const hdr = `<div class="pass-shop-scope-heading">${lang === 'cs' ? 'Kurzy' : 'Courses'}</div>`
+  const pill = txt =>
+    `<span class="pass-shop-tag" style="background:${pc}38;color:${pc};">${_escHtml(txt)}</span>`
+  if (!ids.length) {
+    return `${hdr}<div class="pass-shop-course-tags">${pill(lang === 'cs' ? 'Platí na všechny kurzy' : 'Valid for all courses')}</div>`
+  }
+  const labels = ids.map(courseTitle).filter(Boolean)
+  if (!labels.length) {
+    return `${hdr}<div class="pass-shop-course-tags">${pill(lang === 'cs' ? 'Vybrané kurzy (viz detail)' : 'Selected courses')}</div>`
+  }
+  return `${hdr}<div class="pass-shop-course-tags">${labels.map(l => pill(l)).join('')}</div>`
+}
+
 function _toastPassEntriesLimitReached() {
   window.showToast?.(
     lang === 'cs' ? PASS_ENTRIES_LIMIT_HINT_CS : PASS_ENTRIES_LIMIT_HINT_EN,
@@ -2266,15 +2281,7 @@ async function renderPermanentkyShop() {
       const priceNum = Number(p.price) || 0
       const perEntryRaw = total > 0 ? fmtPrice(priceNum / total) : '—'
       const ids = Array.isArray(p.allowed_course_ids) ? p.allowed_course_ids : []
-      let coursesHtml
-      if (!ids.length) {
-        coursesHtml = _escHtml(lang === 'cs' ? 'Platí na všechny kurzy' : 'Valid for all courses')
-      } else {
-        const labels = ids.map(courseTitle).filter(Boolean)
-        coursesHtml = labels.length
-          ? `${lang === 'cs' ? 'Kurzy: ' : 'Courses: '}${labels.map(l => _escHtml(l)).join(', ')}`
-          : _escHtml(lang === 'cs' ? 'Vybrané kurzy (viz detail)' : 'Selected courses')
-      }
+      const coursesHtml = passShopCourseTagsBlock(ids, courseTitle, pc)
       const weeks = p.validity_weeks != null ? Number(p.validity_weeks) : null
       const validityBlock = weeks && weeks > 0
         ? `<div class="pass-shop-accent" style="background:linear-gradient(135deg,${pc}22,${pc}08);border:1px solid ${pc}40;">${_escHtml(lang === 'cs' ? `Platnost po zakoupení: ${weeks} ${weeks === 1 ? 'týden' : weeks < 5 ? 'týdny' : 'týdnů'}` : `Valid for ${weeks} week${weeks === 1 ? '' : 's'} after purchase`)}</div>`
