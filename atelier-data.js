@@ -186,13 +186,16 @@ function _syncPopupPrimaryButton() {
   }
 
   if (paymentSel.startsWith('tpl-')) {
+    const buyPassMetaEl = payEl.querySelector('.bk-opt-sel[data-buy-pass-template-id]')
+    const passPriceNum = Number(buyPassMetaEl?.dataset.buyPassPrice ?? 0)
+    const passPriceTxt = fmtPrice(passPriceNum)
     const les = _bkSelectedLessonForPopupSingleSelect()
     const slot = les
       ? _fmtBkLessonLine(les)
       : (lang === 'cs' ? '— vyberte termín —' : '— select session —')
     btn.textContent = lang === 'cs'
-      ? `Koupit a zarezervovat termín · ${slot}`
-      : `Buy pass and reserve · ${slot}`
+      ? `Koupit a zarezervovat termín · ${slot} · ${passPriceTxt}`
+      : `Buy pass and reserve · ${slot} · ${passPriceTxt}`
     return
   }
 
