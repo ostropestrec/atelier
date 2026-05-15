@@ -33,6 +33,9 @@
       --page-bg-desktop: #e6ede3;
       --shell-max: 1000px;
       --shell-radius: 24px;
+      /* Mezery mezi sekcemi na Přehledu (uživatel, admin, lektor) */
+      --overview-section-gap: 52px;
+      --overview-section-title-gap: 18px;
       --shell-shadow: 0 20px 50px rgba(253,141,64,.22), 0 4px 16px rgba(253,141,64,.12);
     }
 
@@ -627,14 +630,21 @@
     .card-meta  { font-size: 12px; color: var(--muted); }
 
     /* ── Profile + passes + bookings (design podle screenshotů) ─ */
-    .profile-head{ margin-bottom: 28px; }
+    .profile-head{ margin-bottom: var(--overview-section-gap); }
     .hello{ font-size: 20px; font-weight: 600; margin-bottom: 4px; }
     .subtle{ font-size: 13px; color: var(--muted); }
     .section-h{
       font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
-      color: var(--rail-label); margin: 32px 0 14px; font-weight: 600;
+      color: var(--rail-label);
+      margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
+      font-weight: 600;
     }
-    #nastenka-content .card-meta{ margin-bottom: 4px; }
+    #screen-nastenka > .sec-title{ margin-bottom: 24px; }
+    #nastenka-content .profile-head + .section-h{ margin-top: 0; }
+    #nastenka-content .card-meta{ margin-top: 12px; margin-bottom: 8px; }
+    #nastenka-content .section-h + .empty,
+    #nastenka-content .section-h + .nastenka-cards-2col{ margin-bottom: 4px; }
+    #nastenka-content .booking-item:last-child{ margin-bottom: 4px; }
     .nastenka-cards-2col{
       display:grid;
       grid-template-columns:repeat(2, minmax(0, 1fr));
@@ -846,7 +856,7 @@
     /* ── Admin stat karty ── */
     .admin-stat-grid {
       display: grid; grid-template-columns: 1fr 1fr;
-      gap: 10px; margin-bottom: 20px;
+      gap: 10px; margin-bottom: var(--overview-section-gap);
     }
     @media (min-width: 600px) { .admin-stat-grid { grid-template-columns: repeat(4, 1fr); } }
     .admin-stat-card {
@@ -856,13 +866,18 @@
     .admin-stat-value { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
     .admin-stat-label { font-size: 11px; color: var(--anno); }
 
-    /* ── Admin sekce nadpis ── */
+    /* ── Admin sekce nadpis (Přehled + další admin obrazovky) ── */
     .admin-section-title {
       font-size: 11px; font-weight: 600; letter-spacing: .14em;
       text-transform: uppercase; color: var(--rail-label);
-      margin: 32px 0 14px;
+      margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
     }
-    #screen-admin-dashboard .page-title + .admin-stat-grid { margin-top: 0; }
+    #admin-dash-content .page-title{ margin-bottom: 24px !important; }
+    #admin-dash-content .page-title + .admin-stat-grid{ margin-top: 0; }
+    #admin-dash-content .admin-stat-grid + .admin-section-title{ margin-top: 0; }
+    #admin-dash-content .admin-section-title + .profile-head{ margin-top: 0; }
+    #admin-dash-content .profile-head + .admin-section-title{ margin-top: 0; }
+    #admin-dash-content .empty{ margin-bottom: 4px; }
 
     /* ── Admin lekce řádek ── */
     .admin-lesson-row {
