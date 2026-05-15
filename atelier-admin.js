@@ -5,6 +5,23 @@
 import { sb } from './atelier-supabase.js'
 import { currentUser } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
+import { t } from './translations.js'
+
+function _adminLocale() {
+  return window.__uiLang === 'en' ? 'en' : 'cs'
+}
+/** @param {Record<string, string | number>} [params] */
+function _adm(key, params) {
+  return t(_adminLocale(), 'admin.' + key, params)
+}
+function _adminFmtLocaleTag() {
+  return _adminLocale() === 'en' ? 'en-GB' : 'cs-CZ'
+}
+function _adminWeekdayShortLabels() {
+  return _adminLocale() === 'en'
+    ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+    : ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
+}
 
 // ── Role-aware scoping helpers ──────────────────────────────
 // Admin vidí všechno; lektor jen vlastní (owner_id = jeho uid). RLS to zaručuje na DB straně,
@@ -45,8 +62,6 @@ const PASS_PALETTE = [
   '#0D9488', '#4338CA', '#A21CAF', '#B45309', '#047857',
   '#7E22CE', '#BE185D', '#0369A1', '#15803D', '#A16207',
 ]
-const DAYS_CS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
-
 // ── Stav modálů ──────────────────────────────────────────────
 let _ncSelectedDays  = new Set()
 let _ncSelectedColor = PRESET_COLORS[0]
@@ -144,7 +159,7 @@ function _ensureMcLongQuill() {
     modules: {
       toolbar: [[{ header: [2, 3, false] }], ['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
     },
-    placeholder: 'Podrobný popis pro stránku detailu kurzu…',
+    placeholder: _adm('quill.coursePlaceholder'),
   })
   return _quillMcLong
 }
@@ -158,7 +173,7 @@ function _ensureMwLongQuill() {
     modules: {
       toolbar: [[{ header: [2, 3, false] }], ['bold', 'italic', 'underline'], [{ list: 'bullet' }]],
     },
-    placeholder: 'Podrobný popis programu workshopu…',
+    placeholder: _adm('quill.workshopPlaceholder'),
   })
   return _quillMwLong
 }
@@ -246,21 +261,22 @@ function loc(obj) {
 }
 
 function fmtPrice(n) {
-  return new Intl.NumberFormat('cs-CZ', {
+  return new Intl.NumberFormat(_adminFmtLocaleTag(), {
     style: 'currency', currency: 'CZK', maximumFractionDigits: 0,
   }).format(Number(n) || 0)
 }
 
 function fmtDate(iso) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(_adminFmtLocaleTag(), { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
 function fmtDateTime(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
-  return d.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })
-    + ' ' + d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+  const tag = _adminFmtLocaleTag()
+  return d.toLocaleDateString(tag, { weekday: 'short', day: 'numeric', month: 'numeric' })
+    + ' ' + d.toLocaleTimeString(tag, { hour: '2-digit', minute: '2-digit' })
 }
 
 /** Hodnota pro `<input type="datetime-local">` v lokálním čase. */
@@ -281,7 +297,7 @@ function _datetimeLocalInputToIso(s) {
 
 function fmtTimeOnly(iso) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString(_adminFmtLocaleTag(), { hour: '2-digit', minute: '2-digit' })
 }
 
 function initials(name) {
@@ -334,13 +350,18 @@ function _sortTs(iso) {
 }
 
 function _adminBookingStatusLabel(status) {
-  const map = {
-    booked: 'Aktivní',
-    attended: 'Absolvováno',
-    cancelled: 'Stornováno',
-    missed: 'Nedorazil/a',
-  }
-  return map[status] ?? (status || '—')
+  const k = String(status || '')
+  const known = ['booked', 'attended', 'cancelled', 'missed']
+  if (known.includes(k)) return _adm('bookingLessonStatus.' + k)
+  return status || _adm('misc.dash')
+}
+
+function _adminLessonHistoryStatusColors(status) {
+  const s = String(status || '')
+  if (s === 'booked' || s === 'attended') return { bg: '#E1F5EE', c: '#085041' }
+  if (s === 'cancelled') return { bg: '#FCEBEB', c: '#791F1F' }
+  if (s === 'missed') return { bg: '#FFF4E0', c: '#8B5C00' }
+  return { bg: '#F3F4F6', c: '#6b6b6b' }
 }
 
 function _adminBookingSearchTokens(booking) {
@@ -449,12 +470,12 @@ function _renderAdminZakazniciList() {
     : _adminCustomersData.filter(u => !q || u.searchText.includes(q))
 
   countEl.textContent = q
-    ? `${filtered.length} z ${_adminCustomersData.length} zákazníků`
-    : `${_adminCustomersData.length} zákazníků`
+    ? _adm('customers.countShown', { shown: filtered.length, total: _adminCustomersData.length })
+    : _adm('customers.countTotal', { total: _adminCustomersData.length })
 
   listEl.innerHTML = filtered.length
     ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${filtered.map(_zakaznikRow).join('')}</div>`
-    : `<div class="empty">${q ? 'Žádný zákazník neodpovídá hledání.' : 'Žádní zákazníci.'}</div>`
+    : `<div class="empty">${esc(q ? _adm('customers.emptySearch') : _adm('customers.empty'))}</div>`
 }
 
 window.adminFilterZakaznici = (value) => {
@@ -471,11 +492,11 @@ function buildAdminCustomerHistoryModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:18px;font-weight:700;" id="mch-title">Historie lekcí</div>
+          <div style="font-size:18px;font-weight:700;" id="mch-title">${esc(_adm('customers.historyModalTitle'))}</div>
         </div>
         <div id="mch-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
         <div style="display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);">
-          <button type="button" class="btn-wide" onclick="window.closeAdminCustomerHistoryModal?.()">Zavřít</button>
+          <button type="button" class="btn-wide" onclick="window.closeAdminCustomerHistoryModal?.()">${esc(_adm('btn.close'))}</button>
         </div>
       </div>
     </div>`)
@@ -484,28 +505,23 @@ function buildAdminCustomerHistoryModal() {
 function _adminCustomerHistoryHtml(user) {
   const rows = user?.bookingHistory ?? []
   if (!rows.length) {
-    return '<div class="empty" style="padding:12px 0;">Tento zákazník zatím nemá žádnou historii lekcí.</div>'
+    return `<div class="empty" style="padding:12px 0;">${esc(_adm('customers.historyEmpty'))}</div>`
   }
   return `
     <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">
       ${rows.map(b => {
-        const title = loc(b.lesson?.course?.title) || 'Lekce'
-        const when = b.lesson?.start_time ? fmtDateTime(b.lesson.start_time) : '—'
-        const pay = b.payment_type === 'pass' ? 'Permanentka' : 'Jednorázově'
-        const status = _adminBookingStatusLabel(b.status)
-        const statusMap = {
-          'Aktivní': { bg: '#E1F5EE', c: '#085041' },
-          'Absolvováno': { bg: '#E1F5EE', c: '#085041' },
-          'Stornováno': { bg: '#FCEBEB', c: '#791F1F' },
-          'Nedorazil/a': { bg: '#FFF4E0', c: '#8B5C00' },
-        }
-        const st = statusMap[status] ?? { bg: '#F3F4F6', c: '#6b6b6b' }
+        const title = loc(b.lesson?.course?.title) || _adm('misc.lessonFallback')
+        const when = b.lesson?.start_time ? fmtDateTime(b.lesson.start_time) : _adm('misc.dash')
+        const pay = b.payment_type === 'pass' ? _adm('payType.pass') : _adm('payType.single')
+        const rawSt = b.status
+        const status = _adminBookingStatusLabel(rawSt)
+        const st = _adminLessonHistoryStatusColors(rawSt)
         return `
           <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start;">
             <div style="min-width:0;flex:1;">
               <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${esc(title)}</div>
               <div style="font-size:11px;color:#6b6b6b;line-height:1.5;">${esc(when)} · ${esc(pay)}</div>
-              <div style="font-size:10px;color:#9b9b9b;margin-top:4px;">Rezervováno ${b.created_at ? fmtDate(b.created_at) : '—'}</div>
+              <div style="font-size:10px;color:#9b9b9b;margin-top:4px;">${_adm('customers.historyBookedOn', { date: b.created_at ? fmtDate(b.created_at) : _adm('misc.dash') })}</div>
             </div>
             <span style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;background:${st.bg};color:${st.c};white-space:nowrap;">
               ${esc(status)}
@@ -519,12 +535,12 @@ window.openAdminCustomerHistoryModal = (userId, displayName = null) => {
   buildAdminCustomerHistoryModal()
   _adminCustomerHistoryUserId = userId
   const user = _adminCustomersData.find(u => String(u.id) === String(userId))
-  _adminCustomerHistoryDisplayName = displayName || user?.name || user?.email || 'Zákazník'
+  _adminCustomerHistoryDisplayName = displayName || user?.name || user?.email || _adm('misc.customerFallback')
   const titleEl = document.getElementById('mch-title')
   const bodyEl = document.getElementById('mch-body')
   const modal = document.getElementById('modal-admin-customer-history')
   if (!bodyEl || !modal) return
-  if (titleEl) titleEl.textContent = `Historie lekcí — ${_adminCustomerHistoryDisplayName}`
+  if (titleEl) titleEl.textContent = _adm('customers.historyTitle', { name: _adminCustomerHistoryDisplayName })
   bodyEl.innerHTML = _adminCustomerHistoryHtml(user)
   modal.style.display = 'flex'
 }
@@ -543,11 +559,12 @@ export async function renderAdminDashboard() {
   if (!el) return
 
   const prevHtml = el.innerHTML
-  const stable = _adminHadStableContent(prevHtml, 'Načítám přehled')
+  const loadNeedle = _adm('loading.overview')
+  const stable = _adminHadStableContent(prevHtml, loadNeedle)
   if (stable) {
     console.log('[Debug] Admin dashboard: obnovuji data na pozadí (ponechávám předchozí obsah až 3 s)')
   } else {
-    el.innerHTML = `<div class="empty" style="padding:40px;">Načítám přehled…</div>`
+    el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   }
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -629,7 +646,7 @@ export async function renderAdminDashboard() {
 
     const { buildStaffLessonsSectionHtml } = await import('./atelier-data.js')
     const adminMyLessonsHtml = await buildStaffLessonsSectionHtml({
-      sectionTitle: 'Moje lekce',
+      sectionTitle: _adm('dashboard.myLessonsSection'),
       sectionClass: 'admin-section-title',
       sectionStyle: '',
       includeDeactivated: false,
@@ -637,37 +654,37 @@ export async function renderAdminDashboard() {
     })
 
     el.innerHTML = `
-      <div class="page-title">Přehled</div>
+      <div class="page-title">${esc(_adm('dashboard.title'))}</div>
       <div class="admin-stat-grid">
         <div class="admin-stat-card">
           <div class="admin-stat-value">${todayLessons.length}</div>
-          <div class="admin-stat-label">Dnešní lekce</div>
+          <div class="admin-stat-label">${esc(_adm('dashboard.statTodayLessons'))}</div>
         </div>
         <div class="admin-stat-card">
           <div class="admin-stat-value">${occupancy}&thinsp;%</div>
-          <div class="admin-stat-label">Obsazenost dnes</div>
+          <div class="admin-stat-label">${esc(_adm('dashboard.statOccupancy'))}</div>
         </div>
         <div class="admin-stat-card">
           <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthGrossRev)}</div>
-          <div class="admin-stat-label">Hrubý příjem</div>
+          <div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div>
         </div>
         <div class="admin-stat-card">
           <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRefunds)}</div>
-          <div class="admin-stat-label">Refundace</div>
+          <div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div>
         </div>
         <div class="admin-stat-card">
           <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthNetRev)}</div>
-          <div class="admin-stat-label">Čistý příjem</div>
+          <div class="admin-stat-label">${esc(_adm('dashboard.statNet'))}</div>
         </div>
         <div class="admin-stat-card">
           <div class="admin-stat-value">${activePasses ?? 0}</div>
-          <div class="admin-stat-label">Aktivní permanentky</div>
+          <div class="admin-stat-label">${esc(_adm('dashboard.statActivePasses'))}</div>
         </div>
       </div>
-      <div class="admin-section-title">Dnešní lekce</div>
-      ${todayLessons.length ? todayLessons.map(l => _lessonRow(l)).join('') : `<div class="empty">Dnes nejsou žádné lekce.</div>`}
-      <div class="admin-section-title">Nadcházející tento týden</div>
-      ${weekLessons.length ? weekLessons.map(l => _lessonRow(l, true)).join('') : `<div class="empty">Tento týden nejsou další lekce.</div>`}
+      <div class="admin-section-title">${esc(_adm('dashboard.sectionToday'))}</div>
+      ${todayLessons.length ? todayLessons.map(l => _lessonRow(l)).join('') : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
+      <div class="admin-section-title">${esc(_adm('dashboard.sectionWeek'))}</div>
+      ${weekLessons.length ? weekLessons.map(l => _lessonRow(l, true)).join('') : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
       ${adminMyLessonsHtml}
     `
     })(), 'admin-dashboard')
@@ -678,7 +695,7 @@ export async function renderAdminDashboard() {
       return
     }
     console.error('[Admin] renderAdminDashboard:', err)
-    el.innerHTML = `<div class="empty">Chyba při načítání dat.</div>`
+    el.innerHTML = `<div class="empty">${esc(_adm('err.loadData'))}</div>`
   }
 }
 
@@ -687,43 +704,45 @@ function _lessonAdminDashButtons(lessonId, status = 'active') {
   const lid = esc(String(lessonId))
   if (status === 'cancelled') {
     return `<button type="button" class="btn-small danger admin-dash-act" style="font-size:11px;padding:6px 10px;"
-      data-admin-lesson-act="delete" data-lesson-id="${lid}">Smazat</button>`
+      data-admin-lesson-act="delete" data-lesson-id="${lid}">${esc(_adm('btn.delete'))}</button>`
   }
   return `
         <button type="button" class="btn-small admin-dash-act" style="font-size:11px;padding:6px 10px;"
-          data-admin-lesson-act="attendees" data-lesson-id="${lid}">Účastníci</button>
+          data-admin-lesson-act="attendees" data-lesson-id="${lid}">${esc(_adm('btn.attendees'))}</button>
         <button type="button" class="btn-small danger admin-dash-act" style="font-size:11px;padding:6px 10px;"
-          data-admin-lesson-act="deactivate" data-lesson-id="${lid}">Deaktivovat</button>`
+          data-admin-lesson-act="deactivate" data-lesson-id="${lid}">${esc(_adm('btn.deactivate'))}</button>`
 }
 
 window.adminLessonActionButtons = (lessonId, status = 'active') => {
   const lid = String(lessonId ?? '').replace(/'/g, "\'")
   if (status === 'cancelled') {
     return `<button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
-      onclick="event.stopPropagation();window.adminDeleteLesson?.('${lid}')">Smazat</button>`
+      onclick="event.stopPropagation();window.adminDeleteLesson?.('${lid}')">${esc(_adm('btn.delete'))}</button>`
   }
   return `<button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
-      onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">Účastníci</button>
+      onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">${esc(_adm('btn.attendees'))}</button>
     <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
-      onclick="event.stopPropagation();window.adminDeactivateLesson?.('${lid}')">Deaktivovat</button>`
+      onclick="event.stopPropagation();window.adminDeactivateLesson?.('${lid}')">${esc(_adm('btn.deactivate'))}</button>`
 }
 
 function _lessonRow(lesson, showDate = false) {
   const color  = lesson.course?.color_code ?? '#2854B9'
-  const title  = loc(lesson.course?.title) || 'Lekce'
+  const title  = loc(lesson.course?.title) || _adm('misc.lessonFallback')
   const booked = Number(lesson.booked_count || 0)
   const cap    = lesson.capacity ?? 0
   const pct    = cap > 0 ? Math.round((booked / cap) * 100) : 0
   const timeStr = fmtTimeOnly(lesson.start_time)
-  const dateStr = new Date(lesson.start_time).toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })
+  const tag = _adminFmtLocaleTag()
+  const dateStr = new Date(lesson.start_time).toLocaleDateString(tag, { weekday: 'short', day: 'numeric', month: 'numeric' })
   const status = lesson.status ?? 'active'
+  const spotsLbl = _adm('misc.spotsSuffix')
   return `
     <div class="admin-lesson-row"${status === 'cancelled' ? ' style="opacity:.75;"' : ''}>
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
         <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;"></div>
         <div style="min-width:0;">
           <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</div>
-          <div style="font-size:11px;color:#6b6b6b;">${showDate ? dateStr + ' · ' : ''}${timeStr} · ${booked}/${cap} míst</div>
+          <div style="font-size:11px;color:#6b6b6b;">${showDate ? dateStr + ' · ' : ''}${timeStr} · ${booked}/${cap} ${spotsLbl}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
@@ -743,11 +762,12 @@ export async function renderAdminKurzy() {
   const el = document.getElementById('admin-kurzy-content')
   if (!el) return
   const prevHtml = el.innerHTML
-  const stable = _adminHadStableContent(prevHtml, 'Načítám kurzy')
+  const loadNeedle = _adm('loading.courses')
+  const stable = _adminHadStableContent(prevHtml, loadNeedle)
   if (stable) {
     console.log('[Debug] Admin kurzy: obnovuji na pozadí, zachovávám poslední seznam')
   } else {
-    el.innerHTML = `<div class="empty" style="padding:40px;">Načítám kurzy…</div>`
+    el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   }
   try {
     await adminRace((async () => {
@@ -756,29 +776,29 @@ export async function renderAdminKurzy() {
       .order('title->cs')
     const { data: courses, error } = await _scopeOwnerQuery(baseQuery)
     if (error) throw error
-    const pageTitle = _isStaffLektor() ? 'Moje kurzy' : 'Kurzy'
+    const pageTitle = _isStaffLektor() ? _adm('kurzy.pageMine') : _adm('kurzy.pageAll')
     const activeCourses = (courses ?? []).filter(c => c.is_active)
     const inactiveCourses = (courses ?? []).filter(c => !c.is_active)
     let listBody = ''
     if (!activeCourses.length && !inactiveCourses.length) {
-      listBody = `<div class="empty">Žádné kurzy. Vytvořte první kliknutím na tlačítko výše.</div>`
+      listBody = `<div class="empty">${esc(_adm('kurzy.empty'))}</div>`
     } else {
       if (activeCourses.length) {
-        listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${activeCourses.length} aktivních kurzů</div>`
+        listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nActive', { n: activeCourses.length })}</div>`
         listBody += activeCourses.map(_courseCard).join('')
       }
       if (inactiveCourses.length) {
-        listBody += `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9b9b9b;font-weight:600;margin:20px 0 10px;">Deaktivované kurzy</div>`
-        listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${inactiveCourses.length} kurzů — lze trvale smazat</div>`
+        listBody += `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9b9b9b;font-weight:600;margin:20px 0 10px;">${esc(_adm('kurzy.sectionInactive'))}</div>`
+        listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nInactiveDelete', { n: inactiveCourses.length })}</div>`
         listBody += inactiveCourses.map(_courseCard).join('')
       }
     }
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div class="page-title">${pageTitle}</div>
+        <div class="page-title">${esc(pageTitle)}</div>
         <div style="display:flex;gap:8px;">
-          <button class="btn-small" onclick="window.adminNewWorkshop?.()">+ Nový workshop</button>
-          <button class="btn-small" onclick="window.adminNewCourse?.()">+ Nový kurz</button>
+          <button class="btn-small" onclick="window.adminNewWorkshop?.()">${esc(_adm('btn.newWorkshop'))}</button>
+          <button class="btn-small" onclick="window.adminNewCourse?.()">${esc(_adm('btn.newCourse'))}</button>
         </div>
       </div>
       ${listBody}
@@ -791,17 +811,19 @@ export async function renderAdminKurzy() {
       return
     }
     console.error('[Admin] renderAdminKurzy:', err)
-    el.innerHTML = `<div class="empty">Chyba při načítání kurzů.</div>`
+    el.innerHTML = `<div class="empty">${esc(_adm('err.loadCourses'))}</div>`
   }
 }
 
 function _courseCard(course) {
   const color      = course.color_code ?? '#2854B9'
-  const title      = loc(course.title) || 'Kurz'
+  const title      = loc(course.title) || _adm('misc.courseFallback')
   const ownerName  = Array.isArray(course.owner) ? course.owner[0]?.name : course.owner?.name
   const active     = course.is_active
   const isWorkshop = !!course.is_workshop
   const editFn     = isWorkshop ? 'adminEditWorkshop' : 'adminEditCourse'
+  const workshopLbl = _adm('kurzy.workshopBadge')
+  const deactBadge = _adm('state.deactivatedBadge')
   return `
     <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
       <div style="width:5px;background:${color};flex-shrink:0;"></div>
@@ -810,30 +832,30 @@ function _courseCard(course) {
           <div>
             <div style="font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;">
               ${esc(title)}
-              ${isWorkshop ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FFF4E0;color:#8B5C00;letter-spacing:.04em;">WORKSHOP</span>` : ''}
-              ${!active ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:4px;">DEAKTIVOVÁNO</span>' : ''}
+              ${isWorkshop ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FFF4E0;color:#8B5C00;letter-spacing:.04em;">${esc(workshopLbl)}</span>` : ''}
+              ${!active ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:4px;">${esc(deactBadge)}</span>` : ''}
             </div>
             <div style="font-size:11px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;">
-              <span>Lektor: <b>${esc(ownerName ?? '—')}</b></span>
-              <span>Kapacita: ${course.capacity_default} míst</span>
-              ${!isWorkshop ? `<span>Storno: ${course.cancellation_hours} h</span>` : ''}
+              <span>${esc(_adm('kurzy.instructor'))} <b>${esc(ownerName ?? _adm('misc.dash'))}</b></span>
+              <span>${esc(_adm('kurzy.capacity'))} ${course.capacity_default} ${_adm('misc.spotsSuffix')}</span>
+              ${!isWorkshop ? `<span>${esc(_adm('kurzy.cancellation'))} ${course.cancellation_hours} ${_adm('kurzy.hoursShort')}</span>` : ''}
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-size:16px;font-weight:700;color:${color};">${fmtPrice(course.price_single)}</div>
             <span style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;
               background:${active ? '#E1F5EE' : '#F3F4F6'};color:${active ? '#085041' : '#6b6b6b'};">
-              ${active ? 'aktivní' : 'neaktivní'}
+              ${esc(active ? _adm('state.active') : _adm('state.inactive'))}
             </span>
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn-small" onclick="window.openDetail?.('${esc(course.id)}')">Detail</button>
-          <button class="btn-small" onclick="window.${editFn}?.('${esc(course.id)}')">Upravit</button>
+          <button class="btn-small" onclick="window.openDetail?.('${esc(course.id)}')">${esc(_adm('btn.detail'))}</button>
+          <button class="btn-small" onclick="window.${editFn}?.('${esc(course.id)}')">${esc(_adm('btn.edit'))}</button>
           ${active
-            ? `<button class="btn-small danger" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">Deaktivovat</button>`
-            : `<button class="btn-small" onclick="window.adminToggleCourse?.('${esc(course.id)}',true)">Aktivovat</button>
-               <button class="btn-small danger" onclick="window.adminDeleteCourse?.('${esc(course.id)}')">Smazat</button>`}
+            ? `<button class="btn-small danger" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">${esc(_adm('btn.deactivate'))}</button>`
+            : `<button class="btn-small" onclick="window.adminToggleCourse?.('${esc(course.id)}',true)">${esc(_adm('btn.activate'))}</button>
+               <button class="btn-small danger" onclick="window.adminDeleteCourse?.('${esc(course.id)}')">${esc(_adm('btn.delete'))}</button>`}
         </div>
       </div>
     </div>`
@@ -846,11 +868,12 @@ export async function renderAdminZakaznici() {
   const el = document.getElementById('admin-zakaznici-content')
   if (!el) return
   const prevHtml = el.innerHTML
-  const stable = _adminHadStableContent(prevHtml, 'Načítám zákazníky')
+  const loadNeedle = _adm('loading.customers')
+  const stable = _adminHadStableContent(prevHtml, loadNeedle)
   if (stable) {
     console.log('[Debug] Admin zákazníci: obnovuji na pozadí')
   } else {
-    el.innerHTML = `<div class="empty" style="padding:40px;">Načítám zákazníky…</div>`
+    el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   }
   try {
     await adminRace((async () => {
@@ -901,7 +924,7 @@ export async function renderAdminZakaznici() {
       const lastPurchaseAt = _sortTs(lastBookingPurchaseAt) >= _sortTs(lastPassPurchaseAt)
         ? lastBookingPurchaseAt
         : lastPassPurchaseAt
-      const activePassLabels = activePasses.map(up => loc(up.pass?.name) || 'Permanentka').filter(Boolean)
+      const activePassLabels = activePasses.map(up => loc(up.pass?.name) || _adm('misc.pass')).filter(Boolean)
       const bookingHistory = [...userBookings].sort((a, b) => {
         const primary = _sortTs(b.lesson?.start_time) - _sortTs(a.lesson?.start_time)
         return primary || (_sortTs(b.created_at) - _sortTs(a.created_at))
@@ -935,14 +958,14 @@ export async function renderAdminZakaznici() {
     }).sort((a, b) => b.sortAt - a.sortAt)
 
     el.innerHTML = `
-      <div class="page-title" style="margin-bottom:8px;">Zákazníci</div>
+      <div class="page-title" style="margin-bottom:8px;">${esc(_adm('customers.pageTitle'))}</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-        <div id="admin-zakaznici-count" style="font-size:12px;color:#6b6b6b;">0 zákazníků</div>
+        <div id="admin-zakaznici-count" style="font-size:12px;color:#6b6b6b;">${esc(_adm('customers.countTotal', { total: 0 }))}</div>
         <input
           id="admin-zakaznici-search"
           type="search"
           value="${esc(_adminCustomersQuery)}"
-          placeholder="Hledat podle jména, e-mailu, kurzu, permanentky nebo částky"
+          placeholder="${esc(_adm('customers.searchPlaceholder'))}"
           oninput="window.adminFilterZakaznici?.(this.value)"
           style="width:100%;max-width:380px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:#fff;outline:none;box-sizing:border-box;"
         />
@@ -958,16 +981,18 @@ export async function renderAdminZakaznici() {
       return
     }
     console.error('[Admin] renderAdminZakaznici:', err)
-    el.innerHTML = `<div class="empty">Chyba při načítání zákazníků.</div>`
+    el.innerHTML = `<div class="empty">${esc(_adm('err.loadCustomers'))}</div>`
   }
 }
 
 function _zakaznikRow(user) {
   const passes = user.activePassLabels ?? []
   const summary = [
-    `Aktivní lekce: ${user.activeLessonsCount ?? 0}`,
-    `Aktivní permanentky: ${user.activePassCount ?? 0}`,
-    `Poslední aktivita: ${user.lastActivityAt ? fmtDate(user.lastActivityAt) : 'zatím žádná'}`,
+    _adm('customers.metaActiveLessons', { n: user.activeLessonsCount ?? 0 }),
+    _adm('customers.metaActivePasses', { n: user.activePassCount ?? 0 }),
+    _adm('customers.metaLastActivity', {
+      when: user.lastActivityAt ? fmtDate(user.lastActivityAt) : _adm('customers.metaNoActivity'),
+    }),
   ].join(' · ')
   return `
     <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
@@ -976,7 +1001,7 @@ function _zakaznikRow(user) {
         ${esc(initials(user.name || user.email))}
       </div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(user.name || '—')}</div>
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(user.name || _adm('misc.dash'))}</div>
         <div style="font-size:11px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(user.email)}</div>
         <div style="font-size:11px;color:#8a8c90;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px;">${esc(summary)}</div>
       </div>
@@ -984,17 +1009,17 @@ function _zakaznikRow(user) {
         ${passes.slice(0, 2).map(up => `
           <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;
             background:rgba(40,84,185,.10);color:var(--primary);border:1px solid rgba(40,84,185,.18);white-space:nowrap;">
-            ${esc(up || 'Permanentka')}
+            ${esc(up || _adm('misc.pass'))}
           </span>`).join('')}
       </div>
       <div style="flex-shrink:0;">
         <div style="display:flex;gap:8px;align-items:center;">
           <button type="button" class="btn-small"
-            onclick="window.openAdminCustomerHistoryModal?.('${esc(user.id)}')">Historie</button>
-          <button type="button" class="btn-small" title="Upravit zakoupené permanentky"
+            onclick="window.openAdminCustomerHistoryModal?.('${esc(user.id)}')">${esc(_adm('customers.btnHistory'))}</button>
+          <button type="button" class="btn-small" title="${esc(_adm('customers.tooltipEditPasses'))}"
             data-admin-user-passes-open="1"
             data-user-id="${esc(user.id)}"
-            data-display-name="${esc(user.name || user.email || 'Zákazník')}">Permanentky</button>
+            data-display-name="${esc(user.name || user.email || _adm('misc.customerFallback'))}">${esc(_adm('customers.btnPasses'))}</button>
         </div>
       </div>
     </div>`
@@ -1013,13 +1038,13 @@ function buildAdminCustomerPassesModal() {
       <div id="mup-panel" style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:18px;font-weight:700;" id="mup-title">Permanentky zákazníka</div>
+          <div style="font-size:18px;font-weight:700;" id="mup-title">${esc(_adm('misc.pass'))}</div>
         </div>
         <div id="mup-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
         <div id="mup-error" style="display:none;margin:0 18px 12px;font-size:12px;color:#791F1F;background:#FCEBEB;
           border-radius:8px;padding:10px 12px;"></div>
         <div style="display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);">
-          <button type="button" class="btn-wide" onclick="window.closeAdminCustomerPassesModal?.()">Zavřít</button>
+          <button type="button" class="btn-wide" onclick="window.closeAdminCustomerPassesModal?.()">${esc(_adm('btn.close'))}</button>
         </div>
       </div>
     </div>`)
@@ -1055,7 +1080,7 @@ function buildAdminCustomerPassesModal() {
     if (!btn) return
     e.preventDefault()
     const userId = btn.getAttribute('data-user-id')
-    const displayName = btn.getAttribute('data-display-name') || 'Zákazník'
+    const displayName = btn.getAttribute('data-display-name') || _adm('misc.customerFallback')
     void window.openAdminCustomerPassesModal?.(userId, displayName)
   })
 })()
@@ -1063,48 +1088,48 @@ function buildAdminCustomerPassesModal() {
 function _mupPassesListHtml(passes) {
   const addHtml = _mupAddFormHtml()
   if (!passes.length) {
-    return `${addHtml}<div class="empty" style="padding:12px 0;">Tento zákazník nemá žádnou permanentku.</div>`
+    return `${addHtml}<div class="empty" style="padding:12px 0;">${esc(_adm('customers.passesEmpty'))}</div>`
   }
   const INP = 'width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;'
   return addHtml + passes.map(up => {
-    const name = loc(up.pass?.name) || 'Permanentka'
+    const name = loc(up.pass?.name) || _adm('misc.pass')
     const st = up.status || 'active'
     return `
     <div data-mup-card="${esc(up.id)}" style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;background:#fafafa;">
       <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${esc(name)}</div>
-      <div style="font-size:11px;color:#6b6b6b;margin-bottom:10px;">Zakoupeno ${fmtDate(up.created_at)}</div>
+      <div style="font-size:11px;color:#6b6b6b;margin-bottom:10px;">${_adm('mup.purchasedOn', { date: fmtDate(up.created_at) })}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Zbývá vstupů</label>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelRemaining'))}</label>
           <input type="number" min="0" data-mup-field="entries_remaining" value="${up.entries_remaining}" style="${INP}" />
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Celkem vstupů</label>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelTotal'))}</label>
           <input type="number" min="1" data-mup-field="entries_total" value="${up.entries_total}" style="${INP}" />
         </div>
       </div>
       <div style="margin-bottom:8px;">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Platnost do</label>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelValidUntil'))}</label>
         <input type="datetime-local" data-mup-field="expires_at" value="${esc(_isoToDatetimeLocalInput(up.expires_at))}" style="${INP}" />
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Stav</label>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelStatus'))}</label>
           <select data-mup-field="status" style="${INP}">
-            <option value="active" ${st === 'active' ? 'selected' : ''}>Aktivní</option>
-            <option value="expired" ${st === 'expired' ? 'selected' : ''}>Vypršela</option>
-            <option value="depleted" ${st === 'depleted' ? 'selected' : ''}>Vyčerpána</option>
+            <option value="active" ${st === 'active' ? 'selected' : ''}>${esc(_adm('userPassUiStatus.active'))}</option>
+            <option value="expired" ${st === 'expired' ? 'selected' : ''}>${esc(_adm('userPassUiStatus.expired'))}</option>
+            <option value="depleted" ${st === 'depleted' ? 'selected' : ''}>${esc(_adm('userPassUiStatus.depleted'))}</option>
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Cena zaplaceno (Kč)</label>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelPricePaid'))}</label>
           <input type="number" min="0" step="0.01" data-mup-field="price_paid" value="${Number(up.price_paid) || 0}" style="${INP}" />
         </div>
       </div>
       <div data-mup-row-err style="display:none;font-size:12px;color:#791F1F;margin-bottom:8px;"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <button type="button" class="btn-small primary" data-mup-save="${esc(up.id)}">Uložit změny</button>
-        <button type="button" class="btn-small danger" data-mup-delete="${esc(up.id)}">Smazat</button>
+        <button type="button" class="btn-small primary" data-mup-save="${esc(up.id)}">${esc(_adm('btn.save'))}</button>
+        <button type="button" class="btn-small danger" data-mup-delete="${esc(up.id)}">${esc(_adm('btn.delete'))}</button>
       </div>
     </div>`
   }).join('')
@@ -1114,25 +1139,29 @@ function _mupAddFormHtml() {
   const hasTemplates = _mupAvailablePasses.length > 0
   return `
     <div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#fff;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Připsat permanentku ručně</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">${esc(_adm('mup.grantHeading'))}</div>
       <div style="font-size:11px;color:#6b6b6b;margin-bottom:10px;">
-        Vytvoří novou permanentku zákazníka podle vybraného typu. Po připsání ji můžete dole ještě upravit.
+        ${esc(_adm('mup.grantLead'))}
       </div>
       ${hasTemplates ? `
         <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;">
           <div>
-            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Typ permanentky</label>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelPassType'))}</label>
             <select id="mup-add-pass-id" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
               ${_mupAvailablePasses.map((p, idx) => `
                 <option value="${esc(p.id)}" ${idx === 0 ? 'selected' : ''}>
-                  ${esc(loc(p.name) || 'Permanentka')} · ${Number(p.entries_total) || 0} vstupů · ${fmtPrice(p.price)}
+                  ${_adm('customers.passLine', {
+                    name: loc(p.name) || _adm('misc.pass'),
+                    entries: Number(p.entries_total) || 0,
+                    price: fmtPrice(p.price),
+                  })}
                 </option>`).join('')}
             </select>
           </div>
           <button type="button" class="btn-small primary" data-mup-add="1"
-            style="white-space:nowrap;">Připsat</button>
+            style="white-space:nowrap;">${esc(_adm('btn.assignPass'))}</button>
         </div>
-      ` : `<div style="font-size:12px;color:#9b9b9b;">Nejsou k dispozici žádné aktivní typy permanentek.</div>`}
+      ` : `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('customers.noPassTypes'))}</div>`}
       <div id="mup-add-error" style="display:none;font-size:12px;color:#791F1F;margin-top:10px;"></div>
     </div>`
 }
@@ -1140,7 +1169,7 @@ function _mupAddFormHtml() {
 async function _mupReloadBody() {
   const body = document.getElementById('mup-body')
   if (!body || !_mupEditUserId) return
-  body.innerHTML = '<div style="font-size:12px;color:#9b9b9b;">Načítám…</div>'
+  body.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.generic'))}</div>`
   const [userPassRes, passTemplatesRes] = await Promise.all([
     sb.from('user_passes')
       .select('id, entries_total, entries_remaining, expires_at, status, price_paid, created_at, pass:passes(name)')
@@ -1164,19 +1193,19 @@ window.openAdminCustomerPassesModal = async (userId, displayName) => {
   }
   buildAdminCustomerPassesModal()
   _mupEditUserId = userId
-  _mupDisplayName = displayName || 'Zákazník'
+  _mupDisplayName = displayName || _adm('misc.customerFallback')
   const title = document.getElementById('mup-title')
   const errGlobal = document.getElementById('mup-error')
-  if (title) title.textContent = `Permanentky — ${_mupDisplayName}`
+  if (title) title.textContent = _adm('mup.modalTitle', { name: _mupDisplayName })
   if (errGlobal) { errGlobal.style.display = 'none'; errGlobal.textContent = '' }
   document.getElementById('modal-admin-user-passes').style.display = 'flex'
   const body = document.getElementById('mup-body')
-  body.innerHTML = '<div style="font-size:12px;color:#9b9b9b;">Načítám…</div>'
+  body.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.generic'))}</div>`
   try {
     await _mupReloadBody()
   } catch (e) {
     console.error('[Admin] openAdminCustomerPassesModal:', e)
-    body.innerHTML = `<div class="empty" style="color:#791F1F;padding:12px 0;">${esc(e.message || 'Chyba při načtení')}</div>`
+    body.innerHTML = `<div class="empty" style="color:#791F1F;padding:12px 0;">${esc(e.message || _adm('err.loadGeneric'))}</div>`
   }
 }
 
@@ -1189,7 +1218,7 @@ window.closeAdminCustomerPassesModal = () => {
 
 window.adminCreateUserPassManual = async () => {
   if (!_mupEditUserId) {
-    window.showToast?.('Chybí zákazník pro připsání permanentky. Zavřete okno a otevřete ho znovu.', 'error')
+    window.showToast?.(_adm('customers.grantMissingUser'), 'error')
     return
   }
   const errEl = document.getElementById('mup-add-error')
@@ -1199,12 +1228,12 @@ window.adminCreateUserPassManual = async () => {
   const passId = select?.value
   const tpl = _mupAvailablePasses.find(p => String(p.id) === String(passId))
   if (!tpl) {
-    if (errEl) { errEl.textContent = 'Vyberte typ permanentky.'; errEl.style.display = 'block' }
+    if (errEl) { errEl.textContent = _adm('customers.grantPickType'); errEl.style.display = 'block' }
     return
   }
 
   const btn = document.getElementById('modal-admin-user-passes')?.querySelector('[data-mup-add]')
-  if (btn) { btn.disabled = true; btn.textContent = 'Připisuji…' }
+  if (btn) { btn.disabled = true; btn.textContent = _adm('customers.grantSaving') }
 
   try {
     const weeks = Math.max(1, Number(tpl.validity_weeks) || 12)
@@ -1223,7 +1252,7 @@ window.adminCreateUserPassManual = async () => {
     })
     if (error) throw error
 
-    window.showToast?.('Permanentka byla zákazníkovi připsána.', 'ok')
+    window.showToast?.(_adm('customers.grantOk'), 'ok')
     await _mupReloadBody()
     void renderAdminZakaznici()
   } catch (err) {
@@ -1234,15 +1263,15 @@ window.adminCreateUserPassManual = async () => {
       || msg.includes('permission denied')
       || msg.includes('new row violates row-level security policy')
     const uiMsg = looksLikeMissingRls
-      ? 'V databázi chybí admin INSERT politika pro user_passes. Spusťte SQL migraci z FINAL_supabase_sql.sql.'
-      : (err.message || 'Připsání se nepodařilo.')
+      ? _adm('customers.grantInsertPolicy')
+      : (err.message || _adm('customers.grantFail'))
     if (errEl) {
       errEl.textContent = uiMsg
       errEl.style.display = 'block'
     }
-    window.showToast?.('Chyba: ' + uiMsg, 'error')
+    window.showToast?.(_adm('toast.errorWithMsg', { msg: uiMsg }), 'error')
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Připsat' }
+    if (btn) { btn.disabled = false; btn.textContent = _adm('btn.assignPass') }
   }
 }
 
@@ -1262,31 +1291,31 @@ window.adminSaveUserPassFromCard = async saveBtn => {
   const expiresLocal = get('expires_at')?.value
   const expiresAt = _datetimeLocalInputToIso(expiresLocal)
   if (!entriesTotal || entriesTotal < 1) {
-    if (errEl) { errEl.textContent = 'Celkový počet vstupů musí být alespoň 1.'; errEl.style.display = 'block' }
+    if (errEl) { errEl.textContent = _adm('customers.editErrEntriesMin'); errEl.style.display = 'block' }
     return
   }
   if (Number.isNaN(entriesRemaining) || entriesRemaining < 0) {
-    if (errEl) { errEl.textContent = 'Zbývající vstupy musí být 0 nebo více.'; errEl.style.display = 'block' }
+    if (errEl) { errEl.textContent = _adm('customers.editErrRemaining'); errEl.style.display = 'block' }
     return
   }
   if (entriesRemaining > entriesTotal) {
-    if (errEl) { errEl.textContent = 'Zbývá nemůže být víc než celkem vstupů.'; errEl.style.display = 'block' }
+    if (errEl) { errEl.textContent = _adm('customers.editErrRemainingCap'); errEl.style.display = 'block' }
     return
   }
   if (!['active', 'expired', 'depleted'].includes(status)) {
-    if (errEl) { errEl.textContent = 'Neplatný stav.'; errEl.style.display = 'block' }
+    if (errEl) { errEl.textContent = _adm('customers.editErrState'); errEl.style.display = 'block' }
     return
   }
   if (!expiresAt) {
-    if (errEl) { errEl.textContent = 'Vyplňte platnost do (datum a čas).'; errEl.style.display = 'block' }
+    if (errEl) { errEl.textContent = _adm('customers.editErrValidUntil'); errEl.style.display = 'block' }
     return
   }
   if (Number.isNaN(pricePaid) || pricePaid < 0) {
-    if (errEl) { errEl.textContent = 'Zadejte platnou cenu.'; errEl.style.display = 'block' }
+    if (errEl) { errEl.textContent = _adm('customers.editErrPrice'); errEl.style.display = 'block' }
     return
   }
   const btn = card.querySelector('[data-mup-save]')
-  if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
+  if (btn) { btn.disabled = true; btn.textContent = _adm('customers.editSaving') }
   try {
     const { data, error } = await sb.from('user_passes').update({
       entries_total: entriesTotal,
@@ -1297,11 +1326,9 @@ window.adminSaveUserPassFromCard = async saveBtn => {
     }).eq('id', userPassId).select('id')
     if (error) throw error
     if (!data?.length) {
-      throw new Error(
-        'Žádný řádek nebyl uložen — zkontrolujte roli administrátora v databázi (users.role) nebo RLS politiku user_passes.',
-      )
+      throw new Error(_adm('customers.editNoRow'))
     }
-    window.showToast?.('Permanentka byla uložena.', 'ok')
+    window.showToast?.(_adm('customers.editOk'), 'ok')
     await _mupReloadBody()
     void renderAdminZakaznici()
   } catch (err) {
@@ -1312,38 +1339,36 @@ window.adminSaveUserPassFromCard = async saveBtn => {
       || msg.includes('permission denied')
       || msg.includes('new row violates row-level security policy')
     const uiMsg = looksLikeMissingRls
-      ? 'V databázi chybí admin UPDATE politika pro user_passes. Spusťte SQL migraci z FINAL_supabase_sql.sql.'
-      : (err.message || 'Uložení se nepodařilo.')
+      ? _adm('customers.editUpdatePolicy')
+      : (err.message || _adm('customers.editFail'))
     if (errEl) {
       errEl.textContent = uiMsg
       errEl.style.display = 'block'
     }
-    window.showToast?.('Chyba: ' + uiMsg, 'error')
+    window.showToast?.(_adm('toast.errorWithMsg', { msg: uiMsg }), 'error')
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Uložit změny' }
+    if (btn) { btn.disabled = false; btn.textContent = _adm('btn.save') }
   }
 }
 
 window.adminDeleteCustomerUserPass = async (triggerEl) => {
   const userPassId = triggerEl?.getAttribute?.('data-mup-delete')
   if (!userPassId || !_mupEditUserId) return
-  if (!confirm('Opravdu smazat tuto permanentku zákazníka? Související rezervace zůstanou, ale ztratí vazbu na permanentku. Akce je nevratná.')) return
+  if (!confirm(_adm('customers.confirmDeleteUserPass'))) return
   const card = triggerEl.closest?.('[data-mup-card]')
   const errEl = card?.querySelector('[data-mup-row-err]')
   if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
   const delBtn = card?.querySelector('[data-mup-delete]')
   const saveBtn = card?.querySelector('[data-mup-save]')
-  if (delBtn) { delBtn.disabled = true; delBtn.textContent = 'Mažu…' }
+  if (delBtn) { delBtn.disabled = true; delBtn.textContent = _adm('customers.deleteSaving') }
   if (saveBtn) saveBtn.disabled = true
   try {
     const { data, error } = await sb.from('user_passes').delete().eq('id', userPassId).select('id')
     if (error) throw error
     if (!data?.length) {
-      throw new Error(
-        'Permanentku se nepodařilo smazat — zkontrolujte oprávnění administrátora nebo RLS politiku user_passes.',
-      )
+      throw new Error(_adm('customers.deleteFailPolicy'))
     }
-    window.showToast?.('Permanentka byla smazána.', 'ok')
+    window.showToast?.(_adm('customers.deleteOk'), 'ok')
     await _mupReloadBody()
     void renderAdminZakaznici()
   } catch (err) {
@@ -1354,15 +1379,15 @@ window.adminDeleteCustomerUserPass = async (triggerEl) => {
       || msg.includes('permission denied')
       || msg.includes('new row violates row-level security policy')
     const uiMsg = looksLikeMissingRls
-      ? 'V databázi chybí admin DELETE politika pro user_passes. Spusťte SQL migraci z FINAL_supabase_sql.sql.'
-      : (err.message || 'Smazání se nepodařilo.')
+      ? _adm('customers.deletePolicy')
+      : (err.message || _adm('customers.deleteFail'))
     if (errEl) {
       errEl.textContent = uiMsg
       errEl.style.display = 'block'
     }
-    window.showToast?.('Chyba: ' + uiMsg, 'error')
+    window.showToast?.(_adm('toast.errorWithMsg', { msg: uiMsg }), 'error')
   } finally {
-    if (delBtn) { delBtn.disabled = false; delBtn.textContent = 'Smazat' }
+    if (delBtn) { delBtn.disabled = false; delBtn.textContent = _adm('btn.delete') }
     if (saveBtn) saveBtn.disabled = false
   }
 }
@@ -1374,9 +1399,10 @@ export async function renderAdminPlatby() {
   const el = document.getElementById('admin-platby-content')
   if (!el) return
   const prevHtml = el.innerHTML
-  const stable = _adminHadStableContent(prevHtml, 'Načítám platby')
+  const loadNeedle = _adm('loading.payments')
+  const stable = _adminHadStableContent(prevHtml, loadNeedle)
   if (stable) console.log('[Debug] Admin platby: obnovuji na pozadí')
-  else el.innerHTML = `<div class="empty" style="padding:40px;">Načítám platby…</div>`
+  else el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0)
   try {
     await adminRace((async () => {
@@ -1465,24 +1491,24 @@ export async function renderAdminPlatby() {
     const monthNetRev = monthGrossRev - monthRefunds
     const all = [
       ...(recentPasses ?? []).map(p=>({type:'pass',id:p.id,amount:p.price_paid,date:p.created_at,status:p.status,
-        userName:p.user?.name||p.user?.email||'—',description:loc(p.pass?.name)||'Permanentka',
+        userName:p.user?.name||p.user?.email||_adm('misc.dash'),description:loc(p.pass?.name)||_adm('misc.pass'),
         refundStatus:p.refund_status ?? 'not_required', refundNote:p.refund_note ?? '', refundedAt:p.refunded_at ?? null,
         refundAmount:p.refund_amount ?? null})),
       ...(recentSingles ?? []).map(b=>({type:'single',id:b.id,amount:b.price_paid,date:b.created_at,status:b.status,
-        userName:b.user?.name||b.user?.email||'—',description:loc(b.lesson?.course?.title)||'Lekce',
+        userName:b.user?.name||b.user?.email||_adm('misc.dash'),description:loc(b.lesson?.course?.title)||_adm('misc.lessonFallback'),
         refundStatus:b.refund_status ?? null, refundNote:b.refund_note ?? '', refundedAt:b.refunded_at ?? null,
         refundAmount:b.refund_amount ?? null})),
     ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,60)
     el.innerHTML = `
-      <div class="page-title" style="margin-bottom:16px;">Platby</div>
+      <div class="page-title" style="margin-bottom:16px;">${esc(_adm('platby.pageTitle'))}</div>
       <div class="admin-stat-grid">
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthGrossRev)}</div><div class="admin-stat-label">Hrubý příjem</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRefunds)}</div><div class="admin-stat-label">Refundace</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthNetRev)}</div><div class="admin-stat-label">Čistý příjem</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthGrossRev)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRefunds)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthNetRev)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statNet'))}</div></div>
       </div>
-      <div class="admin-section-title">Všechny platby</div>
+      <div class="admin-section-title">${esc(_adm('platby.sectionAll'))}</div>
       ${all.length ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${all.map(_platbaRow).join('')}</div>`
-        : `<div class="empty">Žádné platby.</div>`}
+        : `<div class="empty">${esc(_adm('platby.empty'))}</div>`}
     `
     })(), 'admin-platby')
   } catch (err) {
@@ -1492,7 +1518,7 @@ export async function renderAdminPlatby() {
       return
     }
     console.error('[Admin] renderAdminPlatby:', err)
-    el.innerHTML = `<div class="empty">Chyba při načítání plateb.</div>`
+    el.innerHTML = `<div class="empty">${esc(_adm('err.loadPayments'))}</div>`
   }
 }
 
@@ -1514,21 +1540,23 @@ function _platbaRow(p) {
       : paidAmount
     return Number.isFinite(base) ? String(base).replace(/\.00$/, '') : ''
   })()
+  const statusPreset = ['active','expired','depleted','booked','cancelled','attended','missed']
+  const stKey = statusPreset.includes(String(p.status)) ? String(p.status) : null
   const statusMap = {
-    active:{l:'Aktivní',bg:'#E1F5EE',c:'#085041'}, expired:{l:'Vypršela',bg:'#F3F4F6',c:'#6b6b6b'},
-    depleted:{l:'Vyčerpána',bg:'#F3F4F6',c:'#6b6b6b'}, booked:{l:'Uhrazeno',bg:'#E1F5EE',c:'#085041'},
-    cancelled:{l:'Stornováno',bg:'#FCEBEB',c:'#791F1F'}, attended:{l:'Absolvováno',bg:'#E1F5EE',c:'#085041'},
-    missed:{l:'Nedorazil',bg:'#FFF4E0',c:'#8B5C00'},
+    active:{l:_adm('paymentRowStatus.active'),bg:'#E1F5EE',c:'#085041'}, expired:{l:_adm('paymentRowStatus.expired'),bg:'#F3F4F6',c:'#6b6b6b'},
+    depleted:{l:_adm('paymentRowStatus.depleted'),bg:'#F3F4F6',c:'#6b6b6b'}, booked:{l:_adm('paymentRowStatus.booked'),bg:'#E1F5EE',c:'#085041'},
+    cancelled:{l:_adm('paymentRowStatus.cancelled'),bg:'#FCEBEB',c:'#791F1F'}, attended:{l:_adm('paymentRowStatus.attended'),bg:'#E1F5EE',c:'#085041'},
+    missed:{l:_adm('paymentRowStatus.missed'),bg:'#FFF4E0',c:'#8B5C00'},
   }
-  const st = statusMap[p.status] ?? {l:p.status,bg:'#F3F4F6',c:'#6b6b6b'}
+  const st = stKey ? statusMap[stKey] : { l: String(p.status ?? ''), bg: '#F3F4F6', c: '#6b6b6b' }
   const refundBadge = refundPending
-    ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:#FCEBEB;color:#791F1F;">Refundace čeká</span>`
+    ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:#FCEBEB;color:#791F1F;">${esc(_adm('refund.pendingBadge'))}</span>`
     : refundCompleted
-      ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#085041;">Refundace dokončena</span>`
+      ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#085041;">${esc(_adm('refund.doneBadge'))}</span>`
       : ''
   const refundMeta = refundCompleted
     ? `<div style="font-size:11px;color:#085041;margin-top:6px;">
-        Refundováno ${fmtPrice(refundApplied || paidAmount)}
+        ${_adm('platby.refundedLine', { amount: fmtPrice(refundApplied || paidAmount) })}
         ${p.refundedAt ? ` · ${fmtDateTime(p.refundedAt)}` : ''}
         ${p.refundNote ? ` · ${esc(p.refundNote)}` : ''}
       </div>`
@@ -1543,22 +1571,22 @@ function _platbaRow(p) {
           max="${esc(String(paidAmount))}"
           step="0.01"
           value="${esc(draftRefundAmount)}"
-          placeholder="Částka refundace (Kč)"
+          placeholder="${esc(_adm('platby.refundAmountPh'))}"
           style="width:160px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:12px;box-sizing:border-box;"
         />
         <input
           id="${esc(noteId)}"
           type="text"
           value="${esc(p.refundNote || '')}"
-          placeholder="Poznámka k refundaci (volitelné)"
+          placeholder="${esc(_adm('platby.refundNotePh'))}"
           style="flex:1;min-width:240px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:12px;box-sizing:border-box;"
         />
         ${refundCanStart
           ? `<button type="button" class="btn-small" onclick="window.adminStartPaymentRefund?.('${esc(p.type)}', '${esc(p.id)}', this)">
-              Označit refundaci
+              ${esc(_adm('refund.btnMarkRefund'))}
             </button>`
           : `<button type="button" class="btn-small primary" onclick="window.adminMarkPaymentRefunded?.('${esc(p.type)}', '${esc(p.id)}', this)">
-              Označit jako refundováno
+              ${esc(_adm('refund.btnMarkRefunded'))}
             </button>`}
       </div>`
     : ''
@@ -1566,7 +1594,7 @@ function _platbaRow(p) {
     <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
-          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};">${isPass?'Permanentka':'Vstup'}</span>
+          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};">${esc(isPass ? _adm('misc.pass') : _adm('misc.singleEntry'))}</span>
           <span style="font-size:12px;font-weight:500;">${esc(p.description)}</span>
         </div>
         <div style="font-size:11px;color:#6b6b6b;">${esc(p.userName)} · ${fmtDateTime(p.date)}</div>
@@ -1574,7 +1602,7 @@ function _platbaRow(p) {
       <div style="text-align:right;flex-shrink:0;">
         <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${fmtPrice(p.amount)}</div>
         <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
-          <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.c};">${st.l}</span>
+          <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.c};">${esc(st.l)}</span>
           ${refundBadge}
         </div>
         ${refundMeta}
@@ -1591,20 +1619,20 @@ async function _updatePaymentRefundState(type, paymentId, nextStatus, btnEl = nu
   const refundAmount = Number(amountInput?.value)
   const maxRefund = Number(amountInput?.getAttribute('max'))
   if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
-    window.showToast?.('Zadejte platnou částku refundace.', 'error')
+    window.showToast?.(_adm('refund.invalidAmount'), 'error')
     return
   }
   if (Number.isFinite(maxRefund) && refundAmount > maxRefund) {
-    window.showToast?.('Refundace nemůže být vyšší než přijatá platba.', 'error')
+    window.showToast?.(_adm('refund.exceedsPaid'), 'error')
     return
   }
   const confirmMsg = nextStatus === 'completed'
-    ? 'Potvrzujete, že refundace byla skutečně odeslána zákazníkovi?'
-    : 'Označit tuto platbu jako čekající refundaci?'
+    ? _adm('refund.confirmCompleted')
+    : _adm('refund.confirmPending')
   if (!confirm(confirmMsg)) return
   if (btnEl) {
     btnEl.disabled = true
-    btnEl.textContent = nextStatus === 'completed' ? 'Ukládám…' : 'Označuji…'
+    btnEl.textContent = nextStatus === 'completed' ? _adm('refund.saving') : _adm('refund.marking')
   }
   try {
     const table = type === 'pass' ? 'user_passes' : 'bookings'
@@ -1621,7 +1649,7 @@ async function _updatePaymentRefundState(type, paymentId, nextStatus, btnEl = nu
     if (error) {
       if (_looksLikeMissingRefundColumns(error)) {
         window.showToast?.(
-          'V databázi chybí refund sloupce. Spusťte migraci z FINAL_supabase_sql.sql.',
+          _adm('refund.migrationColsToast'),
           'error',
         )
         return
@@ -1630,21 +1658,21 @@ async function _updatePaymentRefundState(type, paymentId, nextStatus, btnEl = nu
     }
     window.showToast?.(
       nextStatus === 'completed'
-        ? 'Refundace byla označena jako dokončená.'
-        : 'Platba byla označena jako čekající refundace.',
+        ? _adm('refund.toastDone')
+        : _adm('refund.toastPending'),
       'ok',
     )
     await renderAdminPlatby()
     void renderAdminDashboard()
   } catch (err) {
     console.error('[Admin] _updatePaymentRefundState:', err)
-    window.showToast?.('Nepodařilo se uložit refundaci: ' + (err.message ?? err), 'error')
+    window.showToast?.(_adm('toast.refundSaveFail', { msg: err.message ?? err }), 'error')
   } finally {
     if (btnEl) {
       btnEl.disabled = false
       btnEl.textContent = nextStatus === 'completed'
-        ? 'Označit jako refundováno'
-        : 'Označit refundaci'
+        ? _adm('refund.btnMarkRefunded')
+        : _adm('refund.btnMarkRefund')
     }
   }
 }
@@ -1662,9 +1690,10 @@ export async function renderAdminPermanentky() {
   const el = document.getElementById('admin-permanentky-content')
   if (!el) return
   const prevHtml = el.innerHTML
-  const stable = _adminHadStableContent(prevHtml, 'Načítám permanentky')
+  const loadNeedle = _adm('loading.passes')
+  const stable = _adminHadStableContent(prevHtml, loadNeedle)
   if (stable) console.log('[Debug] Admin permanentky: obnovuji na pozadí')
-  else el.innerHTML = `<div class="empty" style="padding:40px;">Načítám permanentky…</div>`
+  else el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   try {
     await adminRace((async () => {
     const basePassesQuery = sb.from('passes')
@@ -1680,15 +1709,15 @@ export async function renderAdminPermanentky() {
       courseMap = Object.fromEntries((courses ?? []).map(c => [c.id, c]))
     }
 
-    const pageTitle = _isStaffLektor() ? 'Moje permanentky' : 'Správa permanentek'
+    const pageTitle = _isStaffLektor() ? _adm('passesPage.pageTitleMine') : _adm('passesPage.pageTitleManage')
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div class="page-title">${pageTitle}</div>
-        <button class="btn-small" onclick="window.openPassModal?.()">+ Nová permanentka</button>
+        <div class="page-title">${esc(pageTitle)}</div>
+        <button class="btn-small" onclick="window.openPassModal?.()">${esc(_adm('passesPage.btnNew'))}</button>
       </div>
       ${passes?.length
         ? passes.map(p => _passCard(p, courseMap)).join('')
-        : `<div class="empty">Žádné permanentky. Vytvořte první kliknutím na tlačítko výše.</div>`}
+        : `<div class="empty">${esc(_adm('passesPage.empty'))}</div>`}
     `
     })(), 'admin-permanentky')
   } catch (err) {
@@ -1698,12 +1727,12 @@ export async function renderAdminPermanentky() {
       return
     }
     console.error('[Admin] renderAdminPermanentky:', err)
-    el.innerHTML = `<div class="empty">Chyba při načítání permanentek.</div>`
+    el.innerHTML = `<div class="empty">${esc(_adm('err.loadPasses'))}</div>`
   }
 }
 
 function _passCard(pass, courseMap) {
-  const name = loc(pass.name) || 'Permanentka'
+  const name = loc(pass.name) || _adm('misc.pass')
   const tint = _passCardSurfaceStyle(pass.color_code)
   const ph = _passHexOrDefault(pass.color_code)
   const courseNames = (pass.allowed_course_ids ?? []).map(id => loc(courseMap[id]?.title)).filter(Boolean)
@@ -1713,22 +1742,22 @@ function _passCard(pass, courseMap) {
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(name)}</div>
           <div style="font-size:11px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
-            <span>${pass.entries_total} vstupů</span>
-            <span>${fmtPrice(pass.price / pass.entries_total)} / vstup</span>
-            <span>Platnost: ${pass.validity_weeks} týdnů</span>
+            <span>${_adm('passesPage.cardEntries', { n: pass.entries_total })}</span>
+            <span>${_adm('passesPage.cardPerEntryPrice', { price: fmtPrice(pass.price / pass.entries_total) })}</span>
+            <span>${_adm('passesPage.cardWeeksLine', { weeks: pass.validity_weeks })}</span>
           </div>
           ${courseNames.length ? `
             <div style="display:flex;gap:5px;flex-wrap:wrap;">
               ${courseNames.map(n => `
                 <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;
                   background:${ph}22;color:${ph};">${esc(n)}</span>`).join('')}
-            </div>` : `<div style="font-size:11px;color:#9b9b9b;">Není přiřazena k žádnému kurzu</div>`}
+            </div>` : `<div style="font-size:11px;color:#9b9b9b;">${esc(_adm('passesPage.notLinked'))}</div>`}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:18px;font-weight:700;color:${ph};margin-bottom:10px;">${fmtPrice(pass.price)}</div>
           <div style="display:flex;gap:8px;">
-            <button class="btn-small" onclick="window.openPassModal?.('${esc(pass.id)}')">Upravit</button>
-            <button class="btn-small danger" onclick="window.adminDeletePass?.('${esc(pass.id)}')">Smazat</button>
+            <button class="btn-small" onclick="window.openPassModal?.('${esc(pass.id)}')">${esc(_adm('btn.edit'))}</button>
+            <button class="btn-small danger" onclick="window.adminDeletePass?.('${esc(pass.id)}')">${esc(_adm('btn.delete'))}</button>
           </div>
         </div>
       </div>
@@ -1752,7 +1781,7 @@ function buildPassModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:480px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:18px;font-weight:700;" id="mp-title">Nová permanentka</div>
+          <div style="font-size:18px;font-weight:700;" id="mp-title">${esc(_adm('passesPage.modalTitleNew'))}</div>
         </div>
         <div style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 140px);">
           <input type="hidden" id="mp-id" />
@@ -1791,8 +1820,8 @@ function buildPassModal() {
             border-radius:8px;padding:10px 12px;"></div>
         </div>
         <div style="display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);">
-          <button class="btn-wide" onclick="window.closePassModal?.()" style="flex:1;">Zrušit</button>
-          <button class="btn-wide primary" id="mp-save-btn" onclick="window.savePass?.()" style="flex:2;">Uložit permanentku</button>
+          <button class="btn-wide" onclick="window.closePassModal?.()" style="flex:1;">${esc(t(_adminLocale(), 'common.cancel'))}</button>
+          <button class="btn-wide primary" id="mp-save-btn" onclick="window.savePass?.()" style="flex:2;">${esc(_adm('btn.savePass'))}</button>
         </div>
       </div>
     </div>`)
@@ -1803,13 +1832,13 @@ window.openPassModal = async (passId = null) => {
   const errEl = document.getElementById('mp-error')
   if (errEl) errEl.style.display = 'none'
   document.getElementById('mp-id').value        = passId ?? ''
-  document.getElementById('mp-title').textContent = passId ? 'Upravit permanentku' : 'Nová permanentka'
-  document.getElementById('mp-save-btn').textContent = passId ? 'Uložit změny' : 'Uložit permanentku'
+  document.getElementById('mp-title').textContent = passId ? _adm('passesPage.modalTitleEdit') : _adm('passesPage.modalTitleNew')
+  document.getElementById('mp-save-btn').textContent = passId ? _adm('btn.save') : _adm('btn.savePass')
   ;['mp-name','mp-entries','mp-price'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
   document.getElementById('mp-weeks').value = '12'
 
   const listEl = document.getElementById('mp-courses-list')
-  listEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">Načítám kurzy…</div>`
+  listEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.modalCourses'))}</div>`
 
   // Lektor přidává permanentku jen ke svým kurzům (RLS by stejně cizí update zablokovala).
   const coursesQuery = _scopeOwnerQuery(
@@ -1836,7 +1865,7 @@ window.openPassModal = async (passId = null) => {
   const existingIds = pass?.allowed_course_ids ?? []
 
   if (!courses?.length) {
-    listEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;padding:8px 0;">Žádné kurzy nenalezeny. Nejprve vytvořte kurzy.</div>`
+    listEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;padding:8px 0;">${esc(_adm('passesPage.modalCoursesEmpty'))}</div>`
   } else {
     listEl.innerHTML = courses.map(c => {
       const color = c.color_code ?? '#2854B9'
@@ -1884,12 +1913,12 @@ window.savePass = async () => {
   const weeks    = Number(document.getElementById('mp-weeks')?.value)
   const courseIds = [...document.querySelectorAll('#mp-courses-list input[type=checkbox]:checked')].map(cb => cb.value)
 
-  if (!name)              { showErr(errEl, 'Vyplňte název permanentky.'); return }
-  if (!entries || entries < 1) { showErr(errEl, 'Počet vstupů musí být alespoň 1.'); return }
-  if (isNaN(price) || price < 0) { showErr(errEl, 'Zadejte platnou cenu (0 nebo více).'); return }
-  if (!weeks || weeks < 1) { showErr(errEl, 'Platnost musí být alespoň 1 týden.'); return }
+  if (!name)              { showErr(errEl, _adm('passesPage.errFillName')); return }
+  if (!entries || entries < 1) { showErr(errEl, _adm('passesPage.errEntriesMin')); return }
+  if (isNaN(price) || price < 0) { showErr(errEl, _adm('passesPage.errPriceInvalid')); return }
+  if (!weeks || weeks < 1) { showErr(errEl, _adm('passesPage.errWeeksMin')); return }
 
-  if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
+  if (btn) { btn.disabled = true; btn.textContent = _adm('customers.editSaving') }
 
   try {
     const color_code = PASS_PALETTE.includes(_mpSelectedColor) ? _mpSelectedColor : PASS_PALETTE[0]
@@ -1914,22 +1943,22 @@ window.savePass = async () => {
     renderAdminPermanentky()
   } catch (err) {
     console.error('[Admin] savePass:', err)
-    showErr(errEl, 'Chyba: ' + (err.message ?? 'Zkuste to znovu.'))
+    showErr(errEl, _adm('toast.errorWithMsg', { msg: err.message ?? _adm('customers.editFail') }))
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = passId ? 'Uložit změny' : 'Uložit permanentku' }
+    if (btn) { btn.disabled = false; btn.textContent = passId ? _adm('btn.save') : _adm('btn.savePass') }
   }
 }
 
 window.adminDeletePass = async (passId) => {
-  if (!passId || !confirm('Opravdu smazat tuto permanentku? Akce je nevratná.')) return
+  if (!passId || !confirm(_adm('passesPage.confirmDeleteType'))) return
   try {
     const { error } = await sb.from('passes').delete().eq('id', passId)
     if (error) throw error
-    window.showToast?.('Permanentka byla smazána.', 'ok')
+    window.showToast?.(_adm('passesPage.deleteOk'), 'ok')
     renderAdminPermanentky()
   } catch (err) {
     console.error('[Admin] adminDeletePass:', err)
-    window.showToast?.('Chyba: ' + (err.message ?? err), 'error')
+    window.showToast?.(_adm('toast.errorWithMsg', { msg: err.message ?? err }), 'error')
   }
 }
 
@@ -2027,8 +2056,8 @@ function buildWorkshopModal() {
             border-radius:8px;padding:10px 12px;"></div>
         </div>
         <div style="display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);">
-          <button class="btn-wide" onclick="window.closeWorkshopModal?.()" style="flex:1;">Zrušit</button>
-          <button class="btn-wide primary" id="mw-save-btn" onclick="window.saveNewWorkshop?.()" style="flex:2;">Uložit workshop</button>
+          <button class="btn-wide" onclick="window.closeWorkshopModal?.()" style="flex:1;">${esc(t(_adminLocale(), 'common.cancel'))}</button>
+          <button class="btn-wide primary" id="mw-save-btn" onclick="window.saveNewWorkshop?.()" style="flex:2;">${esc(_adm('workshop.saveNew'))}</button>
         </div>
       </div>
     </div>`)
@@ -2051,8 +2080,8 @@ window.adminNewWorkshop = async () => {
   _mwRenderPhotos()
   document.getElementById('mw-id').value       = ''
   document.getElementById('mw-lesson-id').value = ''
-  document.getElementById('mw-title').textContent    = 'Nový workshop'
-  document.getElementById('mw-save-btn').textContent = 'Uložit workshop'
+  document.getElementById('mw-title').textContent    = _adm('workshop.titleNew')
+  document.getElementById('mw-save-btn').textContent = _adm('workshop.saveNew')
   const errEl = document.getElementById('mw-error')
   if (errEl) errEl.style.display = 'none'
   ;['mw-name','mw-desc','mw-price','mw-date'].forEach(id => { const e = document.getElementById(id); if(e) e.value = '' })
@@ -2072,8 +2101,8 @@ window.adminEditWorkshop = async (courseId) => {
   _mwExistingImages = []
   _mwNewFiles = []
   document.getElementById('mw-id').value             = courseId
-  document.getElementById('mw-title').textContent    = 'Upravit workshop'
-  document.getElementById('mw-save-btn').textContent = 'Uložit změny'
+  document.getElementById('mw-title').textContent    = _adm('workshop.titleEdit')
+  document.getElementById('mw-save-btn').textContent = _adm('btn.save')
 
   const [{ data: course }, { data: lessons }] = await Promise.all([
     sb.from('courses').select('*').eq('id', courseId).single(),
@@ -2125,7 +2154,7 @@ window.saveNewWorkshop = async () => {
   const lessonId = document.getElementById('mw-lesson-id')?.value || null
   const name     = document.getElementById('mw-name')?.value.trim()
   const desc     = document.getElementById('mw-desc')?.value.trim()
-  if (!_getQuillCtor()) { showErr(errEl, 'Editor není načtený. Obnovte stránku.'); return }
+  if (!_getQuillCtor()) { showErr(errEl, _adm('workshop.editorNotLoaded')); return }
   const descLong = _getMwLongHtml()
   const price    = Number(document.getElementById('mw-price')?.value)
   const capacity = Number(document.getElementById('mw-capacity')?.value)
@@ -2134,17 +2163,17 @@ window.saveNewWorkshop = async () => {
   const timeFrom = document.getElementById('mw-time-from')?.value
   const timeTo   = document.getElementById('mw-time-to')?.value
 
-  if (!name)                      { showErr(errEl, 'Vyplňte název workshopu.'); return }
-  if (isNaN(price) || price < 0)  { showErr(errEl, 'Zadejte platnou cenu.'); return }
-  if (!capacity || capacity < 1)  { showErr(errEl, 'Zadejte kapacitu (min. 1 místo).'); return }
+  if (!name)                      { showErr(errEl, _adm('workshop.errName')); return }
+  if (isNaN(price) || price < 0)  { showErr(errEl, _adm('workshop.errPrice')); return }
+  if (!capacity || capacity < 1)  { showErr(errEl, _adm('workshop.errCapacity')); return }
   if (!minPart || minPart < 1 || minPart > capacity) {
-    showErr(errEl, 'Minimální počet účastníků musí být 1–kapacita.'); return
+    showErr(errEl, _adm('workshop.errMinParticipants')); return
   }
-  if (!date)                      { showErr(errEl, 'Vyberte datum workshopu.'); return }
-  if (!timeFrom || !timeTo)       { showErr(errEl, 'Zadejte čas od a čas do.'); return }
-  if (timeFrom >= timeTo)         { showErr(errEl, 'Čas do musí být po čase od.'); return }
+  if (!date)                      { showErr(errEl, _adm('workshop.errPickDate')); return }
+  if (!timeFrom || !timeTo)       { showErr(errEl, _adm('workshop.errTimeRange')); return }
+  if (timeFrom >= timeTo)         { showErr(errEl, _adm('workshop.errTimeOrder')); return }
 
-  if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
+  if (btn) { btn.disabled = true; btn.textContent = _adm('customers.editSaving') }
 
   try {
     const [year, month, day] = date.split('-').map(Number)
@@ -2214,7 +2243,7 @@ window.saveNewWorkshop = async () => {
     console.error('[Admin] saveNewWorkshop:', err)
     showErr(errEl, 'Chyba: ' + (err.message ?? 'Zkuste to znovu.'))
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = courseId ? 'Uložit změny' : 'Uložit workshop' }
+    if (btn) { btn.disabled = false; btn.textContent = courseId ? _adm('btn.save') : _adm('workshop.saveNew') }
   }
 }
 
@@ -2247,8 +2276,8 @@ window._ncHandlePhotos = (input) => {
   if (remaining <= 0) { input.value = ''; return }
   const valid = []
   for (const f of [...input.files]) {
-    if (!f.type.startsWith('image/')) { alert(`"${f.name}" není obrázek.`); continue }
-    if (f.size > MAX_PHOTO_UPLOAD_BYTES) { alert(`"${f.name}" je příliš velký (max. 10 MB).`); continue }
+    if (!f.type.startsWith('image/')) { alert(_adm('alerts.notImage', { name: f.name })); continue }
+    if (f.size > MAX_PHOTO_UPLOAD_BYTES) { alert(_adm('alerts.tooLarge', { name: f.name })); continue }
     valid.push(f)
   }
   _ncNewFiles = [..._ncNewFiles, ...valid].slice(0, _ncNewFiles.length + remaining)
@@ -2279,8 +2308,8 @@ window._mwHandlePhotos = (input) => {
   if (remaining <= 0) { input.value = ''; return }
   const valid = []
   for (const f of [...input.files]) {
-    if (!f.type.startsWith('image/')) { alert(`"${f.name}" není obrázek.`); continue }
-    if (f.size > MAX_PHOTO_UPLOAD_BYTES) { alert(`"${f.name}" je příliš velký (max. 10 MB).`); continue }
+    if (!f.type.startsWith('image/')) { alert(_adm('alerts.notImage', { name: f.name })); continue }
+    if (f.size > MAX_PHOTO_UPLOAD_BYTES) { alert(_adm('alerts.tooLarge', { name: f.name })); continue }
     valid.push(f)
   }
   _mwNewFiles = [..._mwNewFiles, ...valid].slice(0, _mwNewFiles.length + remaining)
@@ -2365,7 +2394,7 @@ function buildCourseModal() {
         border:${i===0?'3px solid #fff;box-shadow:0 0 0 2px '+c:'3px solid transparent'};transition:.15s;">
     </button>`).join('')
 
-  const dayBtns = DAYS_CS.map((d, i) => `
+  const dayBtns = _adminWeekdayShortLabels().map((d, i) => `
     <button type="button" data-day="${i}" onclick="window._ncToggleDay?.(${i},this)"
       style="flex:1;padding:9px 2px;border-radius:var(--btn-radius);border:1px solid var(--border);
         background:transparent;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s;">
@@ -2474,16 +2503,16 @@ function buildCourseModal() {
 
           <!-- Povolené permanentky -->
           <div style="margin-bottom:12px;">
-            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px;">Povolené permanentky</label>
-            <div id="mc-passes-list"><div style="font-size:12px;color:#9b9b9b;">Načítám permanentky…</div></div>
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px;">${esc(_adm('passesPage.allowedPassesLabel'))}</label>
+            <div id="mc-passes-list"><div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.modalPasses'))}</div></div>
           </div>
 
           <div id="mc-error" style="display:none;font-size:12px;color:#791F1F;background:#FCEBEB;
             border-radius:8px;padding:10px 12px;"></div>
         </div>
         <div style="display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);">
-          <button class="btn-wide" onclick="window.closeNewCourseModal?.()" style="flex:1;">Zrušit</button>
-          <button class="btn-wide primary" id="mc-save-btn" onclick="window.saveNewCourse?.()" style="flex:2;">Uložit kurz</button>
+          <button class="btn-wide" onclick="window.closeNewCourseModal?.()" style="flex:1;">${esc(t(_adminLocale(), 'common.cancel'))}</button>
+          <button class="btn-wide primary" id="mc-save-btn" onclick="window.saveNewCourse?.()" style="flex:2;">${esc(_adm('btn.saveCourse'))}</button>
         </div>
       </div>
     </div>`)
@@ -2529,8 +2558,8 @@ async function _openCourseModal(courseId = null) {
 
   const isEdit = !!courseId
   document.getElementById('mc-id').value          = courseId ?? ''
-  document.getElementById('mc-title').textContent  = isEdit ? 'Upravit kurz' : 'Nový kurz'
-  document.getElementById('mc-save-btn').textContent = isEdit ? 'Uložit změny' : 'Uložit kurz'
+  document.getElementById('mc-title').textContent  = isEdit ? _adm('courseModal.titleEdit') : _adm('courseModal.titleNew')
+  document.getElementById('mc-save-btn').textContent = isEdit ? _adm('btn.save') : _adm('btn.saveCourse')
   const errEl = document.getElementById('mc-error')
   if (errEl) errEl.style.display = 'none'
 
@@ -2559,7 +2588,7 @@ async function _openCourseModal(courseId = null) {
 
   // Load passes list
   const passesListEl = document.getElementById('mc-passes-list')
-  passesListEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">Načítám permanentky…</div>`
+  passesListEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.modalPasses'))}</div>`
 
   let passes = []
   let courseData = { data: null }
@@ -2581,7 +2610,7 @@ async function _openCourseModal(courseId = null) {
     modalDataFailed = true
     console.error('[Admin] modal kurz:', e)
     passesListEl.innerHTML = `<div style="font-size:12px;color:#791F1F;padding:8px 0;">
-      Nepodařilo se načíst data. Zkuste okno zavřít a otevřít znovu, nebo obnovte stránku.</div>`
+      ${esc(_adm('courseModal.modalLoadFail'))}</div>`
   }
 
   const course = courseData?.data
@@ -2626,10 +2655,10 @@ async function _openCourseModal(courseId = null) {
     }
 
     if (!(passes && passes.length)) {
-      passesListEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;padding:8px 0;">Žádné permanentky nenalezeny. Nejprve je vytvořte v sekci Permanentky.</div>`
+      passesListEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;padding:8px 0;">${esc(_adm('passesPage.modalPassesEmpty'))}</div>`
     } else {
       passesListEl.innerHTML = passes.map(p => {
-        const name = loc(p.name) || 'Permanentka'
+        const name = loc(p.name) || _adm('misc.pass')
         return `
         <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--btn-radius);
           border:1px solid var(--border);margin-bottom:6px;cursor:pointer;user-select:none;">
@@ -2637,7 +2666,7 @@ async function _openCourseModal(courseId = null) {
             style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;" />
           <div style="flex:1;">
             <div style="font-size:13px;font-weight:500;">${esc(name)}</div>
-            <div style="font-size:11px;color:#6b6b6b;">${p.entries_total} vstupů · ${fmtPrice(p.price)}</div>
+            <div style="font-size:11px;color:#6b6b6b;">${_adm('customers.passLine', { name, entries: p.entries_total, price: fmtPrice(p.price) })}</div>
           </div>
         </label>`
       }).join('')
@@ -2665,7 +2694,7 @@ window.saveNewCourse = async () => {
   const courseId    = document.getElementById('mc-id')?.value || null
   const name        = document.getElementById('mc-name')?.value.trim()
   const desc        = document.getElementById('mc-desc')?.value.trim()
-  if (!_getQuillCtor()) { showErr(errEl, 'Editor není načtený. Obnovte stránku.'); return }
+  if (!_getQuillCtor()) { showErr(errEl, _adm('courseModal.editorNotLoaded')); return }
   const descLong    = _getMcLongHtml()
   const price       = Number(document.getElementById('mc-price')?.value)
   const capacity    = Number(document.getElementById('mc-capacity')?.value)
@@ -2676,17 +2705,17 @@ window.saveNewCourse = async () => {
   const selectedDays    = [..._ncSelectedDays]
   const selectedPassIds = [...document.querySelectorAll('#mc-passes-list input[type=checkbox]:checked')].map(cb => cb.value)
 
-  if (!name)              { showErr(errEl, 'Vyplňte název kurzu.'); return }
-  if (!price || price<=0) { showErr(errEl, 'Zadejte platnou cenu vstupného.'); return }
-  if (!capacity || capacity<1) { showErr(errEl, 'Zadejte kapacitu (min. 1 místo).'); return }
+  if (!name)              { showErr(errEl, _adm('courseModal.errName')); return }
+  if (!price || price<=0) { showErr(errEl, _adm('courseModal.errTicketPrice')); return }
+  if (!capacity || capacity<1) { showErr(errEl, _adm('courseModal.errCapacity')); return }
   if (!minPart || minPart < 1 || minPart > capacity) {
-    showErr(errEl, 'Minimální počet účastníků musí být 1–kapacita.'); return
+    showErr(errEl, _adm('courseModal.errMinParticipants')); return
   }
-  if (selectedDays.length === 0) { showErr(errEl, 'Vyberte alespoň jeden den v týdnu.'); return }
-  if (!timeFrom || !timeTo)       { showErr(errEl, 'Zadejte čas od a čas do.'); return }
-  if (timeFrom >= timeTo)         { showErr(errEl, 'Čas do musí být po čase od.'); return }
+  if (selectedDays.length === 0) { showErr(errEl, _adm('courseModal.errPickWeekday')); return }
+  if (!timeFrom || !timeTo)       { showErr(errEl, _adm('courseModal.errTimeRange')); return }
+  if (timeFrom >= timeTo)         { showErr(errEl, _adm('courseModal.errTimeOrder')); return }
 
-  if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
+  if (btn) { btn.disabled = true; btn.textContent = _adm('courseModal.saving') }
 
   try {
     const payload = {
@@ -2748,9 +2777,14 @@ window.saveNewCourse = async () => {
     }
   } catch (err) {
     console.error('[Admin] saveNewCourse:', err)
-    showErr(errEl, 'Chyba: ' + (err.message ?? 'Zkuste to znovu.'))
+    showErr(errEl, _adm('toast.errorWithMsg', {
+      msg: err.message ?? _adm('courseModal.errRetryGeneric'),
+    }))
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = courseId ? 'Uložit změny' : 'Uložit kurz' }
+    if (btn) {
+      btn.disabled = false
+      btn.textContent = courseId ? _adm('btn.save') : _adm('btn.saveCourse')
+    }
   }
 }
 
@@ -2808,7 +2842,7 @@ async function _syncFutureCourseLessons(courseId, days, timeFrom, timeTo, capaci
 
   for (const lesson of bookedLessons) {
     const target = desiredLessons[slotIdx++]
-    if (!target) throw new Error('Nepodařilo se zachovat obsazené termíny kurzu.')
+    if (!target) throw new Error(_adm('courseModal.errPreserveBusySlots'))
     assignedUpdates.push({
       id: lesson.id,
       start_time: target.start_time,
@@ -2904,7 +2938,7 @@ function buildLessonAttendeesModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:520px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div id="mla-title" style="font-size:18px;font-weight:700;">Účastníci lekce</div>
+          <div id="mla-title" style="font-size:18px;font-weight:700;">${esc(_adm('lessonDetail.title'))}</div>
           <button type="button" onclick="window.closeLessonAttendeesModal?.()"
             style="border:none;background:transparent;font-size:20px;line-height:1;cursor:pointer;color:#6b6b6b;padding:0 4px;">×</button>
         </div>
@@ -2962,14 +2996,10 @@ async function _adminCancelCustomerBookingFallback(bookingId, paymentType, userP
 
 window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, userPassId) => {
   if (!bookingId) return
-  if (!confirm('Opravdu zrušit rezervaci tohoto zákazníka na této lekci?')) return
+  if (!confirm(_adm('lessonDetail.confirmCancelBooking'))) return
   let refundPass = true
   if (paymentType === 'pass' && userPassId) {
-    refundPass = confirm(
-      'Vrátit zákazníkovi 1 vstup na permanentku?\n\n'
-      + 'OK = ano, vrátit vstup\n'
-      + 'Zrušit = ne, vstup zůstane odečtený',
-    )
+    refundPass = confirm(_adm('lessonDetail.confirmRefundPassBlocks'))
   }
   try {
     const { data, error } = await sb.rpc('admin_cancel_customer_booking', {
@@ -2980,7 +3010,7 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
       try {
         await _adminCancelCustomerBookingFallback(bookingId, paymentType, userPassId, refundPass)
         window.showToast?.(
-          'Rezervace byla zrušena. Vstup na permanentku byl vrácen podle nastavení; e-mail se v nouzovém režimu nezařadil automaticky.',
+          _adm('lessonDetail.toastCancelledFallback'),
           'ok',
         )
         if (lessonId) await window.adminOpenLessonDetail?.(lessonId)
@@ -2994,14 +3024,14 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
       }
     }
     if (data && data.ok === false) {
-      throw new Error(data.error || 'Operace se nezdařila')
+      throw new Error(data.error || _adm('lessonDetail.errOperationFailed'))
     }
-    window.showToast?.('Rezervace byla zrušena. Zákazník obdrží e-mail z fronty.', 'ok')
+    window.showToast?.(_adm('lessonDetail.toastCancelledQueue'), 'ok')
     if (lessonId) await window.adminOpenLessonDetail?.(lessonId)
     _refreshStaffViewAfterCancel()
   } catch (err) {
     console.error('[Admin] adminCancelCustomerBooking:', err)
-    window.showToast?.('Nepodařilo se zrušit rezervaci: ' + (err.message ?? err), 'error')
+    window.showToast?.(_adm('toast.bookingCancelFail', { msg: err.message ?? err }), 'error')
   }
 }
 
@@ -3013,8 +3043,8 @@ window.adminOpenLessonDetail = async (lessonId) => {
   const titleEl = document.getElementById('mla-title')
   if (!modal || !listEl) return
   modal.dataset.lessonId = String(lessonId)
-  listEl.innerHTML = '<div style="font-size:12px;color:#9b9b9b;padding:12px 0;">Načítám…</div>'
-  if (titleEl) titleEl.textContent = 'Účastníci lekce'
+  listEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;padding:12px 0;">${esc(_adm('loading.attendees'))}</div>`
+  if (titleEl) titleEl.textContent = _adm('lessonDetail.title')
   modal.style.display = 'flex'
   try {
     await adminRace((async () => {
@@ -3033,13 +3063,15 @@ window.adminOpenLessonDetail = async (lessonId) => {
       .eq('id', lessonId)
       .maybeSingle()
 
-    const ctitle = lessonRow?.course?.title ? loc(lessonRow.course.title) : 'Lekce'
+    const ctitle = lessonRow?.course?.title ? loc(lessonRow.course.title) : _adm('misc.lessonFallback')
     const when = lessonRow?.start_time ? fmtDateTime(lessonRow.start_time) : ''
-    if (titleEl) titleEl.textContent = when ? `${ctitle} · ${when}` : `Účastníci — ${ctitle}`
+    if (titleEl) titleEl.textContent = when
+      ? _adm('lessonDetail.titleWithWhen', { course: ctitle, when })
+      : _adm('lessonDetail.titleAttendeesOnly', { course: ctitle })
 
     const rows = bookings ?? []
     if (!rows.length) {
-      listEl.innerHTML = '<div class="empty" style="padding:24px;">Žádné aktivní přihlášky.</div>'
+      listEl.innerHTML = `<div class="empty" style="padding:24px;">${esc(_adm('lessonDetail.emptyBookings'))}</div>`
       return
     }
 
@@ -3071,10 +3103,10 @@ window.adminOpenLessonDetail = async (lessonId) => {
         </colgroup>
         <thead>
           <tr style="text-align:left;color:#6b6b6b;font-size:11px;">
-            <th style="padding:8px 8px 8px 0;">Jméno</th>
-            <th style="padding:8px 4px;">E-mail</th>
-            <th style="padding:8px 0 8px 8px;">Platba</th>
-            <th style="padding:8px 0 8px 8px;text-align:right;white-space:nowrap;">Akce</th>
+            <th style="padding:8px 8px 8px 0;">${esc(_adm('lessonDetail.tableName'))}</th>
+            <th style="padding:8px 4px;">${esc(_adm('lessonDetail.tableEmail'))}</th>
+            <th style="padding:8px 0 8px 8px;">${esc(_adm('lessonDetail.tablePayment'))}</th>
+            <th style="padding:8px 0 8px 8px;text-align:right;white-space:nowrap;">${esc(_adm('lessonDetail.tableAction'))}</th>
           </tr>
         </thead>
         <tbody>
@@ -3083,34 +3115,34 @@ window.adminOpenLessonDetail = async (lessonId) => {
             const pName = b.user_pass_id ? passNames[b.user_pass_id] : null
             const passLabel = pName ? esc(loc(pName)) : ''
             const payCell = b.payment_type === 'pass'
-              ? `Permanentka${passLabel ? ': ' + passLabel : ''}`
-              : 'Jednorázově'
+              ? `${esc(_adm('lessonDetail.paymentPassLabel'))}${passLabel ? ': ' + passLabel : ''}`
+              : esc(_adm('payType.single'))
             const passIdAttr = b.user_pass_id ? esc(b.user_pass_id) : ''
             const lessonIdArg = esc(String(lessonId))
             const bookingIdArg = esc(String(b.id))
             const paymentTypeArg = esc(String(b.payment_type))
             return `<tr style="border-top:1px solid var(--border);">
-              <td style="padding:10px 8px 10px 0;vertical-align:top;font-weight:500;line-height:1.45;">${esc(u?.name || '—')}</td>
-              <td style="padding:10px 4px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;">${esc(u?.email || '—')}</td>
+              <td style="padding:10px 8px 10px 0;vertical-align:top;font-weight:500;line-height:1.45;">${esc(u?.name || _adm('misc.dash'))}</td>
+              <td style="padding:10px 4px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;">${esc(u?.email || _adm('misc.dash'))}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;line-height:1.45;">${payCell}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;">
                 <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
                   onclick="window.adminCancelCustomerBooking?.('${bookingIdArg}','${lessonIdArg}','${paymentTypeArg}','${passIdAttr}')"
                   data-admin-cancel-booking="${esc(b.id)}"
                   data-payment-type="${esc(b.payment_type)}"
-                  data-user-pass-id="${passIdAttr}">Zrušit rezervaci</button>
+                  data-user-pass-id="${passIdAttr}">${esc(_adm('lessonDetail.cancelBooking'))}</button>
               </td>
             </tr>`
           }).join('')}
         </tbody>
       </table>
       </div>
-      <div style="font-size:11px;color:#9b9b9b;margin-top:12px;">Celkem přihlášených: ${rows.length}</div>`
+      <div style="font-size:11px;color:#9b9b9b;margin-top:12px;">${_adm('lessonDetail.footerTotal', { n: rows.length })}</div>`
     })(), 'modal-lesson-attendees')
   } catch (err) {
     console.error('[Admin] adminOpenLessonDetail:', err)
-    listEl.innerHTML = '<div class="empty" style="padding:20px;color:#791F1F;">Nepodařilo se načíst seznam.</div>'
-    window.showToast?.('Chyba při načítání účastníků: ' + (err.message ?? err), 'error')
+    listEl.innerHTML = `<div class="empty" style="padding:20px;color:#791F1F;">${esc(_adm('lessonDetail.loadListFail'))}</div>`
+    window.showToast?.(_adm('err.loadAttendees', { msg: err.message ?? err }), 'error')
   }
 }
 
@@ -3122,7 +3154,7 @@ async function _refreshAfterLessonChange() {
 }
 
 window.adminDeactivateLesson = async (lessonId) => {
-  if (!lessonId || !confirm('Opravdu deaktivovat lekci? Rezervace budou stornovány a účastníkům se může odeslat e‑mail.')) return
+  if (!lessonId || !confirm(_adm('lessonActions.confirmDeactivate'))) return
   try {
     const { error: rpcErr } = await sb.rpc('admin_cancel_lesson', { p_lesson_id: lessonId })
     if (rpcErr) {
@@ -3136,33 +3168,33 @@ window.adminDeactivateLesson = async (lessonId) => {
         ])
         if (lErr) throw lErr
         if (bErr) console.warn('[Admin] deactivateLesson — bookings:', bErr)
-        window.showToast?.('Lekce deaktivována (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).', 'ok')
+        window.showToast?.(_adm('lessonActions.toastDeactivateNoRpc'), 'ok')
         _refreshAfterLessonChange()
         return
       }
       throw rpcErr
     }
-    window.showToast?.('Lekce byla deaktivována.', 'ok')
+    window.showToast?.(_adm('lessonActions.toastDeactivated'), 'ok')
     _refreshAfterLessonChange()
   } catch (err) {
     console.error('[Admin] deactivateLesson:', err)
-    window.showToast?.('Nepodařilo se deaktivovat lekci: ' + (err.message ?? err), 'error')
+    window.showToast?.(_adm('toast.lessonDeactivateFail', { msg: err.message ?? err }), 'error')
   }
 }
 
 window.adminCancelLesson = window.adminDeactivateLesson
 
 window.adminDeleteLesson = async (lessonId) => {
-  if (!lessonId || !confirm('Opravdu trvale smazat tuto deaktivovanou lekci? Akce je nevratná.')) return
+  if (!lessonId || !confirm(_adm('lessonActions.confirmDelete'))) return
   try {
     const { data: lesson, error: loadErr } = await sb.from('lessons')
       .select('id, status')
       .eq('id', lessonId)
       .maybeSingle()
     if (loadErr) throw loadErr
-    if (!lesson) throw new Error('Lekce nenalezena.')
+    if (!lesson) throw new Error(_adm('lessonActions.errLessonNotFound'))
     if (lesson.status !== 'cancelled') {
-      throw new Error('Smazat lze jen deaktivovanou lekci — nejprve ji deaktivujte.')
+      throw new Error(_adm('lessonActions.errDeleteOnlyDeactivated'))
     }
     const { count, error: countErr } = await sb.from('bookings')
       .select('*', { count: 'exact', head: true })
@@ -3170,42 +3202,42 @@ window.adminDeleteLesson = async (lessonId) => {
       .eq('status', 'booked')
     if (countErr) throw countErr
     if ((count ?? 0) > 0) {
-      throw new Error('Lekci s aktivními rezervacemi nelze smazat.')
+      throw new Error(_adm('lessonActions.errDeleteActiveBookings'))
     }
     const { error } = await sb.from('lessons').delete().eq('id', lessonId)
     if (error) throw error
-    window.showToast?.('Lekce byla smazána.', 'ok')
+    window.showToast?.(_adm('lessonActions.toastDeleted'), 'ok')
     _refreshAfterLessonChange()
   } catch (err) {
     console.error('[Admin] adminDeleteLesson:', err)
-    window.showToast?.('Nepodařilo se smazat lekci: ' + (err.message ?? err), 'error')
+    window.showToast?.(_adm('toast.lessonDeleteFail', { msg: err.message ?? err }), 'error')
   }
 }
 
 window.adminToggleCourse = async (courseId, activate) => {
-  if (!confirm(activate ? 'Aktivovat kurz?' : 'Deaktivovat kurz?')) return
+  if (!confirm(activate ? _adm('courseActions.confirmToggleOn') : _adm('courseActions.confirmToggleOff'))) return
   try {
     const { error } = await sb.from('courses').update({ is_active: activate }).eq('id', courseId)
     if (error) throw error
-    window.showToast?.(activate ? 'Kurz je aktivní.' : 'Kurz byl deaktivován.', 'ok')
+    window.showToast?.(activate ? _adm('courseActions.toastActive') : _adm('courseActions.toastInactive'), 'ok')
     renderAdminKurzy()
   } catch (err) {
     console.error('[Admin] adminToggleCourse:', err)
-    window.showToast?.('Chyba: ' + (err.message ?? err), 'error')
+    window.showToast?.(_adm('toast.errorWithMsg', { msg: err.message ?? err }), 'error')
   }
 }
 
 window.adminDeleteCourse = async (courseId) => {
-  if (!courseId || !confirm('Opravdu trvale smazat tento deaktivovaný kurz včetně termínů? Akce je nevratná.')) return
+  if (!courseId || !confirm(_adm('courseActions.confirmDelete'))) return
   try {
     const { data: course, error: loadErr } = await sb.from('courses')
       .select('id, is_active')
       .eq('id', courseId)
       .maybeSingle()
     if (loadErr) throw loadErr
-    if (!course) throw new Error('Kurz nenalezen.')
+    if (!course) throw new Error(_adm('courseActions.errCourseNotFound'))
     if (course.is_active) {
-      throw new Error('Smazat lze jen deaktivovaný kurz — nejprve ho deaktivujte.')
+      throw new Error(_adm('courseActions.errDeleteOnlyDeactivated'))
     }
     const { data: lessonRows, error: lesErr } = await sb.from('lessons').select('id').eq('course_id', courseId)
     if (lesErr) throw lesErr
@@ -3217,17 +3249,17 @@ window.adminDeleteCourse = async (courseId) => {
         .in('lesson_id', lessonIds)
       if (bookErr) throw bookErr
       if ((count ?? 0) > 0) {
-        throw new Error('Kurz má stále aktivní rezervace — nelze smazat.')
+        throw new Error(_adm('courseActions.errDeleteHasBookings'))
       }
     }
     const { error } = await sb.from('courses').delete().eq('id', courseId)
     if (error) throw error
-    window.showToast?.('Kurz byl smazán.', 'ok')
+    window.showToast?.(_adm('courseActions.toastDeleted'), 'ok')
     renderAdminKurzy()
     void window.refreshPublicData?.()
   } catch (err) {
     console.error('[Admin] adminDeleteCourse:', err)
-    window.showToast?.('Nepodařilo se smazat kurz: ' + (err.message ?? err), 'error')
+    window.showToast?.(_adm('toast.courseDeleteFail', { msg: err.message ?? err }), 'error')
   }
 }
 

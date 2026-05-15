@@ -121,6 +121,17 @@ export const setLang = l => {
   try {
     renderNavigation(currentUser)
   } catch (_) { /* */ }
+
+  const activeScreen = document.querySelector('.screen.active')
+  const sid = activeScreen?.id ?? ''
+  if (sid === 'screen-nastenka') {
+    window.renderProfile?.()
+  } else if (sid === 'screen-moje-lekce') {
+    void window.renderMojeLekce?.()
+  } else if (sid === 'screen-sprava' || sid.startsWith('screen-admin-')) {
+    const route = sid.replace(/^screen-/, '')
+    void window.__refreshAdminScreen?.(route)
+  }
 }
 
 const loc = obj => typeof obj === 'object' && obj ? (obj[lang] ?? obj.cs ?? '') : (obj ?? '')

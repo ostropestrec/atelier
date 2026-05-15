@@ -1372,29 +1372,37 @@ function overviewPassCourseTagsHtml(allowedIds, colorHex) {
     <div class="pass-shop-course-tags">${inner}</div>`
 }
 
+function _overviewLocale() {
+  return window.__uiLang === 'en' ? 'en' : 'cs'
+}
+
 // ── Chráněné sekce: profil / přehled uživatele ─────────────────
 export function buildUserGreetingHtml(user) {
   if (!user) return ''
+  const locale = _overviewLocale()
+  const first = (user.name || '').split(' ')[0]
+  const helloName = first || user.name || t(locale, 'dashboard.userYou')
   return `
     <div class="profile-head">
-      <div class="hello">Dobrý den, ${escapeHtml((user.name || '').split(' ')[0] || user.name || 'uživateli')}</div>
+      <div class="hello">${escapeHtml(t(locale, 'dashboard.hello', { name: helloName }))}</div>
       <div class="subtle">${escapeHtml(user.email || '')}</div>
     </div>`
 }
 
 export function buildUserOverviewHtml(user) {
+  const locale = _overviewLocale()
   if (!user) {
     return `
       <div class="card">
-        <div class="card-title">Vítejte v Ateliéru</div>
-        <div class="card-meta">Přihlaste se pro přehled rezervací a permanentek. Nastavení účtu je pod avatarem. Mezitím můžete procházet kurzy a kalendář.</div>
+        <div class="card-title">${escapeHtml(t(locale, 'dashboard.guestTitle'))}</div>
+        <div class="card-meta">${escapeHtml(t(locale, 'dashboard.guestMeta'))}</div>
       </div>`
   }
 
   const passHtml = (userPasses ?? [])
       .map(up => {
         const p = up.pass
-        const name = locJson(p?.name) || 'Permanentka'
+        const name = locJson(p?.name) || t(locale, 'dashboard.passFallback')
         const total = Number(up.entries_total ?? p?.entries_total ?? 0) || 0
         const remaining = Number(up.entries_remaining ?? 0) || 0
         const used = Math.max(0, total - remaining)
@@ -1406,7 +1414,7 @@ export function buildUserOverviewHtml(user) {
             <div class="pass-top">
               <div>
                 <div class="pass-name">${escapeHtml(name)}</div>
-                <div class="pass-meta">${remaining} z ${total} vstupů · platí do ${escapeHtml(exp)}</div>
+                <div class="pass-meta">${escapeHtml(t(locale, 'dashboard.passMeta', { remaining, total, date: exp }))}</div>
               </div>
               <div class="pass-count" style="color:${ph};">${remaining}</div>
             </div>
@@ -1432,38 +1440,41 @@ export function buildUserOverviewHtml(user) {
             <div class="bk-title">
               <a href="javascript:void(0)" onclick="window.openDetail?.('${lesson?.course?.id ?? ''}')"
                 style="color:inherit;text-decoration:none;">
-                ${escapeHtml(title || 'Lekce')}
+                ${escapeHtml(title || t(locale, 'dashboard.lessonFallback'))}
               </a>
             </div>
             <div class="bk-sub">${escapeHtml(when)} · ${escapeHtml(owner)}</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <span class="pill ok">PŘIHLÁŠENO</span>
+          <span class="pill ok">${escapeHtml(t(locale, 'common.enrolled'))}</span>
           ${canUserCancelBooking(b)
-            ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">Odhlásit</button>`
+            ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">${escapeHtml(t(locale, 'dashboard.unenroll'))}</button>`
             : ''}
         </div>
       </div>
     `
   }).join('')
 
+  const first = (user.name || '').split(' ')[0]
+  const helloName = first || user.name || t(locale, 'dashboard.userYou')
+
   return `
     <div class="profile-head">
-      <div class="hello">Dobrý den, ${escapeHtml((user.name || '').split(' ')[0] || user.name || 'uživateli')}</div>
+      <div class="hello">${escapeHtml(t(locale, 'dashboard.hello', { name: helloName }))}</div>
       <div class="subtle">${escapeHtml(user.email || '')}</div>
     </div>
 
-    <div class="section-h">Aktivní permanentky</div>
-    ${passHtml ? `<div class="nastenka-cards-2col">${passHtml}</div>` : `<div class="empty">Nemáte žádné aktivní permanentky.</div>`}
+    <div class="section-h">${escapeHtml(t(locale, 'dashboard.sectionPasses'))}</div>
+    ${passHtml ? `<div class="nastenka-cards-2col">${passHtml}</div>` : `<div class="empty">${escapeHtml(t(locale, 'dashboard.emptyPasses'))}</div>`}
     ${passHtml ? `
       <div class="card-meta" style="margin-top:10px;">
-        V případě potřeby zrušení permanentky a vrácení peněz za zbylé vstupy nás prosím kontaktujte na jatakidu@gmail.com.
+        ${escapeHtml(t(locale, 'dashboard.refundNote'))}
       </div>
     ` : ''}
 
-    <div class="section-h">Přihlášené lekce</div>
-    ${bookingsHtml || `<div class="empty">Zatím nemáte žádné přihlášené lekce.</div>`}
+    <div class="section-h">${escapeHtml(t(locale, 'dashboard.sectionBookings'))}</div>
+    ${bookingsHtml || `<div class="empty">${escapeHtml(t(locale, 'dashboard.emptyBookings'))}</div>`}
   `
 }
 
@@ -1498,6 +1509,7 @@ window.renderProfile = () => _refreshUserOverviewUI()
 
 window.cancelMyBooking = async (bookingId) => {
   if (!currentUser || !bookingId) return
+  const locale = _overviewLocale()
   const booking = myBookings.find(b => String(b.id) === String(bookingId))
   const cancelState = getUserBookingCancellationState(booking)
   if (booking && !cancelState.allowed) {
@@ -1512,14 +1524,14 @@ window.cancelMyBooking = async (bookingId) => {
     if (data?.ok === false) {
       const msg = data.error === 'cancel_not_allowed'
         ? getUserBookingCancellationMessage(booking)
-        : (data.error || 'Storno se nepodařilo.')
+        : (data.error || t(locale, 'booking.toast.cancelFailedShort'))
       throw new Error(msg)
     }
-    window.showToast?.('Rezervace byla zrušena.', 'ok')
+    window.showToast?.(t(locale, 'booking.toast.cancelled'), 'ok')
     await refreshMyAuthUI()
   } catch (err) {
     console.error('cancelMyBooking:', err)
-    window.showToast?.('Storno se nepodařilo: ' + (err.message ?? err), 'error')
+    window.showToast?.(t(locale, 'booking.toast.cancelFailPrefix') + (err.message ?? err), 'error')
   }
 }
 
@@ -1610,19 +1622,24 @@ function escapeHtml(s) {
 function locJson(obj) {
   if (!obj) return ''
   if (typeof obj === 'string') return obj
-  const l = (document.documentElement?.lang || 'cs').toLowerCase()
+  const l = window.__uiLang === 'en' ? 'en' : 'cs'
   return obj[l] ?? obj.cs ?? obj.en ?? ''
+}
+
+function _overviewDateLocaleTag() {
+  return window.__uiLang === 'en' ? 'en-GB' : 'cs-CZ'
 }
 
 function fmtDate(iso) {
   const d = new Date(iso)
-  return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return d.toLocaleDateString(_overviewDateLocaleTag(), { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
 function fmtBookingWhen(iso) {
   const d = new Date(iso)
-  const day = d.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })
-  const time = d.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+  const tag = _overviewDateLocaleTag()
+  const day = d.toLocaleDateString(tag, { weekday: 'short', day: 'numeric', month: 'numeric' })
+  const time = d.toLocaleTimeString(tag, { hour: '2-digit', minute: '2-digit' })
   return `${day} · ${time}`
 }
 
