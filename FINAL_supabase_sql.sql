@@ -321,11 +321,32 @@ begin
 end;
 $$;
 
+-- Před smazáním user_pass: rezervace s payment_type=pass musí ztratit vazbu legálně
+-- (FK on delete set null jinak vytvoří payment_type='pass' + user_pass_id=null → CHECK chyba).
+create or replace function public.detach_bookings_before_user_pass_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.bookings
+  set
+    payment_type = 'single',
+    user_pass_id = null,
+    updated_at = now()
+  where user_pass_id = old.id
+    and payment_type = 'pass';
+  return old;
+end;
+$$;
+
 drop trigger if exists trg_users_updated        on public.users;
 drop trigger if exists trg_courses_updated      on public.courses;
 drop trigger if exists trg_lessons_updated      on public.lessons;
 drop trigger if exists trg_passes_updated       on public.passes;
 drop trigger if exists trg_user_passes_updated  on public.user_passes;
+drop trigger if exists trg_user_passes_before_delete_detach_bookings on public.user_passes;
 drop trigger if exists trg_bookings_updated     on public.bookings;
 drop trigger if exists trg_payments_updated     on public.payments;
 drop trigger if exists on_auth_user_created     on auth.users;
@@ -335,6 +356,9 @@ create trigger trg_courses_updated     before update on public.courses     for e
 create trigger trg_lessons_updated     before update on public.lessons     for each row execute function public.set_updated_at();
 create trigger trg_passes_updated      before update on public.passes      for each row execute function public.set_updated_at();
 create trigger trg_user_passes_updated before update on public.user_passes for each row execute function public.set_updated_at();
+create trigger trg_user_passes_before_delete_detach_bookings
+  before delete on public.user_passes
+  for each row execute function public.detach_bookings_before_user_pass_delete();
 create trigger trg_bookings_updated    before update on public.bookings    for each row execute function public.set_updated_at();
 create trigger trg_payments_updated    before update on public.payments    for each row execute function public.set_updated_at();
 
