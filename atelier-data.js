@@ -157,20 +157,49 @@ function _syncCardPrimaryButton(courseId) {
   btn.textContent = lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'
 }
 
+function _bkSelectedLessonForPopupSingleSelect() {
+  const lid = document.getElementById('bk-lesson-select')?.value?.trim?.()
+  if (!lid) return null
+  return window.AppState.upcomingLessons.find(l => String(l.lesson_id ?? l.id) === String(lid)) ?? null
+}
+
+/** Po změně termínu v dropdownu přepíše text hlavního tlačítka rezervace (buy-pass vs jednoráz). */
+function _bindBkLessonSelectPrimaryLabelSync() {
+  const sel = document.getElementById('bk-lesson-select')
+  if (!sel || sel.dataset.bkPrimaryLabelSync === '1') return
+  sel.dataset.bkPrimaryLabelSync = '1'
+  sel.addEventListener('change', () => { _syncPopupPrimaryButton() })
+}
+
 function _syncPopupPrimaryButton() {
   const btn = document.getElementById('bk-confirm-btn')
   const payEl = document.getElementById('bk-payment-opts')
   if (!btn || !payEl) return
-  const sel = payEl.dataset.selected ?? 'single'
-  if (sel.startsWith('tpl-')) {
-    btn.textContent = lang === 'cs' ? 'Koupit permanentku' : 'Buy pass'
+
+  const paymentSel = payEl.dataset.selected ?? 'single'
+  const courseId = payEl.dataset.courseid
+  const course = window.AppState.courses.find(c => String(c.id) === String(courseId))
+
+  if (paymentSel.startsWith('up-')) {
+    btn.textContent = lang === 'cs' ? 'Potvrdit rezervaci' : 'Confirm booking'
     return
   }
-  if (sel.startsWith('up-')) {
-    window._bkUpdateMultiBtnLabel?.()
+
+  if (paymentSel.startsWith('tpl-')) {
+    const les = _bkSelectedLessonForPopupSingleSelect()
+    const slot = les
+      ? _fmtBkLessonLine(les)
+      : (lang === 'cs' ? '— vyberte termín —' : '— select session —')
+    btn.textContent = lang === 'cs'
+      ? `Koupit a zarezervovat termín · ${slot}`
+      : `Buy pass and reserve · ${slot}`
     return
   }
-  btn.textContent = lang === 'cs' ? 'Potvrdit rezervaci' : 'Confirm booking'
+
+  const priceTxt = fmtPrice(Number(course?.price_single) || 0)
+  btn.textContent = lang === 'cs'
+    ? `Potvrdit a zaplatit ${priceTxt}`
+    : `Confirm and pay ${priceTxt}`
 }
 
 // ── Stav v AppState (single source of truth) ──────────────────
@@ -553,6 +582,7 @@ function renderAll() {
   renderKalendar()
   renderKurzy()
   if (document.getElementById('screen-permanentky')?.classList.contains('active')) void renderPermanentkyShop()
+  if (document.getElementById('pop-booking')?.style.display === 'flex') _syncPopupPrimaryButton()
 }
 
 async function refreshPublicData() {
@@ -1449,18 +1479,13 @@ function _bkBindLessonCheckboxDelegation() {
     }
     _enforceBkLessonCheckboxCapsFromPayOpts()
     window._bkUpdateMultiBtnLabel?.()
-    _refreshPopupPassSlotsCounter()
   })
 }
 
 window._bkUpdateMultiBtnLabel = () => {
-  const btn = document.getElementById('bk-confirm-btn')
   const payEl = document.getElementById('bk-payment-opts')
-  if (!btn || !(payEl?.dataset.selected ?? '').startsWith('up-')) return
-  const n = document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked').length
-  btn.textContent = n
-    ? (lang === 'cs' ? `Rezervovat vybrané (${n})` : `Book selected (${n})`)
-    : (lang === 'cs' ? 'Rezervovat vybrané' : 'Book selected')
+  if (!(payEl?.dataset.selected ?? '').startsWith('up-')) return
+  _syncPopupPrimaryButton()
   _refreshPopupPassSlotsCounter()
 }
 
@@ -1712,8 +1737,9 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
   if (confirmBtn) {
     confirmBtn.style.background = color
     confirmBtn.disabled = false
-    confirmBtn.textContent = lang === 'cs' ? 'Potvrdit rezervaci' : 'Confirm booking'
   }
+
+  _bindBkLessonSelectPrimaryLabelSync()
 
   _syncBkLessonPicker(course, _courseLessonsForBooking(courseId), preselectedLessonId)
 
