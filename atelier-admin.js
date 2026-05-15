@@ -3,7 +3,7 @@
 // ============================================================
 
 import { sb } from './atelier-supabase.js'
-import { currentUser } from './atelier_auth.js'
+import { currentUser, buildUserOverviewHtml } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 
 // ── Role-aware scoping helpers ──────────────────────────────
@@ -613,7 +613,7 @@ export async function renderAdminDashboard() {
     const monthNetRev = monthGrossRev - monthRefunds
 
     el.innerHTML = `
-      <div class="page-title" style="margin-bottom:16px;">Dashboard</div>
+      <div class="page-title" style="margin-bottom:16px;">Přehled</div>
       <div class="admin-stat-grid">
         <div class="admin-stat-card">
           <div class="admin-stat-value">${todayLessons.length}</div>
@@ -644,6 +644,8 @@ export async function renderAdminDashboard() {
       ${todayLessons.length ? todayLessons.map(l => _lessonRow(l)).join('') : `<div class="empty">Dnes nejsou žádné lekce.</div>`}
       <div class="admin-section-title" style="margin-top:20px;">Nadcházející tento týden</div>
       ${weekLessons.length ? weekLessons.map(l => _lessonRow(l, true)).join('') : `<div class="empty">Tento týden nejsou další lekce.</div>`}
+      <div class="admin-section-title" style="margin-top:28px;">Můj účet</div>
+      ${buildUserOverviewHtml(currentUser)}
     `
     })(), 'admin-dashboard')
   } catch (err) {
@@ -657,6 +659,32 @@ export async function renderAdminDashboard() {
   }
 }
 
+
+function _lessonAdminDashButtons(lessonId, status = 'active') {
+  const lid = esc(String(lessonId))
+  if (status === 'cancelled') {
+    return `<button type="button" class="btn-small danger admin-dash-act" style="font-size:11px;padding:6px 10px;"
+      data-admin-lesson-act="delete" data-lesson-id="${lid}">Smazat</button>`
+  }
+  return `
+        <button type="button" class="btn-small admin-dash-act" style="font-size:11px;padding:6px 10px;"
+          data-admin-lesson-act="attendees" data-lesson-id="${lid}">Účastníci</button>
+        <button type="button" class="btn-small danger admin-dash-act" style="font-size:11px;padding:6px 10px;"
+          data-admin-lesson-act="deactivate" data-lesson-id="${lid}">Deaktivovat</button>`
+}
+
+window.adminLessonActionButtons = (lessonId, status = 'active') => {
+  const lid = String(lessonId ?? '').replace(/'/g, "\'")
+  if (status === 'cancelled') {
+    return `<button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+      onclick="event.stopPropagation();window.adminDeleteLesson?.('${lid}')">Smazat</button>`
+  }
+  return `<button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
+      onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">Účastníci</button>
+    <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+      onclick="event.stopPropagation();window.adminDeactivateLesson?.('${lid}')">Deaktivovat</button>`
+}
+
 function _lessonRow(lesson, showDate = false) {
   const color  = lesson.course?.color_code ?? '#2854B9'
   const title  = loc(lesson.course?.title) || 'Lekce'
@@ -665,8 +693,9 @@ function _lessonRow(lesson, showDate = false) {
   const pct    = cap > 0 ? Math.round((booked / cap) * 100) : 0
   const timeStr = fmtTimeOnly(lesson.start_time)
   const dateStr = new Date(lesson.start_time).toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })
+  const status = lesson.status ?? 'active'
   return `
-    <div class="admin-lesson-row">
+    <div class="admin-lesson-row"${status === 'cancelled' ? ' style="opacity:.75;"' : ''}>
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
         <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;"></div>
         <div style="min-width:0;">
@@ -681,10 +710,7 @@ function _lessonRow(lesson, showDate = false) {
           </div>
           <div style="font-size:10px;color:#9b9b9b;text-align:right;margin-top:2px;">${pct} %</div>
         </div>
-        <button type="button" class="btn-small admin-dash-act" style="font-size:11px;padding:6px 10px;"
-          data-admin-lesson-act="attendees" data-lesson-id="${esc(String(lesson.lesson_id ?? lesson.id))}">Účastníci</button>
-        <button type="button" class="btn-small danger admin-dash-act" style="font-size:11px;padding:6px 10px;"
-          data-admin-lesson-act="cancel" data-lesson-id="${esc(String(lesson.lesson_id ?? lesson.id))}">Zrušit lekci</button>
+        ${_lessonAdminDashButtons(lesson.lesson_id ?? lesson.id, lesson.status ?? 'active')}
       </div>
     </div>`
 }
@@ -2948,8 +2974,14 @@ window.adminOpenLessonDetail = async (lessonId) => {
 }
 
 // ── Admin akce ───────────────────────────────────────────────
-window.adminCancelLesson = async (lessonId) => {
-  if (!lessonId || !confirm('Opravdu zrušit lekci? Rezervace budou stornovány a účastníkům se může odeslat e‑mail.')) return
+async function _refreshAfterLessonChange() {
+  if (_isStaffAdmin()) void renderAdminDashboard()
+  void window.renderMojeLekce?.()
+  void window.refreshPublicData?.()
+}
+
+window.adminDeactivateLesson = async (lessonId) => {
+  if (!lessonId || !confirm('Opravdu deaktivovat lekci? Rezervace budou stornovány a účastníkům se může odeslat e‑mail.')) return
   try {
     const { error: rpcErr } = await sb.rpc('admin_cancel_lesson', { p_lesson_id: lessonId })
     if (rpcErr) {
@@ -2962,22 +2994,50 @@ window.adminCancelLesson = async (lessonId) => {
           sb.from('lessons').update({ status: 'cancelled' }).eq('id', lessonId),
         ])
         if (lErr) throw lErr
-        if (bErr) console.warn('[Admin] cancelLesson — bookings:', bErr)
-        window.showToast?.('Lekce zrušena (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).', 'ok')
-        if (_isStaffAdmin()) renderAdminDashboard()
-        void window.renderMojeLekce?.()
-        void window.refreshPublicData?.()
+        if (bErr) console.warn('[Admin] deactivateLesson — bookings:', bErr)
+        window.showToast?.('Lekce deaktivována (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).', 'ok')
+        _refreshAfterLessonChange()
         return
       }
       throw rpcErr
     }
-    window.showToast?.('Lekce byla zrušena.', 'ok')
-    if (_isStaffAdmin()) renderAdminDashboard()
-    void window.renderMojeLekce?.()
-    void window.refreshPublicData?.()
+    window.showToast?.('Lekce byla deaktivována.', 'ok')
+    _refreshAfterLessonChange()
   } catch (err) {
-    console.error('[Admin] cancelLesson:', err)
-    window.showToast?.('Nepodařilo se zrušit lekci: ' + (err.message ?? err), 'error')
+    console.error('[Admin] deactivateLesson:', err)
+    window.showToast?.('Nepodařilo se deaktivovat lekci: ' + (err.message ?? err), 'error')
+  }
+}
+
+window.adminCancelLesson = window.adminDeactivateLesson
+
+window.adminDeleteLesson = async (lessonId) => {
+  if (!lessonId || !confirm('Opravdu trvale smazat tuto deaktivovanou lekci? Akce je nevratná.')) return
+  try {
+    const { data: lesson, error: loadErr } = await sb.from('lessons')
+      .select('id, status')
+      .eq('id', lessonId)
+      .maybeSingle()
+    if (loadErr) throw loadErr
+    if (!lesson) throw new Error('Lekce nenalezena.')
+    if (lesson.status !== 'cancelled') {
+      throw new Error('Smazat lze jen deaktivovanou lekci — nejprve ji deaktivujte.')
+    }
+    const { count, error: countErr } = await sb.from('bookings')
+      .select('*', { count: 'exact', head: true })
+      .eq('lesson_id', lessonId)
+      .eq('status', 'booked')
+    if (countErr) throw countErr
+    if ((count ?? 0) > 0) {
+      throw new Error('Lekci s aktivními rezervacemi nelze smazat.')
+    }
+    const { error } = await sb.from('lessons').delete().eq('id', lessonId)
+    if (error) throw error
+    window.showToast?.('Lekce byla smazána.', 'ok')
+    _refreshAfterLessonChange()
+  } catch (err) {
+    console.error('[Admin] adminDeleteLesson:', err)
+    window.showToast?.('Nepodařilo se smazat lekci: ' + (err.message ?? err), 'error')
   }
 }
 
@@ -3010,9 +3070,12 @@ window.adminToggleCourse = async (courseId, activate) => {
     if (act === 'attendees') {
       console.log('[Debug] Delegace admin dashboard → adminOpenLessonDetail:', id)
       void window.adminOpenLessonDetail?.(id)
-    } else if (act === 'cancel') {
-      console.log('[Debug] Delegace admin dashboard → adminCancelLesson:', id)
-      void window.adminCancelLesson?.(id)
+    } else if (act === 'deactivate' || act === 'cancel') {
+      console.log('[Debug] Delegace admin dashboard → adminDeactivateLesson:', id)
+      void window.adminDeactivateLesson?.(id)
+    } else if (act === 'delete') {
+      console.log('[Debug] Delegace admin dashboard → adminDeleteLesson:', id)
+      void window.adminDeleteLesson?.(id)
     }
   })
 })()

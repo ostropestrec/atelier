@@ -617,7 +617,7 @@
       border-radius: var(--btn-radius); background: transparent; font-size: 12px; cursor: pointer; margin-top: 8px;
     }
 
-    /* ── Nástěnka ── */
+    /* ── Přehled (nástěnka) ── */
     .card {
       background: #fff; border: 1px solid var(--border);
       border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
@@ -638,8 +638,7 @@
       grid-template-columns:repeat(2, minmax(0, 1fr));
       gap:10px;
     }
-    .nastenka-cards-2col .pass-item,
-    .nastenka-cards-2col .booking-item{ margin-bottom:0; }
+    .nastenka-cards-2col .pass-item{ margin-bottom:0; }
     @media (max-width: 640px){
       .nastenka-cards-2col{ grid-template-columns:1fr; }
     }
@@ -904,9 +903,9 @@
   <aside class="sidebar" id="sidebar"></aside>
   <main class="content">
 
-<!-- ── Screen: Nástěnka ── -->
+<!-- ── Screen: Přehled ── -->
 <div class="screen active" id="screen-nastenka">
-  <div class="sec-title">Nástěnka</div>
+  <div class="sec-title">Přehled</div>
   <div id="nastenka-content"></div>
 </div>
 
@@ -1172,6 +1171,11 @@
       return
     }
     const role = window.__userRole ?? 'uzivatel'
+    if (id === 'nastenka' && role === 'admin') {
+      const dashEl = document.querySelector('.side-link[onclick*="admin-dashboard"]')
+        ?? document.querySelector('.nav button[onclick*="admin-dashboard"]')
+      return nav('admin-dashboard', dashEl)
+    }
     if (lektorSections.has(id) && role !== 'lektor' && role !== 'admin') return
     if (staffSections.has(id)  && role !== 'lektor' && role !== 'admin') return
     if (adminOnlySections.has(id) && role !== 'admin') return

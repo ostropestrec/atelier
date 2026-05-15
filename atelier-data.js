@@ -227,7 +227,7 @@ async function init() {
     window.AppState.initialized = true
     renderAll()
 
-    // Defaultní obrazovka podle role: admin → dashboard, lektor → vlastní lekce, ostatní → nástěnka.
+    // Defaultní obrazovka podle role: admin → přehled (dashboard), lektor → vlastní lekce, ostatní → přehled.
     const defaultPage = _role === 'admin'
       ? 'admin-dashboard'
       : (_role === 'lektor' ? 'moje-lekce' : 'nastenka')
@@ -538,7 +538,8 @@ async function refreshPublicData() {
     await renderCourseDetail(window._detailCourseId)
   }
 
-  if (document.getElementById('screen-nastenka')?.classList.contains('active')) {
+  if (document.getElementById('screen-nastenka')?.classList.contains('active')
+      || document.getElementById('screen-admin-dashboard')?.classList.contains('active')) {
     window.renderProfile?.()
   }
 }
@@ -2004,44 +2005,47 @@ async function buildMojeLekceMarkup() {
   const courseMap = Object.fromEntries(myCourses.map(c => [c.id, normalizeCourseRecord(c)]))
   const courseIds = myCourses.map(c => c.id)
 
-  const { data: upcoming } = await sb.from('lesson_availability')
-    .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
+  const { data: terms } = await sb.from('lesson_availability')
+    .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots, status')
     .in('course_id', courseIds)
     .gte('start_time', new Date().toISOString())
-    .eq('status', 'active')
+    .in('status', ['active', 'cancelled'])
     .order('start_time')
-    .limit(60)
+    .limit(80)
 
-  if (!upcoming?.length) {
+  const active = (terms ?? []).filter(l => l.status === 'active')
+  const deactivated = (terms ?? []).filter(l => l.status === 'cancelled')
+
+  if (!active.length && !deactivated.length) {
     return `<div class="sec-title">Moje lekce</div>
       <div class="empty">Žádné nadcházející termíny.</div>`
   }
 
-  return `
-    <div class="sec-title">Moje lekce</div>
-    <div style="font-size:12px;color:#6b6b6b;margin-bottom:16px;">${upcoming.length} nadcházejících termínů</div>
-    ${upcoming.map(l => {
-      const course  = courseMap[l.course_id]
-      const color   = course?.color_code ?? '#2854B9'
-      const title   = loc(course?.title) || 'Lekce'
-      const booked  = Number(l.booked_count || 0)
-      const cap     = l.capacity ?? 0
-      const pct     = cap > 0 ? Math.round((booked / cap) * 100) : 0
-      const start   = new Date(l.start_time)
-      const end     = new Date(l.end_time)
-      const dateStr = start.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })
-      const timeStr = `${fmtTime(start)}–${fmtTime(end)}`
-      const lid     = l.lesson_id ?? l.id
-      const imgUrl = courseImageUrls(course)[0] ?? null
-      const desc    = loc(course?.description_short)
-      return `
-          <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;">
+  const renderTermCard = l => {
+    const course  = courseMap[l.course_id]
+    const color   = course?.color_code ?? '#2854B9'
+    const title   = loc(course?.title) || 'Lekce'
+    const booked  = Number(l.booked_count || 0)
+    const cap     = l.capacity ?? 0
+    const pct     = cap > 0 ? Math.round((booked / cap) * 100) : 0
+    const start   = new Date(l.start_time)
+    const end     = new Date(l.end_time)
+    const dateStr = start.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })
+    const timeStr = `${fmtTime(start)}–${fmtTime(end)}`
+    const lid     = l.lesson_id ?? l.id
+    const imgUrl = courseImageUrls(course)[0] ?? null
+    const desc    = loc(course?.description_short)
+    const isOff   = l.status === 'cancelled'
+    const actions = window.adminLessonActionButtons?.(lid, l.status ?? 'active') ?? ''
+    return `
+          <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
             <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lid}')">
               <div style="width:5px;background:${color};flex-shrink:0;"></div>
               <div style="flex:1;padding:12px 14px;display:flex;align-items:center;gap:12px;">
                 <div style="flex:1;min-width:0;">
                   <div style="font-size:13px;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                     ${title}${course?.is_workshop ? ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">WORKSHOP</span>' : ''}
+                    ${isOff ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:6px;">DEAKTIVOVÁNO</span>' : ''}
                   </div>
                   <div style="font-size:11px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
                 </div>
@@ -2054,10 +2058,7 @@ async function buildMojeLekceMarkup() {
                 </div>
                 <div style="flex-shrink:0;">
                   <div style="display:flex;flex-direction:column;gap:6px;">
-                    <button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
-                      onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">Účastníci</button>
-                    <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
-                      onclick="event.stopPropagation();window.adminCancelLesson?.('${lid}')">Zrušit lekci</button>
+                    ${actions}
                   </div>
                 </div>
               </div>
@@ -2074,7 +2075,22 @@ async function buildMojeLekceMarkup() {
               </div>
             </div>
           </div>`
-    }).join('')}
+  }
+
+  const sections = []
+  if (active.length) {
+    sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${active.length} aktivních termínů</div>`)
+    sections.push(active.map(renderTermCard).join(''))
+  }
+  if (deactivated.length) {
+    sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9b9b9b;font-weight:600;margin:20px 0 10px;">Deaktivované termíny</div>`)
+    sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${deactivated.length} termínů — lze trvale smazat</div>`)
+    sections.push(deactivated.map(renderTermCard).join(''))
+  }
+
+  return `
+    <div class="sec-title">Moje lekce</div>
+    ${sections.join('')}
   `
 }
 

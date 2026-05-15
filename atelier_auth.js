@@ -1244,13 +1244,13 @@ const _SVG = {
 
 const _SIDEBAR_CFG = {
   uzivatel: [
-    { id: 'nastenka',  label: 'Nástěnka' },
+    { id: 'nastenka',  label: 'Přehled' },
     { id: 'kalendar',  label: 'Kalendář' },
     { id: 'kurzy',     label: 'Kurzy' },
   ],
   lektor: [
     { section: 'PŘEHLED' },
-    { id: 'nastenka',          label: 'Nástěnka' },
+    { id: 'nastenka',          label: 'Přehled' },
     { id: 'kalendar',          label: 'Kalendář' },
     { id: 'moje-lekce',        label: 'Moje lekce' },
     { section: 'SPRÁVA' },
@@ -1259,8 +1259,7 @@ const _SIDEBAR_CFG = {
   ],
   admin: [
     { section: 'PŘEHLED' },
-    { id: 'admin-dashboard', label: 'Dashboard' },
-    { id: 'nastenka',       label: 'Nástěnka' },
+    { id: 'admin-dashboard', label: 'Přehled' },
     { id: 'kalendar',        label: 'Kalendář' },
     { id: 'moje-lekce',     label: 'Moje lekce' },
     { section: 'SPRÁVA' },
@@ -1273,19 +1272,18 @@ const _SIDEBAR_CFG = {
 
 const _BOTTOM_NAV = {
   uzivatel: [
-    { id: 'nastenka',  label: 'Nástěnka',  icon: _SVG.home },
+    { id: 'nastenka',  label: 'Přehled',  icon: _SVG.home },
     { id: 'kalendar',  label: 'Kalendář',  icon: _SVG.cal  },
     { id: 'kurzy',     label: 'Kurzy',     icon: _SVG.book },
   ],
   lektor: [
-    { id: 'nastenka',     label: 'Nástěnka',   icon: _SVG.home },
+    { id: 'nastenka',     label: 'Přehled',   icon: _SVG.home },
     { id: 'kalendar',     label: 'Kalendář',   icon: _SVG.cal  },
     { id: 'moje-lekce',   label: 'Moje lekce', icon: _SVG.clip },
     { id: 'admin-kurzy',  label: 'Kurzy',      icon: _SVG.book },
   ],
   admin: [
     { id: 'admin-dashboard', label: 'Přehled',  icon: _SVG.home },
-    { id: 'nastenka',       label: 'Nástěnka', icon: _SVG.user },
     { id: 'kalendar',       label: 'Kalendář', icon: _SVG.cal  },
     { id: 'admin-kurzy',    label: 'Kurzy',    icon: _SVG.book },
   ],
@@ -1327,22 +1325,17 @@ function renderNavigation(user) {
 
 }
 
-// ── Chráněné sekce: profil ─────────────────────────────────────
-function renderProtectedSections(user) {
-  const main = document.getElementById('nastenka-content')
-  if (!main) return
-
+// ── Chráněné sekce: profil / přehled uživatele ─────────────────
+export function buildUserOverviewHtml(user) {
   if (!user) {
-    main.innerHTML = `
+    return `
       <div class="card">
         <div class="card-title">Vítejte v Ateliéru</div>
         <div class="card-meta">Přihlaste se pro přehled rezervací a permanentek. Nastavení účtu je pod avatarem. Mezitím můžete procházet kurzy a kalendář.</div>
       </div>`
-    return
   }
 
-  {
-    const passHtml = (userPasses ?? [])
+  const passHtml = (userPasses ?? [])
       .map(up => {
         const p = up.pass
         const name = locJson(p?.name) || 'Permanentka'
@@ -1366,65 +1359,84 @@ function renderProtectedSections(user) {
       })
       .join('')
 
-    main.innerHTML = `
-      <div class="profile-head">
-        <div class="hello">Dobrý den, ${escapeHtml((user.name || '').split(' ')[0] || user.name || 'uživateli')}</div>
-        <div class="subtle">${escapeHtml(user.email || '')}</div>
-      </div>
-
-      <div class="section-h">Aktivní permanentky</div>
-      ${passHtml ? `<div class="nastenka-cards-2col">${passHtml}</div>` : `<div class="empty">Nemáte žádné aktivní permanentky.</div>`}
-      ${passHtml ? `
-        <div class="card-meta" style="margin-top:10px;">
-          V případě potřeby zrušení permanentky a vrácení peněz za zbylé vstupy nás prosím kontaktujte na jatakidu@gmail.com.
+  const bookingsHtml = (myBookings ?? []).map(b => {
+    const lesson = b.lesson
+    const course = lesson?.course
+    const color = course?.color_code ?? '#2854B9'
+    const title = locJson(course?.title)
+    const owner = course?.owner?.name ?? '—'
+    const when = lesson?.start_time ? fmtBookingWhen(lesson.start_time) : ''
+    return `
+      <div class="booking-item">
+        <div class="bk-left">
+          <span class="dot" style="background:${color}"></span>
+          <div style="min-width:0">
+            <div class="bk-title">
+              <a href="javascript:void(0)" onclick="window.openDetail?.('${lesson?.course?.id ?? ''}')"
+                style="color:inherit;text-decoration:none;">
+                ${escapeHtml(title || 'Lekce')}
+              </a>
+            </div>
+            <div class="bk-sub">${escapeHtml(when)} · ${escapeHtml(owner)}</div>
+          </div>
         </div>
-      ` : ''}
-
-      <div class="section-h">Přihlášené lekce</div>
-      ${(myBookings?.length
-        ? (`<div class="nastenka-cards-2col">` + myBookings.map(b => {
-            const lesson = b.lesson
-            const course = lesson?.course
-            const color = course?.color_code ?? '#2854B9'
-            const title = locJson(course?.title)
-            const owner = course?.owner?.name ?? '—'
-            const when = lesson?.start_time ? fmtBookingWhen(lesson.start_time) : ''
-            return `
-              <div class="booking-item">
-                <div class="bk-left">
-                  <span class="dot" style="background:${color}"></span>
-                  <div style="min-width:0">
-                    <div class="bk-title">
-                      <a href="javascript:void(0)" onclick="window.openDetail?.('${lesson?.course?.id ?? ''}')"
-                        style="color:inherit;text-decoration:none;">
-                        ${escapeHtml(title || 'Lekce')}
-                      </a>
-                    </div>
-                    <div class="bk-sub">${escapeHtml(when)} · ${escapeHtml(owner)}</div>
-                  </div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:center;">
-                  <span class="pill ok">PŘIHLÁŠENO</span>
-                  ${canUserCancelBooking(b)
-                    ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">Odhlásit</button>`
-                    : ''}
-                </div>
-              </div>
-            `
-          }).join('') + `</div>`)
-        : `<div class="empty">Zatím nemáte žádné přihlášené lekce.</div>`)}
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="pill ok">PŘIHLÁŠENO</span>
+          ${canUserCancelBooking(b)
+            ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">Odhlásit</button>`
+            : ''}
+        </div>
+      </div>
     `
-  }
+  }).join('')
+
+  return `
+    <div class="profile-head">
+      <div class="hello">Dobrý den, ${escapeHtml((user.name || '').split(' ')[0] || user.name || 'uživateli')}</div>
+      <div class="subtle">${escapeHtml(user.email || '')}</div>
+    </div>
+
+    <div class="section-h">Aktivní permanentky</div>
+    ${passHtml ? `<div class="nastenka-cards-2col">${passHtml}</div>` : `<div class="empty">Nemáte žádné aktivní permanentky.</div>`}
+    ${passHtml ? `
+      <div class="card-meta" style="margin-top:10px;">
+        V případě potřeby zrušení permanentky a vrácení peněz za zbylé vstupy nás prosím kontaktujte na jatakidu@gmail.com.
+      </div>
+    ` : ''}
+
+    <div class="section-h">Přihlášené lekce</div>
+    ${bookingsHtml || `<div class="empty">Zatím nemáte žádné přihlášené lekce.</div>`}
+  `
 }
+
+function _isAdminOnDashboard() {
+  const role = window.__userRole ?? currentUser?.role ?? 'uzivatel'
+  return role === 'admin' && document.getElementById('screen-admin-dashboard')?.classList.contains('active')
+}
+
+function renderProtectedSections(user) {
+  const main = document.getElementById('nastenka-content')
+  if (!main) return
+  main.innerHTML = buildUserOverviewHtml(user)
+}
+
+function _refreshUserOverviewUI() {
+  if (_isAdminOnDashboard()) {
+    void window.__refreshAdminScreen?.('admin-dashboard')
+    return
+  }
+  renderProtectedSections(currentUser)
+}
+
 
 window.refreshMyAuthUI = async () => {
   if (!currentUser) return
   await refreshUserBookings()
-  renderProtectedSections(currentUser)
+  _refreshUserOverviewUI()
 }
 
 // aby profil šel vykreslit i po přepnutí sekce (nav() maže obsah)
-window.renderProfile = () => renderProtectedSections(currentUser)
+window.renderProfile = () => _refreshUserOverviewUI()
 
 window.cancelMyBooking = async (bookingId) => {
   if (!currentUser || !bookingId) return
