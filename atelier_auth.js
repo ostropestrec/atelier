@@ -5,6 +5,7 @@
 // ============================================================
 
 import { sb } from './atelier-supabase.js'
+import { t } from './translations.js'
 
 // ── Globální stav aplikace (single source of truth; merge kvůli pořadí skriptů v index.html) ──
 window.AppState ??= {}
@@ -1242,55 +1243,63 @@ const _SVG = {
   cog:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
 }
 
+function _uiLocale() {
+  return typeof window !== 'undefined' && window.__uiLang === 'en' ? 'en' : 'cs'
+}
+
+function _navT(path) {
+  return t(_uiLocale(), path)
+}
+
 const _SIDEBAR_CFG = {
   uzivatel: [
-    { id: 'nastenka',  label: 'Přehled' },
-    { id: 'kalendar',  label: 'Kalendář' },
-    { id: 'kurzy',     label: 'Kurzy' },
-    { id: 'permanentky', label: 'Permanentky' },
+    { id: 'nastenka',  key: 'nav.overview' },
+    { id: 'kalendar',  key: 'nav.calendar' },
+    { id: 'kurzy',     key: 'nav.courses' },
+    { id: 'permanentky', key: 'nav.passes' },
   ],
   lektor: [
-    { section: 'PŘEHLED' },
-    { id: 'nastenka',          label: 'Přehled' },
-    { id: 'kalendar',          label: 'Kalendář' },
-    { id: 'moje-lekce',        label: 'Moje lekce' },
-    { section: 'SPRÁVA' },
-    { id: 'admin-kurzy',        label: 'Kurzy' },
-    { id: 'admin-permanentky',  label: 'Permanentky' },
+    { section: 'nav.sectionOverview' },
+    { id: 'nastenka',          key: 'nav.overview' },
+    { id: 'kalendar',          key: 'nav.calendar' },
+    { id: 'moje-lekce',        key: 'nav.myLessons' },
+    { section: 'nav.sectionManagement' },
+    { id: 'admin-kurzy',        key: 'nav.courses' },
+    { id: 'admin-permanentky',  key: 'nav.passes' },
   ],
   admin: [
-    { section: 'PŘEHLED' },
-    { id: 'admin-dashboard', label: 'Přehled' },
-    { id: 'kalendar',        label: 'Kalendář' },
-    { id: 'moje-lekce',     label: 'Moje lekce' },
-    { section: 'SPRÁVA' },
-    { id: 'admin-kurzy',        label: 'Kurzy' },
-    { id: 'admin-permanentky',  label: 'Permanentky' },
-    { id: 'admin-zakaznici',    label: 'Zákazníci' },
-    { id: 'admin-platby',       label: 'Platby' },
+    { section: 'nav.sectionOverview' },
+    { id: 'admin-dashboard', key: 'nav.overview' },
+    { id: 'kalendar',        key: 'nav.calendar' },
+    { id: 'moje-lekce',     key: 'nav.myLessons' },
+    { section: 'nav.sectionManagement' },
+    { id: 'admin-kurzy',        key: 'nav.courses' },
+    { id: 'admin-permanentky',  key: 'nav.passes' },
+    { id: 'admin-zakaznici',    key: 'nav.customers' },
+    { id: 'admin-platby',       key: 'nav.payments' },
   ],
 }
 
 const _BOTTOM_NAV = {
   uzivatel: [
-    { id: 'nastenka',  label: 'Přehled',  icon: _SVG.home },
-    { id: 'kalendar',  label: 'Kalendář',  icon: _SVG.cal  },
-    { id: 'kurzy',     label: 'Kurzy',     icon: _SVG.book },
+    { id: 'nastenka',  key: 'nav.overview',  icon: _SVG.home },
+    { id: 'kalendar',  key: 'nav.calendar',  icon: _SVG.cal  },
+    { id: 'kurzy',     key: 'nav.courses',     icon: _SVG.book },
   ],
   lektor: [
-    { id: 'nastenka',     label: 'Přehled',   icon: _SVG.home },
-    { id: 'kalendar',     label: 'Kalendář',   icon: _SVG.cal  },
-    { id: 'moje-lekce',   label: 'Moje lekce', icon: _SVG.clip },
-    { id: 'admin-kurzy',  label: 'Kurzy',      icon: _SVG.book },
+    { id: 'nastenka',     key: 'nav.overview',   icon: _SVG.home },
+    { id: 'kalendar',     key: 'nav.calendar',   icon: _SVG.cal  },
+    { id: 'moje-lekce',   key: 'nav.myLessons', icon: _SVG.clip },
+    { id: 'admin-kurzy',  key: 'nav.courses',      icon: _SVG.book },
   ],
   admin: [
-    { id: 'admin-dashboard', label: 'Přehled',  icon: _SVG.home },
-    { id: 'kalendar',       label: 'Kalendář', icon: _SVG.cal  },
-    { id: 'admin-kurzy',    label: 'Kurzy',    icon: _SVG.book },
+    { id: 'admin-dashboard', key: 'nav.overview',  icon: _SVG.home },
+    { id: 'kalendar',       key: 'nav.calendar', icon: _SVG.cal  },
+    { id: 'admin-kurzy',    key: 'nav.courses',    icon: _SVG.book },
   ],
 }
 
-function renderNavigation(user) {
+export function renderNavigation(user) {
   const role = user?.role ?? 'uzivatel'
   window.__userRole = role
 
@@ -1306,9 +1315,9 @@ function renderNavigation(user) {
         const separated = sectionSeen
         sectionSeen = true
         const sepCls = separated ? ' side-section-label--sep' : ''
-        return `<div class="side-section-label${sepCls}">${item.section}</div>`
+        return `<div class="side-section-label${sepCls}">${_navT(item.section)}</div>`
       }
-      return `<button class="side-link${activeId === item.id ? ' active' : ''}" onclick="nav('${item.id}', this)">${item.label}</button>`
+      return `<button class="side-link${activeId === item.id ? ' active' : ''}" onclick="nav('${item.id}', this)">${_navT(item.key)}</button>`
     }).join('')
   }
 
@@ -1319,7 +1328,7 @@ function renderNavigation(user) {
     bnav.innerHTML = items.map(item =>
       `<button${activeId === item.id ? ' class="active"' : ''} onclick="nav('${item.id}', this)">
         ${item.icon}
-        ${item.label}
+        ${_navT(item.key)}
       </button>`
     ).join('')
   }
@@ -1338,15 +1347,15 @@ function passCardSurface(hex) {
 /** Kurzy na aktivní permanentce (stejné pilulky jako katalog / admin). */
 function overviewPassCourseTagsHtml(allowedIds, colorHex) {
   const ph = pickPassTheme(colorHex)
-  const isEn = String(document.documentElement?.lang || 'cs').toLowerCase().startsWith('en')
-  const hdr = isEn ? 'Courses' : 'Kurzy'
+  const locale = _uiLocale()
+  const hdr = t(locale, 'nav.courses')
   const pill = txt =>
     `<span class="pass-shop-tag" style="background:${ph}22;color:${ph};">${escapeHtml(txt)}</span>`
   const courses = window.AppState?.courses ?? []
   const ids = Array.isArray(allowedIds) ? allowedIds : []
   let inner
   if (!ids.length) {
-    inner = pill(isEn ? 'Valid for all courses' : 'Platí na všechny kurzy')
+    inner = pill(t(locale, 'catalog.validAllCourses'))
   } else {
     const labels = ids
       .map(id => {
@@ -1356,7 +1365,7 @@ function overviewPassCourseTagsHtml(allowedIds, colorHex) {
       .filter(Boolean)
     inner = labels.length
       ? labels.map(l => pill(l)).join('')
-      : pill(isEn ? 'Selected courses' : 'Vybrané kurzy (viz detail)')
+      : pill(t(locale, 'catalog.selectedCoursesDetail'))
   }
   return `
     <div class="pass-shop-scope-heading">${hdr}</div>

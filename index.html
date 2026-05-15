@@ -1024,8 +1024,24 @@
 </head>
 <body>
   <script>
+  (function () {
+    try {
+      var k = 'atelier.uiLang'
+      var v = localStorage.getItem(k)
+      window.__uiLang = (v === 'en' || v === 'cs') ? v : 'cs'
+      document.documentElement.lang = window.__uiLang === 'en' ? 'en-GB' : 'cs'
+    } catch (e) {
+      window.__uiLang = 'cs'
+    }
+  })()
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('lang-switch')
+    if (!btn || !window.__uiLang) return
+    var isEn = window.__uiLang === 'en'
+    btn.textContent = isEn ? 'Česky' : 'English'
+    btn.setAttribute('aria-label', isEn ? 'Switch to Czech' : 'Switch to English')
+  })
   // Externí Stripe Checkout / Payment Links — peníze nejdou přes tuto SPA.
-  // Doplň URL z Stripe Dashboard; volitelně per permanentka / per kurz.
   window.__externalStripePayments = window.__externalStripePayments || {
     passDefault: '',
     singleLessonDefault: '',
@@ -1047,19 +1063,20 @@
   </button>
   <span class="logo">Ateliér</span>
   <div class="top-actions">
-    <div class="lang-toggle" aria-label="Language">
-      <button class="lang-pill active" onclick="window.__setLang?.('cs'); window.syncLangUI?.('cs')">CS</button>
-      <button class="lang-pill" onclick="window.__setLang?.('en'); window.syncLangUI?.('en')">EN</button>
+    <div class="lang-toggle">
+      <button type="button" class="lang-pill lang-switch" id="lang-switch"
+        onclick="window.__toggleLang?.()"
+        aria-label="English">English</button>
     </div>
-    <button class="sbtn" id="sbtn" onclick="window.openAuthPopup?.()">Přihlásit se</button>
-    <div class="avatar g" id="av" title="Přihlásit se">?</div>
+    <button class="sbtn" id="sbtn" onclick="window.openAuthPopup?.()" data-i18n="pages.signIn">Přihlásit se</button>
+    <div class="avatar g" id="av" data-i18n-title="pages.avatarGuestTitle" title="Přihlásit se">?</div>
   </div>
 </div>
 
 <!-- Avatar dropdown -->
 <div id="av-menu">
-  <button onclick="nav('nastaveni')">Nastavení</button>
-  <button class="danger" onclick="window.signOut?.()">Odhlásit se</button>
+  <button onclick="nav('nastaveni')" data-i18n="nav.settings">Nastavení</button>
+  <button class="danger" onclick="window.signOut?.()" data-i18n="pages.signOut">Odhlásit se</button>
 </div>
 
 <div class="app">
@@ -1068,53 +1085,53 @@
 
 <!-- ── Screen: Přehled ── -->
 <div class="screen active" id="screen-nastenka">
-  <div class="sec-title">Přehled</div>
+  <div class="sec-title" data-i18n="nav.overview">Přehled</div>
   <div id="nastenka-content"></div>
 </div>
 
 <!-- ── Screen: Nastavení (z menu pod avatarem) ── -->
 <div class="screen" id="screen-nastaveni">
-  <div class="page-title">Nastavení</div>
-  <div class="page-sub">Správa účtu</div>
+  <div class="page-title" data-i18n="pages.settingsTitle">Nastavení</div>
+  <div class="page-sub" data-i18n="pages.settingsSub">Správa účtu</div>
 
-  <div class="block-label">Osobní údaje</div>
+  <div class="block-label" data-i18n="pages.personalData">Osobní údaje</div>
   <div class="field">
-    <label for="set-name">Jméno a příjmení</label>
-    <input class="input" id="set-name" type="text" placeholder="Vaše jméno" />
+    <label for="set-name" data-i18n="pages.fullName">Jméno a příjmení</label>
+    <input class="input" id="set-name" type="text" data-i18n-placeholder="pages.fullNamePh" placeholder="Vaše jméno" />
   </div>
   <div class="field">
-    <label for="set-email">E-mailová adresa</label>
-    <input class="input" id="set-email" type="email" placeholder="email@domena.cz" disabled />
+    <label for="set-email" data-i18n="pages.email">E-mailová adresa</label>
+    <input class="input" id="set-email" type="email" data-i18n-placeholder="pages.emailPh" placeholder="email@domena.cz" disabled />
   </div>
   <div class="field">
-    <label>Barva avatara</label>
+    <label data-i18n="pages.avatarColour">Barva avatara</label>
     <div style="display:flex;align-items:center;gap:14px;">
       <div class="avatar-preview" id="set-avatar-preview">?</div>
-      <div style="font-size:12px;color:#6b6b6b;line-height:1.5;">
+      <div class="helper" style="font-size:12px;color:#6b6b6b;line-height:1.5;" data-i18n="pages.avatarColourHint">
         Vyberte barvu kolečka, která se zobrazí v horní liště u vašeho profilu.
       </div>
     </div>
     <div class="avatar-color-grid" id="set-avatar-colors"></div>
   </div>
 
-  <div class="block-label">Změna hesla</div>
-  <div class="helper" id="set-pw-helper">Nastavte nebo změňte heslo pro přihlášení e-mailem a heslem. Pokud to bude Supabase vyžadovat, vyplňte i současné heslo. Heslo se uloží spolu s tlačítkem „Uložit změny“ níže.</div>
+  <div class="block-label" data-i18n="pages.changePassword">Změna hesla</div>
+  <div class="helper" id="set-pw-helper" data-i18n="pages.passwordHelper">Nastavte nebo změňte heslo pro přihlášení e-mailem a heslem. Pokud to bude Supabase vyžadovat, vyplňte i současné heslo. Heslo se uloží spolu s tlačítkem „Uložit změny“ níže.</div>
   <div class="field" id="set-pw-current-field">
-    <label for="set-pw-current" id="set-pw-current-label">Současné heslo</label>
-    <input class="input" id="set-pw-current" type="password" placeholder="Vaše aktuální heslo" autocomplete="current-password" />
+    <label for="set-pw-current" id="set-pw-current-label" data-i18n="pages.currentPassword">Současné heslo</label>
+    <input class="input" id="set-pw-current" type="password" data-i18n-placeholder="pages.currentPasswordPh" placeholder="Vaše aktuální heslo" autocomplete="current-password" />
   </div>
   <div class="field">
-    <label for="set-pw1">Nové heslo</label>
-    <input class="input" id="set-pw1" type="password" placeholder="Minimálně 8 znaků" autocomplete="new-password" />
+    <label for="set-pw1" data-i18n="pages.newPassword">Nové heslo</label>
+    <input class="input" id="set-pw1" type="password" data-i18n-placeholder="pages.newPasswordPh" placeholder="Minimálně 8 znaků" autocomplete="new-password" />
   </div>
   <div class="field">
-    <label for="set-pw2">Potvrzení hesla</label>
-    <input class="input" id="set-pw2" type="password" placeholder="Zopakujte nové heslo" autocomplete="new-password" />
+    <label for="set-pw2" data-i18n="pages.confirmPassword">Potvrzení hesla</label>
+    <input class="input" id="set-pw2" type="password" data-i18n-placeholder="pages.confirmPasswordPh" placeholder="Zopakujte nové heslo" autocomplete="new-password" />
   </div>
 
-  <div class="block-label">Notifikace</div>
+  <div class="block-label" data-i18n="pages.notifications">Notifikace</div>
   <div class="field">
-    <label for="set-reminder">Připomínka lekce</label>
+    <label for="set-reminder" data-i18n="pages.lessonReminder">Připomínka lekce</label>
     <select class="select" id="set-reminder">
       <option value="6">6 hodin předem</option>
       <option value="24">24 hodin předem</option>
@@ -1123,27 +1140,27 @@
     </select>
   </div>
 
-  <button class="btn-wide" id="set-save" onclick="window.saveSettings?.()">Uložit změny</button>
+  <button class="btn-wide" id="set-save" onclick="window.saveSettings?.()" data-i18n="common.save">Uložit změny</button>
 
-  <div class="block-label" id="profile-danger-zone">Nebezpečná zóna</div>
+  <div class="block-label" id="profile-danger-zone" data-i18n="pages.dangerZone">Nebezpečná zóna</div>
   <div class="danger-card">
-    <div class="danger-title">Smazání účtu</div>
-    <div class="danger-text">
+    <div class="danger-title" data-i18n="pages.deleteAccountTitle">Smazání účtu</div>
+    <div class="danger-text" data-i18n="pages.deleteAccountLead">
       Trvalé smazání účtu. Aktivní permanentky zanikají bez nároku na automatickou refundaci.
     </div>
-    <button class="btn-wide danger" onclick="window.openDeleteAccountModal?.()">Smazat můj účet</button>
+    <button class="btn-wide danger" onclick="window.openDeleteAccountModal?.()" data-i18n="pages.deleteAccountBtn">Smazat můj účet</button>
   </div>
 </div>
 
 <!-- ── Screen: Kurzy ── -->
 <div class="screen" id="screen-kurzy">
-  <div class="sec-title">Kurzy</div>
+  <div class="sec-title" data-i18n="nav.courses">Kurzy</div>
   <!-- Karty kurzů renderuje atelier-data.js do tohoto containeru -->
 </div>
 
 <!-- ── Screen: Permanentky (nákupní katalog, běžný uživatel) ── -->
 <div class="screen" id="screen-permanentky">
-  <div class="sec-title">Permanentky</div>
+  <div class="sec-title" data-i18n="nav.passes">Permanentky</div>
   <div id="permanentky-shop-content"></div>
 </div>
 
@@ -1274,19 +1291,19 @@
           background:#E1F5EE;color:#085041;padding:3px 8px;border-radius:20px;">✓ PŘIHLÁŠENO</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-        <div><div style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Lektor</div><div id="kal-lektor" style="font-size:12px;"></div></div>
-        <div><div style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Délka</div><div id="kal-delka" style="font-size:12px;"></div></div>
-        <div><div style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Volná místa</div><div id="kal-mista" style="font-size:12px;"></div></div>
+        <div><div id="kal-lbl-inst" style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Lektor</div><div id="kal-lektor" style="font-size:12px;"></div></div>
+        <div><div id="kal-lbl-dur" style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Délka</div><div id="kal-delka" style="font-size:12px;"></div></div>
+        <div><div id="kal-lbl-spots" style="font-size:9px;color:#9b9b9b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Volná místa</div><div id="kal-mista" style="font-size:12px;"></div></div>
       </div>
       <!-- Tlačítka pro přihlášeného uživatele (enrolled) -->
       <div id="kal-btns-enr" style="display:none;">
-        <button class="pop-close" onclick="window.cancelBookingFromPopup?.()">Stornovat rezervaci</button>
+        <button type="button" class="pop-close" id="kal-cancel-booking-btn" onclick="window.cancelBookingFromPopup?.()">Stornovat rezervaci</button>
       </div>
       <!-- Tlačítka pro nepřihlášeného -->
       <div id="kal-btns-free" style="display:grid;gap:6px;">
-        <button id="kal-rez-btn" class="btn-res" style="padding:11px;border:none;font-size:13px;font-weight:500;cursor:pointer;">Rezervovat</button>
+        <button type="button" id="kal-rez-btn" class="btn-res" style="padding:11px;border:none;font-size:13px;font-weight:500;cursor:pointer;" data-i18n="booking.btn.book">Rezervovat</button>
       </div>
-      <button class="pop-close" onclick="document.getElementById('pop-kal').style.display='none'">Zavřít</button>
+      <button type="button" class="pop-close" onclick="document.getElementById('pop-kal').style.display='none'" data-i18n="pages.popKalClose">Zavřít</button>
     </div>
   </div>
 </div>
@@ -1298,7 +1315,7 @@
     <div class="pop-body">
       <div id="bk-name" style="font-size:16px;font-weight:600;margin-bottom:16px;"></div>
 
-      <div class="blbl" style="margin-bottom:6px;">Termín</div>
+      <div class="blbl" style="margin-bottom:6px;" data-i18n="booking.section.session">Termín</div>
       <div id="bk-lesson-single-wrap">
         <select id="bk-lesson-select" class="input" style="width:100%;margin-bottom:14px;"></select>
       </div>
@@ -1308,16 +1325,17 @@
         <div id="bk-multi-hint" style="font-size:11px;color:#6b6b6b;margin-top:8px;"></div>
       </div>
 
-      <div class="blbl" style="margin-bottom:6px;">Způsob platby</div>
+      <div class="blbl" style="margin-bottom:6px;" data-i18n="booking.section.payment">Způsob platby</div>
       <div id="bk-payment-opts" style="margin-bottom:16px;"></div>
       <div id="bk-pass-buy-panel" style="display:none;margin:-4px 0 16px;"></div>
 
-      <button id="bk-confirm-btn" class="btn-res"
+      <button type="button" id="bk-confirm-btn" class="btn-res"
         style="width:100%;padding:11px;border:none;font-size:13px;font-weight:500;cursor:pointer;"
-        onclick="window.confirmBooking?.()">
+        onclick="window.confirmBooking?.()"
+        data-i18n="booking.btn.confirmBooking">
         Potvrdit rezervaci
       </button>
-      <button class="pop-close" onclick="document.getElementById('pop-booking').style.display='none'">Zrušit</button>
+      <button type="button" class="pop-close" onclick="document.getElementById('pop-booking').style.display='none'" data-i18n="common.cancel">Zrušit</button>
     </div>
   </div>
 </div>
@@ -1326,16 +1344,17 @@
 <div class="pop-overlay" id="pop-external-pay" onclick="if(event.target===this)window.cancelExternalStripePayment?.()">
   <div class="pop-sheet" role="dialog" aria-modal="true" aria-labelledby="ep-title">
     <div class="pop-body">
-      <div id="ep-title" style="font-size:17px;font-weight:600;margin-bottom:10px;">Způsob platby</div>
+      <div id="ep-title" style="font-size:17px;font-weight:600;margin-bottom:10px;" data-i18n="payment.externalTitle">Způsob platby</div>
       <p id="ep-lead" class="ep-pay-lead"></p>
       <div id="ep-summary" class="ep-summary" aria-live="polite"></div>
       <div id="ep-no-url" class="ep-no-url" style="display:none;"></div>
       <button type="button" id="ep-stripe-btn" class="btn-res"
         style="width:100%;padding:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;background:#635bff;color:#fff;"
-        onclick="window.confirmExternalStripePayment?.()">
+        onclick="window.confirmExternalStripePayment?.()"
+        data-i18n="payment.payStripe">
         Zaplatit přes Stripe
       </button>
-      <button type="button" id="ep-back-btn" class="pop-close" onclick="window.cancelExternalStripePayment?.()">Zpět</button>
+      <button type="button" id="ep-back-btn" class="pop-close" onclick="window.cancelExternalStripePayment?.()" data-i18n="common.back">Zpět</button>
     </div>
   </div>
 </div>
@@ -1391,11 +1410,13 @@
 
   window.nav = nav
 
-  // Lang UI helper (napojeno na tlačítka v topbaru)
-  window.syncLangUI = (l) => {
-    document.querySelectorAll('.lang-pill').forEach(p => p.classList.remove('active'))
-    const btn = Array.from(document.querySelectorAll('.lang-pill')).find(b => b.textContent.trim().toLowerCase() === String(l).toLowerCase())
-    if (btn) btn.classList.add('active')
+  // Lang: jedno přepínací tlačítko zobrazuje cílový jazyk (CS → „English“, EN → „Česky“).
+  window.syncLangUI = (currentLang) => {
+    const btn = document.getElementById('lang-switch')
+    if (!btn) return
+    const isEn = currentLang === 'en'
+    btn.textContent = isEn ? 'Česky' : 'English'
+    btn.setAttribute('aria-label', isEn ? 'Switch to Czech' : 'Switch to English')
   }
 
   // Kalendář: pevná struktura časů (i bez dat)

@@ -15,27 +15,118 @@ import {
   myBookings,
   canUserCancelBooking,
   getUserBookingCancellationMessage,
+  renderNavigation,
 } from './atelier_auth.js'
+import { t, UI_LANG_STORAGE_KEY } from './translations.js'
 
 // ── Jazyk ─────────────────────────────────────────────────────
 export let lang = 'cs'
+try {
+  const _ls = localStorage.getItem(UI_LANG_STORAGE_KEY)
+  if (_ls === 'en' || _ls === 'cs') lang = _ls
+} catch (_) { /* */ }
+
+function _syncDocumentLang() {
+  try {
+    document.documentElement.lang = lang === 'en' ? 'en-GB' : 'cs'
+  } catch (_) { /* SSR */ }
+}
+
+if (typeof window !== 'undefined') {
+  window.__uiLang = lang
+}
+_syncDocumentLang()
+
+/** Aktuální locale pro t() ('cs' | 'en'). */
+function _locale() {
+  return lang === 'en' ? 'en' : 'cs'
+}
+
+function _tp(path, params) {
+  return t(_locale(), path, params)
+}
+
+function refreshStaticI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const path = el.getAttribute('data-i18n')
+    if (!path) return
+    let params = {}
+    const raw = el.getAttribute('data-i18n-params')
+    if (raw) {
+      try { params = JSON.parse(raw) } catch (_) {}
+    }
+    el.textContent = _tp(path, params)
+  })
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const path = el.getAttribute('data-i18n-title')
+    if (!path) return
+    let params = {}
+    const raw = el.getAttribute('data-i18n-params')
+    if (raw) {
+      try { params = JSON.parse(raw) } catch (_) {}
+    }
+    el.title = _tp(path, params)
+  })
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const path = el.getAttribute('data-i18n-placeholder')
+    if (!path) return
+    el.placeholder = _tp(path)
+  })
+  const rem = document.getElementById('set-reminder')
+  if (rem && rem.options?.length >= 4) {
+    rem.options[0].textContent = _tp('pages.reminder6h')
+    rem.options[1].textContent = _tp('pages.reminder24h')
+    rem.options[2].textContent = _tp('pages.reminder48h')
+    rem.options[3].textContent = _tp('pages.reminderOff')
+  }
+}
+
+window.refreshStaticI18n = refreshStaticI18n
+
+function _multiSessionsWord(cap) {
+  const n = Number(cap) || 0
+  if (lang !== 'cs') {
+    return n === 1 ? _tp('booking.multiHintSessionsOne') : _tp('booking.multiHintSessionsMany')
+  }
+  if (n === 1) return _tp('booking.multiHintSessionsOne')
+  if (n >= 2 && n <= 4) return _tp('booking.multiHintSessionsFew')
+  return _tp('booking.multiHintSessionsMany')
+}
+
+function _entriesWordPick(cap) {
+  return Number(cap) === 1 ? _tp('booking.payment.perEntry') : _tp('booking.payment.entriesLabel')
+}
+
+/** Platnost permanentky po zakoupení (uživ. katalog). */
+function _passShopValidityLine(weeks) {
+  const w = Number(weeks) || 0
+  if (lang === 'cs') {
+    if (w === 1) return _tp('shop.validityOneWeek')
+    if (w >= 2 && w <= 4) return _tp('shop.validityWeeksFew', { weeks: w })
+    return _tp('shop.validityWeeksMany', { weeks: w })
+  }
+  return w === 1 ? _tp('shop.validityOneWeek') : _tp('shop.validityWeeksMany', { weeks: w })
+}
+
 export const setLang = l => {
   lang = l === 'en' ? 'en' : 'cs'
+  if (typeof window !== 'undefined') window.__uiLang = lang
   try {
-    document.documentElement.lang = lang
-  } catch (_) { /* SSR / restrictive env */ }
+    localStorage.setItem(UI_LANG_STORAGE_KEY, lang)
+    _syncDocumentLang()
+  } catch (_) { /* */ }
   renderAll()
+  window.syncLangUI?.(lang)
+  window.refreshStaticI18n?.()
+  try {
+    renderNavigation(currentUser)
+  } catch (_) { /* */ }
 }
+
 const loc = obj => typeof obj === 'object' && obj ? (obj[lang] ?? obj.cs ?? '') : (obj ?? '')
 
-// umožní topbaru v index.html přepínat jazyk
 window.__setLang = setLang
-
-// ── Omezení výběru termínů podle zbývajících vstupů na permanentce ──
-const PASS_ENTRIES_LIMIT_HINT_CS =
-  'Dosáhli jste limitu své permanentky. Pro další lekce si prosím zakupte novou.'
-const PASS_ENTRIES_LIMIT_HINT_EN =
-  "You've reached your pass limit. Please purchase a new pass for more lessons."
+window.__toggleLang = () => setLang(lang === 'cs' ? 'en' : 'cs')
 const LESSONS_SELECT =
   'lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots'
 const BOOKINGS_LIVE_REFRESH_COOLDOWN_MS = 4000
@@ -51,24 +142,21 @@ function passCardSurfaceCss(hex) {
 
 /** Kurzy permanentky jako pill štítky (uživ. katalog) */
 function passShopCourseTagsBlock(ids, courseTitle, pc) {
-  const hdr = `<div class="pass-shop-scope-heading">${lang === 'cs' ? 'Kurzy' : 'Courses'}</div>`
+  const hdr = `<div class="pass-shop-scope-heading">${_escHtml(_tp('nav.courses'))}</div>`
   const pill = txt =>
     `<span class="pass-shop-tag" style="background:${pc}22;color:${pc};">${_escHtml(txt)}</span>`
   if (!ids.length) {
-    return `${hdr}<div class="pass-shop-course-tags">${pill(lang === 'cs' ? 'Platí na všechny kurzy' : 'Valid for all courses')}</div>`
+    return `${hdr}<div class="pass-shop-course-tags">${pill(_tp('catalog.validAllCourses'))}</div>`
   }
   const labels = ids.map(courseTitle).filter(Boolean)
   if (!labels.length) {
-    return `${hdr}<div class="pass-shop-course-tags">${pill(lang === 'cs' ? 'Vybrané kurzy (viz detail)' : 'Selected courses')}</div>`
+    return `${hdr}<div class="pass-shop-course-tags">${pill(_tp('catalog.selectedCoursesDetail'))}</div>`
   }
   return `${hdr}<div class="pass-shop-course-tags">${labels.map(l => pill(l)).join('')}</div>`
 }
 
 function _toastPassEntriesLimitReached() {
-  window.showToast?.(
-    lang === 'cs' ? PASS_ENTRIES_LIMIT_HINT_CS : PASS_ENTRIES_LIMIT_HINT_EN,
-    'error',
-  )
+  window.showToast?.(_tp('booking.toast.passEntriesLimitReached'), 'error')
 }
 
 /** Zbývající vstupy na konkrétní user_passes řádek (aktuálně načtené v aplikaci). */
@@ -106,10 +194,11 @@ function _refreshPopupPassSlotsCounter() {
   const cap = _remainingEntriesOnUserPass(passId)
   const n = document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked').length
   slotEl.style.display = 'block'
-  slotEl.textContent =
-    lang === 'cs'
-      ? `Vybráno ${n} z ${cap} vstupů`
-      : `Selected ${n} of ${cap} ${cap === 1 ? 'entry' : 'entries'}`
+  slotEl.textContent = _tp('booking.passPickerCountSelected', {
+    n,
+    cap,
+    entriesWord: _entriesWordPick(cap),
+  })
 }
 
 function _refreshCardPassSlotsRow(courseId) {
@@ -123,10 +212,11 @@ function _refreshCardPassSlotsRow(courseId) {
   const cap = _remainingEntriesOnUserPass(st.passId)
   const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
   el.style.display = 'block'
-  el.textContent =
-    lang === 'cs'
-      ? `Vybráno ${n} z ${cap} vstupů`
-      : `Selected ${n} of ${cap} ${cap === 1 ? 'entry' : 'entries'}`
+  el.textContent = _tp('booking.passPickerCountSelected', {
+    n,
+    cap,
+    entriesWord: _entriesWordPick(cap),
+  })
 }
 
 function _refreshDetailPassSlotsRow(courseId) {
@@ -140,10 +230,11 @@ function _refreshDetailPassSlotsRow(courseId) {
   const cap = _remainingEntriesOnUserPass(st.passId)
   const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
   el.style.display = 'block'
-  el.textContent =
-    lang === 'cs'
-      ? `Vybráno ${n} z ${cap} vstupů`
-      : `Selected ${n} of ${cap} ${cap === 1 ? 'entry' : 'entries'}`
+  el.textContent = _tp('booking.passPickerCountSelected', {
+    n,
+    cap,
+    entriesWord: _entriesWordPick(cap),
+  })
 }
 
 function _syncCardPrimaryButton(courseId) {
@@ -151,10 +242,10 @@ function _syncCardPrimaryButton(courseId) {
   const st = window._cardState?.[courseId] ?? {}
   if (!btn) return
   if (st.paymentType === 'buy-pass') {
-    btn.textContent = lang === 'cs' ? 'Koupit permanentku' : 'Buy pass'
+    btn.textContent = _tp('booking.btn.buyPass')
     return
   }
-  btn.textContent = lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'
+  btn.textContent = _tp('booking.btn.continueToBooking')
 }
 
 function _bkSelectedLessonForPopupSingleSelect() {
@@ -181,7 +272,7 @@ function _syncPopupPrimaryButton() {
   const course = window.AppState.courses.find(c => String(c.id) === String(courseId))
 
   if (paymentSel.startsWith('up-')) {
-    btn.textContent = lang === 'cs' ? 'Potvrdit rezervaci' : 'Confirm booking'
+    btn.textContent = _tp('booking.btn.confirmBooking')
     return
   }
 
@@ -192,17 +283,13 @@ function _syncPopupPrimaryButton() {
     const les = _bkSelectedLessonForPopupSingleSelect()
     const slot = les
       ? _fmtBkLessonLine(les)
-      : (lang === 'cs' ? '— vyberte termín —' : '— select session —')
-    btn.textContent = lang === 'cs'
-      ? `Koupit a zarezervovat termín · ${slot} · ${passPriceTxt}`
-      : `Buy pass and reserve · ${slot} · ${passPriceTxt}`
+      : _tp('booking.slot.selectPrompt')
+    btn.textContent = _tp('booking.btn.buyPassAndBook', { slot, price: passPriceTxt })
     return
   }
 
   const priceTxt = fmtPrice(Number(course?.price_single) || 0)
-  btn.textContent = lang === 'cs'
-    ? `Potvrdit a zaplatit ${priceTxt}`
-    : `Confirm and pay ${priceTxt}`
+  btn.textContent = _tp('booking.btn.confirmAndPay', { price: priceTxt })
 }
 
 // ── Stav v AppState (single source of truth) ──────────────────
@@ -288,6 +375,8 @@ async function init() {
 
     window.AppState.initialized = true
     renderAll()
+    window.syncLangUI?.(lang)
+    window.refreshStaticI18n?.()
 
     // Defaultní obrazovka podle role: admin → přehled (dashboard), lektor → vlastní lekce, ostatní → přehled.
     const defaultPage = _role === 'admin'
@@ -703,8 +792,8 @@ export function renderKalendar() {
       <div class="evn" style="color:${color};">${name}</div>
       <div class="evt" style="color:${color};">${timeStr}</div>
       ${course?.is_workshop ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP</div>` : ''}
-      ${enrolled ? `<div class="evb" style="color:${color};">✓ ${lang === 'cs' ? 'PŘIHLÁŠENO' : 'ENROLLED'}</div>` : ''}
-      ${full && !enrolled ? `<div class="evb" style="color:${color};">${lang === 'cs' ? 'PLNO' : 'FULL'}</div>` : ''}
+      ${enrolled ? `<div class="evb" style="color:${color};">✓ ${_escHtml(_tp('common.enrolled'))}</div>` : ''}
+      ${full && !enrolled ? `<div class="evb" style="color:${color};">${_escHtml(_tp('common.full').toUpperCase())}</div>` : ''}
     `
 
     el.addEventListener('click', () => openKalendarPopup(l, course, enrolled))
@@ -769,6 +858,9 @@ function openKalendarPopup(lesson, course, enrolled) {
   if (bar) bar.style.background = color
 
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val }
+  setEl('kal-lbl-inst', _tp('courses.instructor'))
+  setEl('kal-lbl-dur', _tp('kal.duration'))
+  setEl('kal-lbl-spots', _tp('kal.spots'))
   setEl('kal-name',   name)
   setEl('kal-meta',   `${fmtDayFull(start)} · ${fmtTime(start)}–${fmtTime(end)}`)
   setEl('kal-lektor', ownerName ?? '—')
@@ -785,12 +877,17 @@ function openKalendarPopup(lesson, course, enrolled) {
   const bFree    = document.getElementById('kal-btns-free')
   const rezBtn   = document.getElementById('kal-rez-btn')
 
-  if (enrBadge) enrBadge.style.display = enrolled ? 'inline-block' : 'none'
+  if (enrBadge) {
+    enrBadge.textContent = `✓ ${_tp('common.enrolled')}`
+    enrBadge.style.display = enrolled ? 'inline-block' : 'none'
+  }
+  const cKalCancel = document.getElementById('kal-cancel-booking-btn')
+  if (cKalCancel) cKalCancel.textContent = _tp('kal.cancelBooking')
   if (bEnr)     bEnr.style.display     = enrolled && canCancelEnrolledBooking ? 'block' : 'none'
   if (bFree)    bFree.style.display    = enrolled ? 'none'  : 'grid'
   if (rezBtn) {
     rezBtn.style.background = color
-    rezBtn.textContent = lang === 'cs' ? 'Rezervovat' : 'Book'
+    rezBtn.textContent = _tp('booking.btn.book')
     rezBtn.onclick = () => {
       window.closeAll?.()
       window.openBookingPopup?.(lesson.course_id, null, lesson.lesson_id ?? lesson.id)
@@ -805,7 +902,7 @@ function openKalendarPopup(lesson, course, enrolled) {
 window.cancelBookingFromPopup = async () => {
   const lid = window._kalOpenLessonId
   if (!currentUser?.id || !lid) {
-    window.showToast?.(lang === 'cs' ? 'Nelze zrušit rezervaci (chybí lekce).' : 'Cannot cancel (no lesson).', 'error')
+    window.showToast?.(_tp('booking.toast.cancelNoLesson'), 'error')
     return
   }
   try {
@@ -825,16 +922,11 @@ window.cancelBookingFromPopup = async () => {
       .maybeSingle()
     if (error) throw error
     if (!data?.id) {
-      window.showToast?.(lang === 'cs' ? 'Aktivní rezervace nenalezena.' : 'No active booking found.', 'error')
+      window.showToast?.(_tp('booking.toast.noActiveBooking'), 'error')
       return
     }
     if (data.payment_type === 'single') {
-      window.showToast?.(
-        lang === 'cs'
-          ? 'Jednorázový vstup nelze stornovat.'
-          : 'Single-entry bookings cannot be cancelled.',
-        'error',
-      )
+      window.showToast?.(_tp('booking.toast.singleCannotCancel'), 'error')
       return
     }
     if (!canUserCancelBooking(data)) {
@@ -852,7 +944,7 @@ window.cancelBookingFromPopup = async () => {
       throw new Error(msg)
     }
 
-    window.showToast?.(lang === 'cs' ? 'Rezervace byla zrušena.' : 'Booking cancelled.', 'ok')
+    window.showToast?.(_tp('booking.toast.cancelled'), 'ok')
     const pop = document.getElementById('pop-kal')
     if (pop) pop.style.display = 'none'
     await Promise.all([fetchUpcomingLessons(), fetchLessons()])
@@ -861,7 +953,7 @@ window.cancelBookingFromPopup = async () => {
     window.refreshUserBookings?.()
   } catch (err) {
     console.error('[cancelBookingFromPopup]', err)
-    window.showToast?.((lang === 'cs' ? 'Chyba: ' : 'Error: ') + (err.message ?? err), 'error')
+    window.showToast?.(_tp('booking.toast.errorPrefix') + (err.message ?? err), 'error')
   }
 }
 
@@ -878,7 +970,7 @@ export function renderKurzy() {
   if (!window.AppState.courses.length) {
     container.insertAdjacentHTML('beforeend', `
       <div style="padding:40px;text-align:center;font-size:12px;color:#9b9b9b;">
-        ${lang === 'cs' ? 'Žádné aktivní kurzy' : 'No active courses'}
+        ${_tp('courses.noActiveCourses')}
       </div>`)
     return
   }
@@ -916,10 +1008,10 @@ export function renderKurzy() {
           <div class="cname">${title}</div>
           <div class="cmeta">
             <span class="cmi">${ownerName ?? '—'}</span>
-            <span class="cmi">${c.capacity_default} míst</span>
+            <span class="cmi">${c.capacity_default} ${_tp('courses.capacitySpots')}</span>
             ${soldOut
-              ? `<span class="badge" style="background:#fdeaea;color:#791F1F;">${lang === 'cs' ? 'plno' : 'full'}</span>`
-              : `<span class="badge" style="background:#eaf5ea;color:#085041;">${lang === 'cs' ? 'volná místa' : 'spots available'}</span>`
+              ? `<span class="badge" style="background:#fdeaea;color:#791F1F;">${_tp('courses.badgeFull')}</span>`
+              : `<span class="badge" style="background:#eaf5ea;color:#085041;">${_tp('courses.badgeSpots')}</span>`
             }
           </div>
         </div>
@@ -935,11 +1027,11 @@ export function renderKurzy() {
             ${buildCourseImage(c)}
             <div style="font-size:11px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
             <button type="button" class="btn-detail" onclick="openDetail('${c.id}')">
-              ${lang === 'cs' ? 'Detail kurzu →' : 'Course detail →'}
+              ${_tp('courses.detailLink')}
             </button>
           </div>
           <div class="cxi-right">
-            <div class="blbl">${lang === 'cs' ? 'Vypsané termíny' : 'All scheduled dates'}</div>
+            <div class="blbl">${_tp('courses.lessonListTitle')}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
               ${buildTermPills(upcoming, color, c.id, false)}
             </div>
@@ -957,13 +1049,13 @@ function buildCourseImage(c) {
   return url
     ? `<img src="${url}" style="width:100%;height:78px;object-fit:cover;border-radius:8px;margin-bottom:10px;" alt="" />`
     : `<div style="background:#F8F8F8;border-radius:8px;height:78px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:10px;color:#9b9b9b;">
-         ${lang === 'cs' ? 'foto kurzu' : 'course photo'}
+         ${_tp('courses.photoAlt')}
        </div>`
 }
 
 function buildTermPills(upcoming, color, courseId, interactive = true) {
   if (!upcoming.length) {
-    return `<span style="font-size:10px;color:#9b9b9b;">${lang === 'cs' ? 'Žádné termíny' : 'No dates available'}</span>`
+    return `<span style="font-size:10px;color:#9b9b9b;">${_tp('courses.noDates')}</span>`
   }
   const firstAvailIdx = upcoming.findIndex(l => l.available_spots > 0)
   return upcoming.map((l, i) => {
@@ -994,7 +1086,7 @@ function buildTermPills(upcoming, color, courseId, interactive = true) {
              cursor:${interactive && !full ? 'pointer' : 'default'};
              ${full ? 'opacity:.5;' : ''}"
       ${interactive && !full ? `onclick="window.pickTerm(this,'${color}','${courseId}')"` : ''}
-    >${label}${full ? ` (${lang === 'cs' ? 'plno' : 'full'})` : ''}</span>`
+    >${label}${full ? ` (${_tp('courses.optionFullSuffix')})` : ''}</span>`
   }).join('')
 }
 
@@ -1002,7 +1094,7 @@ function buildCourseReserveButton(c, color) {
   return `
     <button type="button" class="btn-res" id="res-btn-${c.id}" style="background:${color};margin-top:4px;"
       onclick="window.reserveFromCard('${c.id}')">
-      ${lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'}
+      ${_tp('booking.btn.continueToBooking')}
     </button>`
 }
 
@@ -1014,17 +1106,17 @@ function buildBuyPanel(c, color) {
       data-pay-type="single" data-color="${color}" data-course-id="${c.id}"
       onclick="window.selectPayment(this,'${c.id}','single',null)">
       <div class="brow">
-        <span class="bnm">${lang === 'cs' ? 'Jednorázový vstup' : 'Single entry'}</span>
+        <span class="bnm">${_tp('booking.payment.singleSession')}</span>
         <span style="font-size:11px;font-weight:500;color:${color};">${fmtPrice(c.price_single)}</span>
       </div>
-      <div class="bsb">${lang === 'cs' ? 'Platí pro jednu lekci' : 'Valid for one lesson'}</div>
+      <div class="bsb">${_tp('booking.payment.singleSessionValidity')}</div>
     </div>
     <div id="pass-panel-${c.id}"></div>
     <div id="card-pass-count-${c.id}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
     <div id="card-msg-${c.id}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
     <button class="btn-res" id="res-btn-${c.id}" style="background:${color};"
       onclick="window.reserveFromCard('${c.id}')">
-      ${lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'}
+      ${_tp('booking.btn.continueToBooking')}
     </button>`
 }
 
@@ -1064,9 +1156,9 @@ function buildPassPurchaseCards(passRows, courseId, color, compact = false, sele
           <span style="font-size:11px;font-weight:500;color:${pc};">${fmtPrice(p.price)}</span>
         </div>
         <div class="bsb" style="margin-top:4px;">
-          ${p.entries_total} ${lang === 'cs' ? 'vstupů' : 'entries'} · ${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}
+          ${p.entries_total} ${_tp('booking.payment.entriesLabel')} · ${perEntry}/${_tp('booking.payment.perEntry')}
           <span style="display:block;margin-top:3px;color:${pc};font-weight:500;">
-            ${lang === 'cs' ? 'Permanentka ke koupi' : 'Pass available to buy'}
+            ${_tp('booking.payment.passAvailableToBuy')}
           </span>
         </div>
       </div>`
@@ -1125,9 +1217,9 @@ async function loadPassesForCourse(courseId) {
           onclick="window.selectPayment(this,'${courseId}','pass','${up.id}')">
           <div class="brow">
             <span class="bnm">${name}</span>
-            <span style="font-size:11px;font-weight:600;color:${pc};">${up.entries_remaining} ${lang === 'cs' ? 'vstupů' : 'entries'}</span>
+            <span style="font-size:11px;font-weight:600;color:${pc};">${up.entries_remaining} ${_tp('booking.payment.entriesLabel')}</span>
           </div>
-          <div class="bsb">${exp ? (lang === 'cs' ? `Platí do ${exp}` : `Valid until ${exp}`) : ''}</div>
+          <div class="bsb">${exp ? _tp('payment.validUntil', { date: exp }) : ''}</div>
         </div>`
     }).join('')
     const ids = window._cardState[courseId].lessonIds ?? []
@@ -1208,22 +1300,22 @@ function _finalizeExternalStripeUrl(url) {
 function buildExternalStripePaySummary(ctx) {
   const lines = []
   if (ctx.kind === 'pass') {
-    lines.push(`${lang === 'cs' ? 'Permanentka' : 'Pass'}: ${_escHtml(ctx.passTitle || '—')}`)
+    lines.push(`${_tp('payment.summaryPass')}: ${_escHtml(ctx.passTitle || '—')}`)
     lines.push(
-      `${lang === 'cs' ? 'Cena' : 'Price'}: <strong>${_escHtml(fmtPrice(Number(ctx.price) || 0))}</strong>`,
+      `${_tp('payment.summaryPrice')}: <strong>${_escHtml(fmtPrice(Number(ctx.price) || 0))}</strong>`,
     )
     if (ctx.lessonWhen) {
       lines.push(
-        `${lang === 'cs' ? 'Zvolený termín (rezervaci dokončíme po zaplacení)' : 'Selected session (booking completed after payment)'}: ${_escHtml(ctx.lessonWhen)}`,
+        `${_tp('payment.summarySessionAfterPay')}: ${_escHtml(ctx.lessonWhen)}`,
       )
     }
   } else {
-    lines.push(`${lang === 'cs' ? 'Kurz' : 'Course'}: ${_escHtml(ctx.courseTitle || '—')}`)
+    lines.push(`${_tp('payment.summaryCourse')}: ${_escHtml(ctx.courseTitle || '—')}`)
     if (ctx.lessonWhen) {
-      lines.push(`${lang === 'cs' ? 'Termín' : 'Session'}: ${_escHtml(ctx.lessonWhen)}`)
+      lines.push(`${_tp('payment.summarySession')}: ${_escHtml(ctx.lessonWhen)}`)
     }
     lines.push(
-      `${lang === 'cs' ? 'Cena' : 'Price'}: <strong>${_escHtml(fmtPrice(Number(ctx.price) || 0))}</strong>`,
+      `${_tp('payment.summaryPrice')}: <strong>${_escHtml(fmtPrice(Number(ctx.price) || 0))}</strong>`,
     )
   }
   return lines.map(l => `<div class="ep-line">${l}</div>`).join('')
@@ -1244,29 +1336,23 @@ window.openExternalStripePaymentModal = ctx => {
   const sum = document.getElementById('ep-summary')
   const btn = document.getElementById('ep-stripe-btn')
   const warn = document.getElementById('ep-no-url')
-  if (title) title.textContent = lang === 'cs' ? 'Způsob platby' : 'Payment method'
+  if (title) title.textContent = _tp('payment.externalTitle')
   if (lead) {
-    lead.textContent =
-      lang === 'cs'
-        ? 'Platba proběhne pouze na zabezpečených stránkách Stripe (mimo tuto aplikaci). Aplikace nezpracovává kartové údaje ani platby.'
-        : 'Payment is handled only on Stripe’s secure checkout (outside this app). This app does not process card data or payments.'
+    lead.textContent = _tp('payment.externalLead')
   }
   if (sum) sum.innerHTML = buildExternalStripePaySummary(ctx)
   if (warn) {
     warn.style.display = stripeUrl ? 'none' : 'block'
-    warn.textContent =
-      lang === 'cs'
-        ? 'Pro tuto položku není nastaven odkaz Stripe. V index.html doplňte window.__externalStripePayments (passDefault / singleLessonDefault / byPassId / byCourseId).'
-        : 'No Stripe link is configured for this item. Fill in window.__externalStripePayments (passDefault / singleLessonDefault / byPassId / byCourseId).'
+    warn.textContent = _tp('payment.externalMissingUrl')
   }
   if (btn) {
     btn.disabled = !stripeUrl
     btn.style.background = '#635bff'
     btn.style.color = '#fff'
-    btn.textContent = lang === 'cs' ? 'Zaplatit přes Stripe' : 'Pay with Stripe'
+    btn.textContent = _tp('payment.payStripe')
   }
   const back = document.getElementById('ep-back-btn')
-  if (back) back.textContent = lang === 'cs' ? 'Zpět' : 'Back'
+  if (back) back.textContent = _tp('common.back')
 
   const bk = document.getElementById('pop-booking')
   if (ctx.reopenBookingPopup && bk) bk.style.display = 'none'
@@ -1277,22 +1363,14 @@ window.openExternalStripePaymentModal = ctx => {
 window.confirmExternalStripePayment = () => {
   const ctx = window._externalPayCtx
   if (!ctx?.stripeUrl) {
-    window.showToast?.(
-      lang === 'cs' ? 'Chybí odkaz na Stripe.' : 'Stripe link is missing.',
-      'error',
-    )
+    window.showToast?.(_tp('payment.stripeMissingToast'), 'error')
     return
   }
   window.open(ctx.stripeUrl, '_blank', 'noopener,noreferrer')
   document.getElementById('pop-external-pay').style.display = 'none'
   const pb = document.getElementById('pop-booking')
   if (pb) pb.style.display = 'none'
-  window.showToast?.(
-    lang === 'cs'
-      ? 'Otevřeli jsme Stripe v nové záložce. Rezervaci nebo permanentku zaktivníme po přijetí platby.'
-      : 'Stripe opened in a new tab. We will activate your booking or pass once payment is received.',
-    'ok',
-  )
+  window.showToast?.(_tp('payment.stripeOpenedToast'), 'ok')
   window._externalPayCtx = null
 }
 
@@ -1319,11 +1397,7 @@ function _userOwnsActivePassTemplate(templatePassId) {
 
 /** Obecné potvrzení, že uživatel chce nákup dokončit. */
 function _confirmUserWantsToCompletePurchase() {
-  return window.confirm(
-    lang === 'cs'
-      ? 'Přejete si tento nákup skutečně uskutečnit?'
-      : 'Do you want to complete this purchase?',
-  )
+  return window.confirm(_tp('purchase.confirmComplete'))
 }
 
 window.buyPass = async (
@@ -1340,17 +1414,13 @@ window.buyPass = async (
   if (!_confirmUserWantsToCompletePurchase()) return
 
   if (_userOwnsActivePassTemplate(passId)) {
-    const ok = window.confirm(
-      lang === 'cs'
-        ? 'Už máte aktivní permanentku stejného typu. Opravdu chcete koupit znovu? (může jít o duplicitní nákup.)'
-        : 'You already have an active pass of this type. Buy again anyway? This may be a duplicate purchase.',
-    )
+    const ok = window.confirm(_tp('purchase.duplicatePass'))
     if (!ok) return
   }
 
   const priceNum = Number(price) || 0
   const originalBtnText = btn?.textContent ?? ''
-  const passTitle = (extra.passTitle && String(extra.passTitle).trim()) || (lang === 'cs' ? 'Permanentka' : 'Pass')
+  const passTitle = (extra.passTitle && String(extra.passTitle).trim()) || _tp('common.pass')
   const reopenBooking = !!extra.reopenBooking
 
   const les = preselectedLessonId
@@ -1372,7 +1442,7 @@ window.buyPass = async (
     } finally {
       if (btn) {
         btn.disabled = false
-        btn.textContent = originalBtnText || (lang === 'cs' ? 'Koupit permanentku' : 'Buy pass')
+        btn.textContent = originalBtnText || _tp('booking.btn.buyPass')
       }
       if (courseId) _syncCardPrimaryButton(courseId)
       _syncPopupPrimaryButton()
@@ -1380,7 +1450,7 @@ window.buyPass = async (
     return
   }
 
-  if (btn) { btn.disabled = true; btn.textContent = lang === 'cs' ? 'Kupuji…' : 'Buying…' }
+  if (btn) { btn.disabled = true; btn.textContent = _tp('booking.btn.buying') }
 
   try {
     const expiresAt = new Date()
@@ -1411,17 +1481,17 @@ window.buyPass = async (
         void renderPermanentkyShop()
       }
     }
-    window.showToast?.(lang === 'cs' ? '✓ Permanentka zakoupena.' : '✓ Pass purchased.', 'ok')
+    window.showToast?.(_tp('purchase.passPurchased'), 'ok')
   } catch (err) {
     console.error('[buyPass]', err)
     window.showToast?.(
-      (lang === 'cs' ? 'Chyba při nákupu: ' : 'Purchase error: ') + (err.message ?? err),
+      _tp('purchase.passPurchaseErrorPrefix') + (err.message ?? err),
       'error',
     )
   } finally {
     if (btn) {
       btn.disabled = false
-      btn.textContent = originalBtnText || (lang === 'cs' ? 'Koupit permanentku' : 'Buy pass')
+      btn.textContent = originalBtnText || _tp('booking.btn.buyPass')
     }
     if (courseId) _syncCardPrimaryButton(courseId)
     _syncPopupPrimaryButton()
@@ -1551,23 +1621,24 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
           if (enrolled) {
             return `<div class="bk-lesson-enrolled" style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);opacity:.55;color:#9b9b9b;">
               <span style="font-size:12px;flex:1;">${_fmtBkLessonLine(l)}</span>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${lang === 'cs' ? 'PŘIHLÁŠENO' : 'ENROLLED'}</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${_escHtml(_tp('common.enrolled'))}</span>
             </div>`
           }
           const checked = pre && lid === pre ? ' checked' : ''
           return `<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);cursor:pointer;">
             <input type="checkbox" name="bk-lesson-cb" value="${lid}"${checked} style="margin-top:3px;accent-color:${color};"/>
-            <span style="font-size:12px;">${_fmtBkLessonLine(l)} <span style="color:#6b6b6b;">(${l.available_spots} ${lang === 'cs' ? 'míst' : 'spots'})</span></span>
+            <span style="font-size:12px;">${_fmtBkLessonLine(l)} <span style="color:#6b6b6b;">(${_tp('booking.option.spotsSuffix', { n: l.available_spots })})</span></span>
           </label>`
         }).join('')
-      : `<div style="font-size:12px;color:#9b9b9b;">${lang === 'cs' ? 'Žádné vypsané termíny.' : 'No scheduled sessions.'}</div>`
+      : `<div style="font-size:12px;color:#9b9b9b;">${_escHtml(_tp('booking.empty.noScheduledSessions'))}</div>`
   }
 
   if (hint) {
     const cap = Number(up.entries_remaining ?? 0) || 0
-    hint.textContent = lang === 'cs'
-      ? `Můžeš vybrat nejvýše ${cap} ${cap === 1 ? 'termín' : 'termínů'} (tolik zbývá na permanentce).`
-      : `You may select up to ${cap} session(s) — matching your remaining pass entries.`
+    hint.textContent = _tp('booking.multiHint', {
+      max: cap,
+      sessionsWord: _multiSessionsWord(cap),
+    })
   }
 
   if (btn) btn.style.background = color
@@ -1616,21 +1687,21 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
         const full = !enrolled && l.available_spots <= 0
         const line = _fmtBkLessonLine(l)
         if (enrolled) {
-          return `<option value="" disabled>${line} · ${lang === 'cs' ? 'Přihlášeno' : 'Enrolled'}</option>`
+          return `<option value="" disabled>${line} · ${_escHtml(_tp('booking.option.enrolled'))}</option>`
         }
         if (full) {
-          return `<option value="" disabled>${line} · ${lang === 'cs' ? 'Plno' : 'Full'}</option>`
+          return `<option value="" disabled>${line} · ${_escHtml(_tp('booking.option.full'))}</option>`
         }
         const selected = String(lid) === String(preselectedLessonId ?? '') ? 'selected' : ''
-        return `<option value="${lid}" ${selected}>${line} (${l.available_spots}${lang === 'cs' ? ' míst' : ' spots'})</option>`
+        return `<option value="${lid}" ${selected}>${line} (${_tp('booking.option.spotsSuffix', { n: l.available_spots })})</option>`
       }).join('')
       if (!selectable.length && !preselectedLessonId) {
-        lessonSel.innerHTML = `<option value="">${lang === 'cs' ? 'Žádné volné termíny k rezervaci' : 'No slots available to book'}</option>` + lessonSel.innerHTML
+        lessonSel.innerHTML = `<option value="">${_escHtml(_tp('booking.empty.noFreeSlotsOption'))}</option>` + lessonSel.innerHTML
       }
     } else if (preselectedLessonId) {
-      lessonSel.innerHTML = `<option value="${preselectedLessonId}">${lang === 'cs' ? 'Vybraná lekce' : 'Selected lesson'}</option>`
+      lessonSel.innerHTML = `<option value="${preselectedLessonId}">${_escHtml(_tp('booking.empty.selectedLessonPlaceholder'))}</option>`
     } else {
-      lessonSel.innerHTML = `<option value="">${lang === 'cs' ? 'Momentálně žádné volné termíny' : 'No available slots'}</option>`
+      lessonSel.innerHTML = `<option value="">${_escHtml(_tp('booking.empty.noSlotsToBook'))}</option>`
     }
   }
 
@@ -1681,7 +1752,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
           <div class="bk-opt-radio ${defaultPay === 'single' ? 'on' : ''}"
                style="border-color:${color};${defaultPay === 'single' ? `background:${color};` : ''}"></div>
           <div style="flex:1;">
-            <div class="bnm">${lang === 'cs' ? 'Jednorázový vstup' : 'Single entry'}</div>
+            <div class="bnm">${_tp('booking.payment.singleSession')}</div>
             <div class="bsb">${fmtPrice(course.price_single)}</div>
           </div>
         </label>
@@ -1698,7 +1769,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
                  style="border-color:${pc};${sel ? `background:${pc};` : ''}"></div>
             <div style="flex:1;">
               <div class="bnm">${loc(up.pass?.name ?? {})}</div>
-              <div class="bsb">${up.entries_remaining} ${lang === 'cs' ? 'vstupů zbývá' : 'entries left'}</div>
+              <div class="bsb">${_tp('booking.payment.entriesLeft', { n: up.entries_remaining })}</div>
             </div>
           </label>`
       }).join('')}
@@ -1719,9 +1790,9 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
             <div style="flex:1;">
               <div class="bnm">${loc(p.name)}</div>
               <div class="bsb">
-                ${p.entries_total} ${lang === 'cs' ? 'vstupů' : 'entries'} · ${perEntry}/${lang === 'cs' ? 'vstup' : 'entry'}
+                ${p.entries_total} ${_tp('booking.payment.entriesLabel')} · ${perEntry}/${_tp('booking.payment.perEntry')}
                 <span style="display:block;margin-top:3px;color:${pc};font-weight:500;">
-                  ${lang === 'cs' ? 'Permanentka ke koupi' : 'Pass available to buy'}
+                  ${_tp('booking.payment.passAvailableToBuy')}
                 </span>
               </div>
             </div>
@@ -1805,18 +1876,13 @@ window.confirmBooking = async () => {
   const buyPassPrice = Number(buyPassMetaEl?.dataset.buyPassPrice ?? 0)
   const pricePaid  = isPass ? 0 : (course?.price_single ?? 0)
   if (!isPass && !isBuyPass && !singleAllowed) {
-    window.showToast?.(
-      lang === 'cs'
-        ? 'Pokud máte aktivní permanentku pro tento kurz, jednorázový vstup není k dispozici.'
-        : 'Single entry is unavailable when you have an active pass for this course.',
-      'error',
-    )
+    window.showToast?.(_tp('booking.toast.singleUnavailableWithPass'), 'error')
     return
   }
   if (isBuyPass) {
     const selectedLessonId = document.getElementById('bk-lesson-select')?.value || null
     if (!buyPassTemplateId || !buyPassEntriesTotal) {
-      window.showToast?.(lang === 'cs' ? 'Vyberte platnou permanentku.' : 'Select a valid pass.', 'error')
+      window.showToast?.(_tp('booking.toast.selectValidPass'), 'error')
       return
     }
     const passTitle = buyPassMetaEl?.querySelector('.bnm')?.textContent?.trim() || ''
@@ -1844,13 +1910,13 @@ window.confirmBooking = async () => {
   if (isPass && userPassId) {
     lessonIds = [...document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked')].map(cb => cb.value)
     if (!lessonIds.length) {
-      window.showToast?.(lang === 'cs' ? 'Vyberte alespoň jeden termín.' : 'Select at least one session.', 'error')
+      window.showToast?.(_tp('booking.toast.selectAtLeastOne'), 'error')
       return
     }
   } else {
     const lessonId = document.getElementById('bk-lesson-select')?.value
     if (!lessonId) {
-      window.showToast?.(lang === 'cs' ? 'Vyberte prosím termín.' : 'Please select a session.', 'error')
+      window.showToast?.(_tp('booking.toast.selectSession'), 'error')
       return
     }
     lessonIds = [lessonId]
@@ -1875,16 +1941,13 @@ window.confirmBooking = async () => {
   }
 
   console.log('[Booking] Popup reserve start', { lessonIds, payVal, courseId })
-  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.pointerEvents = 'none'; confirmBtn.textContent = lang === 'cs' ? 'Rezervuji…' : 'Booking…' }
+  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.pointerEvents = 'none'; confirmBtn.textContent = _tp('booking.btn.booking') }
 
   try {
     if (isPass && userPassId) {
       const passRow = userPasses.find(p => p.id === userPassId)
       if (!passRow || passRow.entries_remaining < lessonIds.length) {
-        window.showToast?.(
-          lang === 'cs' ? PASS_ENTRIES_LIMIT_HINT_CS : PASS_ENTRIES_LIMIT_HINT_EN,
-          'error',
-        )
+        window.showToast?.(_tp('booking.toast.passEntriesLimitReached'), 'error')
         resetBtn()
         return
       }
@@ -1892,12 +1955,12 @@ window.confirmBooking = async () => {
       for (const lid of lessonIds) {
         const les = window.AppState.upcomingLessons.find(l => String(l.lesson_id ?? l.id) === String(lid))
         if (!les || les.available_spots <= 0 || isEnrolled(lid)) {
-          window.showToast?.(lang === 'cs' ? 'Některý termín už není k dispozici.' : 'A session is no longer available.', 'error')
+          window.showToast?.(_tp('booking.toast.sessionNoLongerAvailable'), 'error')
           resetBtn()
           return
         }
         if (allowed?.length && !allowed.includes(les.course_id)) {
-          window.showToast?.(lang === 'cs' ? 'Permanentka neplatí pro tento kurz.' : 'Pass is not valid for this course.', 'error')
+          window.showToast?.(_tp('booking.toast.passNotForCourse'), 'error')
           resetBtn()
           return
         }
@@ -1929,9 +1992,7 @@ window.confirmBooking = async () => {
     document.getElementById('pop-booking').style.display = 'none'
     const n = lessonIds.length
     window.showToast?.(
-      lang === 'cs'
-        ? (n > 1 ? `✓ Rezervováno ${n} lekcí.` : '✓ Lekce rezervována!')
-        : (n > 1 ? `✓ ${n} bookings confirmed!` : '✓ Booking confirmed!'),
+      n > 1 ? _tp('booking.success.many', { n }) : _tp('booking.success.one'),
       'ok',
     )
 
@@ -1941,7 +2002,7 @@ window.confirmBooking = async () => {
     window.refreshUserBookings?.()
   } catch (err) {
     console.error('[Booking] Popup rezervace selhala:', err)
-    window.showToast?.((lang === 'cs' ? 'Chyba: ' : 'Error: ') + (err.message ?? err), 'error')
+    window.showToast?.(_tp('booking.toast.errorPrefix') + (err.message ?? err), 'error')
   } finally {
     resetBtn()
   }
@@ -1951,16 +2012,16 @@ window.confirmBooking = async () => {
 function ensureCourseGalleryLightbox() {
   if (document.getElementById('course-gallery-lightbox')) {
     const cbtn = document.getElementById('course-gallery-lb-close')
-    if (cbtn) cbtn.textContent = lang === 'cs' ? 'Zavřít' : 'Close'
+    if (cbtn) cbtn.textContent = _tp('common.close')
     return
   }
   document.body.insertAdjacentHTML('beforeend', `
     <div id="course-gallery-lightbox" class="course-gallery-lb" style="display:none;" role="dialog" aria-modal="true">
-      <button type="button" class="course-gallery-lb-close" id="course-gallery-lb-close">${lang === 'cs' ? 'Zavřít' : 'Close'}</button>
+      <button type="button" class="course-gallery-lb-close" id="course-gallery-lb-close">${_escHtml(_tp('common.close'))}</button>
       <div class="course-gallery-lb-shell">
-        <button type="button" class="course-gallery-lb-arrow course-gallery-lb-prev" id="course-gallery-lb-prev" aria-label="Předchozí fotografie">‹</button>
+        <button type="button" class="course-gallery-lb-arrow course-gallery-lb-prev" id="course-gallery-lb-prev" aria-label="${_escHtml(_tp('courses.galleryPrev'))}">‹</button>
         <div class="course-gallery-lb-imgwrap"><img id="course-gallery-lb-img" class="course-gallery-lb-img" alt="" /></div>
-        <button type="button" class="course-gallery-lb-arrow course-gallery-lb-next" id="course-gallery-lb-next" aria-label="Další fotografie">›</button>
+        <button type="button" class="course-gallery-lb-arrow course-gallery-lb-next" id="course-gallery-lb-next" aria-label="${_escHtml(_tp('courses.galleryNext'))}">›</button>
       </div>
     </div>`)
 
@@ -2109,13 +2170,13 @@ async function renderCourseDetail(courseId) {
   el.innerHTML = `
     <div style="max-width:760px;">
       <button class="btn-wide" onclick="window.nav?.('kurzy')" style="margin-bottom:16px;">
-        ‹ ${lang === 'cs' ? 'Zpět na kurzy' : 'Back to courses'}
+        ‹ ${_tp('courses.backToCourses')}
       </button>
       <div style="height:4px;background:${color};border-radius:99px;margin-bottom:16px;"></div>
 
       ${heroImg
         ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`
-        : `<div class="detail-hero-ph">${lang === 'cs' ? 'foto kurzu' : 'course photo'}</div>`}
+        : `<div class="detail-hero-ph">${_escHtml(_tp('courses.photoAlt'))}</div>`}
 
       <div style="font-size:22px;font-weight:700;margin-bottom:4px;">${title}</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">
@@ -2124,9 +2185,9 @@ async function renderCourseDetail(courseId) {
 
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
         ${durMin ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${durMin} min</span>` : ''}
-        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${course.capacity_default} ${lang === 'cs' ? 'míst' : 'spots'}</span>
-        ${upcoming.length ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:#eaf5ea;color:#085041;">${upcoming[0].available_spots} ${lang === 'cs' ? 'volných' : 'free'}</span>` : ''}
-        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${lang === 'cs' ? 'vstup' : 'entry'}</span>
+        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${course.capacity_default} ${_tp('courses.capacitySpots')}</span>
+        ${upcoming.length ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:#eaf5ea;color:#085041;">${upcoming[0].available_spots} ${_tp('courses.spotsFree')}</span>` : ''}
+        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${_tp('courses.perSession')}</span>
       </div>
 
       ${descShort ? `<p class="detail-course-annotation${descLongBlock ? ' is-before-long-desc' : ''}">${descShort}</p>` : ''}
@@ -2134,13 +2195,13 @@ async function renderCourseDetail(courseId) {
 
       ${galleryThumbUrls.length ? `
         <div class="detail-gallery-section">
-          <div class="blbl" style="margin-bottom:10px;">${lang === 'cs' ? 'Galerie' : 'Gallery'}</div>
+          <div class="blbl" style="margin-bottom:10px;">${_tp('courses.gallery')}</div>
           <div class="detail-gallery-grid">
             ${galleryThumbUrls.map((u, thumbIdx) => {
               const fullIdx = thumbIdx + 1
               return `
               <button type="button" class="detail-gallery-cell"
-                aria-label="${lang === 'cs' ? 'Zvětšit fotografii' : 'Enlarge photo'} ${fullIdx + 1}"
+                aria-label="${_escHtml(_tp('courses.enlargePhoto'))} ${fullIdx}"
                 onclick="window.openCourseGalleryLightbox?.('${courseId}', ${fullIdx})">
                 <span class="detail-gallery-cell-frame"><img src="${u}" alt="" loading="lazy" /></span>
               </button>`
@@ -2149,30 +2210,30 @@ async function renderCourseDetail(courseId) {
         </div>` : ''}
 
       <div class="detail-info-table">
-        <div class="detail-info-row"><span class="lbl">${lang === 'cs' ? 'Lektor/ka' : 'Instructor'}</span><span class="val">${ownerName ?? '—'}</span></div>
-        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${lang === 'cs' ? 'Termíny' : 'Schedule'}</span><span class="val">${scheduleDays}</span></div>` : ''}
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
+        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
         ${(passes ?? []).map(p => {
           const pc = passThemeHex(p.color_code)
           return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:linear-gradient(90deg, ${pc}18, transparent);">
             <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
           </div>`
         }).join('')}
-        <div class="detail-info-row"><span class="lbl">${lang === 'cs' ? 'Storno zdarma' : 'Free cancellation'}</span><span class="val">${course.cancellation_hours}h ${lang === 'cs' ? 'předem' : 'ahead'}</span></div>
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
       </div>
 
       ${upcoming.length ? `
         <div style="margin-top:18px;">
-          <div class="blbl" style="margin-bottom:8px;">${lang === 'cs' ? 'Vypsané termíny' : 'Scheduled dates'}</div>
+          <div class="blbl" style="margin-bottom:8px;">${_tp('courses.scheduledDates')}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId, false)}</div>
         </div>` : ''}
 
       ${upcoming.some(l => l.available_spots > 0)
         ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
              onclick="window.openBookingPopup?.('${courseId}')">
-             ${lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'}
+             ${_tp('booking.btn.continueToBooking')}
            </button>`
         : `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
-             ${lang === 'cs' ? 'Lekce je plně obsazena.' : 'All sessions are full.'}
+             ${_tp('courses.allSessionsFull')}
            </div>`}
     </div>`
 
@@ -2208,9 +2269,7 @@ window.pickTerm = (el, color, courseId) => {
     const btn = document.getElementById(`res-btn-${courseId}`)
     const n = arr.length
     if (btn) {
-      btn.textContent = n
-        ? (lang === 'cs' ? `Rezervovat vybrané (${n})` : `Book selected (${n})`)
-        : (lang === 'cs' ? 'Rezervovat' : 'Book')
+      btn.textContent = n ? _tp('booking.btn.bookSelected', { n }) : _tp('booking.btn.book')
     }
     _refreshCardPassSlotsRow(courseId)
     _refreshDetailPassSlotsRow(courseId)
@@ -2373,7 +2432,7 @@ export async function buildStaffLessonsSectionHtml({
     : ''
 
   if (!currentUser?.id) {
-    return titleHtml + `<div class="empty">${lang === 'cs' ? 'Přihlaste se.' : 'Please sign in.'}</div>`
+    return titleHtml + `<div class="empty">${_escHtml(_tp('shop.signInPrompt'))}</div>`
   }
 
   const { data: myCourses } = await sb.from('courses')
@@ -2453,7 +2512,7 @@ export async function buildStaffLessonsSectionHtml({
                   ${desc || ''}
                 </div>
                 <button class="btn-detail" onclick="window.openDetail('${l.course_id}')">
-                  ${lang === 'cs' ? 'Detail kurzu →' : 'Course detail →'}
+                  ${_tp('courses.detailLink')}
                 </button>
               </div>
             </div>
@@ -2524,7 +2583,7 @@ async function renderPermanentkyShop() {
   const container = document.getElementById('permanentky-shop-content')
   if (!container) return
 
-  container.innerHTML = `<div class="empty" style="padding:28px;">${lang === 'cs' ? 'Načítám…' : 'Loading…'}</div>`
+  container.innerHTML = `<div class="empty" style="padding:28px;">${_escHtml(_tp('common.loading'))}</div>`
 
   try {
     const { data: passes, error } = await sb
@@ -2537,7 +2596,7 @@ async function renderPermanentkyShop() {
 
     const rows = passes ?? []
     if (!rows.length) {
-      container.innerHTML = `<div class="empty" style="padding:28px;">${lang === 'cs' ? 'Žádné permanentky momentálně nejsou v nabídce.' : 'No passes are available right now.'}</div>`
+      container.innerHTML = `<div class="empty" style="padding:28px;">${_escHtml(_tp('shop.emptyCatalog'))}</div>`
       return
     }
 
@@ -2545,7 +2604,7 @@ async function renderPermanentkyShop() {
     const courseTitle = cid => loc(courses.find(c => String(c.id) === String(cid))?.title) || ''
 
     container.innerHTML = `<div class="pass-shop-grid">${rows.map(p => {
-      const name = _escHtml(loc(p.name) || (lang === 'cs' ? 'Permanentka' : 'Pass'))
+      const name = _escHtml(loc(p.name) || _tp('common.pass'))
       const pc = passThemeHex(p.color_code)
       const surf = passCardSurfaceCss(pc)
       const total = Number(p.entries_total) || 0
@@ -2555,20 +2614,20 @@ async function renderPermanentkyShop() {
       const coursesHtml = passShopCourseTagsBlock(ids, courseTitle, pc)
       const weeks = p.validity_weeks != null ? Number(p.validity_weeks) : null
       const validityBlock = weeks && weeks > 0
-        ? `<div class="pass-shop-accent" style="background:linear-gradient(135deg,${pc}22,${pc}08);border:1px solid ${pc}40;">${_escHtml(lang === 'cs' ? `Platnost po zakoupení: ${weeks} ${weeks === 1 ? 'týden' : weeks < 5 ? 'týdny' : 'týdnů'}` : `Valid for ${weeks} week${weeks === 1 ? '' : 's'} after purchase`)}</div>`
+        ? `<div class="pass-shop-accent" style="background:linear-gradient(135deg,${pc}22,${pc}08);border:1px solid ${pc}40;">${_escHtml(_passShopValidityLine(weeks))}</div>`
         : ''
       const refCourseId = ids.length ? ids[0] : ''
       const priceEsc = fmtPrice(priceNum)
-      const buyLabel = lang === 'cs' ? 'Koupit permanentku' : 'Buy pass'
-      const entriesLabel = lang === 'cs' ? 'vstupů' : 'entries'
-      const perSlash = lang === 'cs' ? 'vstup' : 'entry'
+      const buyLabel = _tp('booking.btn.buyPass')
+      const entriesLabel = _tp('booking.payment.entriesLabel')
+      const perSlash = _tp('booking.payment.perEntry')
       const chipPer = total > 0
         ? `${_escHtml(perEntryRaw)}/${_escHtml(perSlash)}`
         : '—'
 
       const passIdAttr = _escHtml(String(p.id))
       const courseIdAttr = refCourseId ? _escHtml(String(refCourseId)) : ''
-      const passTitleRaw = loc(p.name) || (lang === 'cs' ? 'Permanentka' : 'Pass')
+      const passTitleRaw = loc(p.name) || _tp('common.pass')
       const passTitleAttr = _escHtml(passTitleRaw)
 
       return `
@@ -2594,7 +2653,7 @@ async function renderPermanentkyShop() {
     }).join('')}</div>`
   } catch (e) {
     console.error('[renderPermanentkyShop]', e)
-    container.innerHTML = `<div class="empty" style="padding:28px;color:#791F1F;">${lang === 'cs' ? 'Nepodařilo se načíst permanentky.' : 'Could not load passes.'}</div>`
+    container.innerHTML = `<div class="empty" style="padding:28px;color:#791F1F;">${_escHtml(_tp('shop.fetchError'))}</div>`
   }
 }
 
