@@ -89,7 +89,7 @@ create table if not exists public.passes (
   price              numeric(10,2) not null check (price >= 0),
   validity_weeks     integer not null check (validity_weeks > 0),
   allowed_course_ids uuid[] not null,
-  color_code         text not null default '#0D9488', -- barva karty permanentky (vlastní paleta)
+  color_code         text not null default '#C4806E', -- barva karty permanentky (teplá pastelová paleta)
   is_active          boolean not null default true,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now(),
@@ -98,7 +98,7 @@ create table if not exists public.passes (
 );
 
 -- Existující DB: doplnění barev permanentek (bez zásahu do kurzů)
-alter table public.passes add column if not exists color_code text not null default '#0D9488';
+alter table public.passes add column if not exists color_code text not null default '#C4806E';
 
 create table if not exists public.user_passes (
   id                 uuid primary key default gen_random_uuid(),

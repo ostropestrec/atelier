@@ -57,10 +57,18 @@ const PRESET_COLORS = [
   '#2854B9', '#E05C5C', '#4CAF50', '#FF9800', '#9C27B0',
   '#00BCD4', '#795548', '#607D8B', '#E91E63', '#FF5722',
 ]
-/** Paleta jen pro permanentky — odlišná od kurzů/workshopů */
+/** Paleta jen pro permanentky — teplé pastelové tóny (keramika / hlína), oddělené od sytých PRESET_COLORS u kurzů */
 const PASS_PALETTE = [
-  '#0D9488', '#4338CA', '#A21CAF', '#B45309', '#047857',
-  '#7E22CE', '#BE185D', '#0369A1', '#15803D', '#A16207',
+  '#C4806E', // terrakota
+  '#D4947C', // broskvová engoba
+  '#9AAA8F', // šalvěj / celadon
+  '#C9A7B4', // prachová růže
+  '#C6AE7E', // písková glazura
+  '#A691C3', // teplá levandule (šamot)
+  '#E0B87A', // medová poleva
+  '#8FA9B2', // šedomodrá redukce
+  '#B89880', // cappuccino hlína
+  '#9FB8A8', // mint celadin
 ]
 // ── Stav modálů ──────────────────────────────────────────────
 let _ncSelectedDays  = new Set()
@@ -1806,7 +1814,7 @@ function buildPassModal() {
           <div style="margin-bottom:12px;">
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Barva karty permanentky</label>
             <div style="font-size:11px;color:#6b6b6b;line-height:1.45;margin-bottom:10px;">
-              Vlastní paleta barev (nezávislá na kurzech) — určuje nádech pozadí permanentky v aplikaci.
+              Teplé pastelové barvy (hlína / glazura), oddělené od palety kurzů — určují nádech karty permanentky v aplikaci.
             </div>
             <div id="mp-colors" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
               ${passColorDots}

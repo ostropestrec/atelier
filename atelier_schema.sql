@@ -74,7 +74,7 @@ create table public.passes (
   price              numeric(10,2) not null,
   validity_weeks     int not null,
   allowed_course_ids uuid[] not null,
-  color_code         text not null default '#0D9488',
+  color_code         text not null default '#C4806E',
   is_active          boolean not null default true,
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()

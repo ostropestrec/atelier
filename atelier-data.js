@@ -142,7 +142,7 @@ const LESSONS_SELECT =
   'lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots'
 const BOOKINGS_LIVE_REFRESH_COOLDOWN_MS = 4000
 
-const DEFAULT_PASS_THEME = '#0D9488'
+const DEFAULT_PASS_THEME = '#C4806E'
 function passThemeHex(hex) {
   return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : DEFAULT_PASS_THEME
 }

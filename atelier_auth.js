@@ -1357,7 +1357,7 @@ export function renderNavigation(user) {
 }
 
 function pickPassTheme(hex) {
-  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : '#0D9488'
+  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : '#C4806E'
 }
 
 function passCardSurface(hex) {
