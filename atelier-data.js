@@ -866,18 +866,17 @@ export function renderKurzy() {
         <div class="cxi">
           <div>
             ${buildCourseImage(c)}
-            <div style="font-size:11px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
-            <div class="blbl">${lang === 'cs' ? 'Vypsané termíny' : 'All scheduled dates'}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-              ${buildTermPills(upcoming, color, c.id, false)}
-            </div>
-            <button class="btn-detail" onclick="openDetail('${c.id}')">
+            <div style="font-size:11px;color:#6b6b6b;line-height:1.6;">${desc}</div>
+          </div>
+          <div class="cxi-right">
+            <button type="button" class="btn-detail" onclick="openDetail('${c.id}')">
               ${lang === 'cs' ? 'Detail kurzu →' : 'Course detail →'}
             </button>
-          </div>
-          <div>
-            <div class="blbl">${lang === 'cs' ? 'Způsob vstupu' : 'Entry option'}</div>
-            ${buildBuyPanel(c, color)}
+            <div class="blbl" style="margin-top:12px;">${lang === 'cs' ? 'Vypsané termíny' : 'All scheduled dates'}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+              ${buildTermPills(upcoming, color, c.id, false)}
+            </div>
+            ${buildCourseReserveButton(c, color)}
           </div>
         </div>
       </div>`
@@ -930,6 +929,14 @@ function buildTermPills(upcoming, color, courseId, interactive = true) {
       ${interactive && !full ? `onclick="window.pickTerm(this,'${color}','${courseId}')"` : ''}
     >${label}${full ? ` (${lang === 'cs' ? 'plno' : 'full'})` : ''}</span>`
   }).join('')
+}
+
+function buildCourseReserveButton(c, color) {
+  return `
+    <button type="button" class="btn-res" id="res-btn-${c.id}" style="background:${color};margin-top:4px;"
+      onclick="window.reserveFromCard('${c.id}')">
+      ${lang === 'cs' ? 'Pokračovat k rezervaci' : 'Continue to booking'}
+    </button>`
 }
 
 function buildBuyPanel(c, color) {
@@ -1157,7 +1164,6 @@ window.toggleC = id => {
   if (!wasOpen) {
     exp.classList.add('on')
     if (chev) chev.textContent = '⌄'
-    loadPassesForCourse(id)
   }
 }
 
@@ -2020,15 +2026,28 @@ function isSameDay(a, b) {
 }
 
 // ── Moje lekce (lektor / admin) ───────────────────────────────
-async function buildMojeLekceMarkup() {
+export async function buildStaffLessonsSectionHtml({
+  sectionTitle = 'Moje lekce',
+  sectionClass = 'section-h',
+  sectionStyle = '',
+  includeDeactivated = true,
+  maxActive = null,
+} = {}) {
+  const titleHtml = sectionTitle
+    ? `<div class="${sectionClass}"${sectionStyle ? ` style="${sectionStyle}"` : ''}>${sectionTitle}</div>`
+    : ''
+
+  if (!currentUser?.id) {
+    return titleHtml + `<div class="empty">${lang === 'cs' ? 'Přihlaste se.' : 'Please sign in.'}</div>`
+  }
+
   const { data: myCourses } = await sb.from('courses')
     .select('id, title, color_code, is_workshop, description_short, images')
     .eq('owner_id', currentUser.id)
     .eq('is_active', true)
 
   if (!myCourses?.length) {
-    return `<div class="sec-title">Moje lekce</div>
-      <div class="empty">Zatím nemáte přiřazeny žádné kurzy ani workshopy.</div>`
+    return titleHtml + `<div class="empty">Zatím nemáte přiřazeny žádné kurzy ani workshopy.</div>`
   }
 
   const courseMap = Object.fromEntries(myCourses.map(c => [c.id, normalizeCourseRecord(c)]))
@@ -2042,12 +2061,12 @@ async function buildMojeLekceMarkup() {
     .order('start_time')
     .limit(80)
 
-  const active = (terms ?? []).filter(l => l.status === 'active')
-  const deactivated = (terms ?? []).filter(l => l.status === 'cancelled')
+  let active = (terms ?? []).filter(l => l.status === 'active')
+  const deactivated = includeDeactivated ? (terms ?? []).filter(l => l.status === 'cancelled') : []
+  if (maxActive != null && maxActive > 0) active = active.slice(0, maxActive)
 
   if (!active.length && !deactivated.length) {
-    return `<div class="sec-title">Moje lekce</div>
-      <div class="empty">Žádné nadcházející termíny.</div>`
+    return titleHtml + `<div class="empty">Žádné nadcházející termíny.</div>`
   }
 
   const renderTermCard = l => {
@@ -2117,11 +2136,17 @@ async function buildMojeLekceMarkup() {
     sections.push(deactivated.map(renderTermCard).join(''))
   }
 
-  return `
-    <div class="sec-title">Moje lekce</div>
-    ${sections.join('')}
-  `
+  return titleHtml + sections.join('')
 }
+
+export async function buildMojeLekceMarkup() {
+  return buildStaffLessonsSectionHtml({
+    sectionTitle: 'Moje lekce',
+    sectionClass: 'sec-title',
+    includeDeactivated: true,
+  })
+}
+
 
 async function renderMojeLekce() {
   const el = document.getElementById('screen-moje-lekce')

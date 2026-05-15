@@ -1326,6 +1326,15 @@ function renderNavigation(user) {
 }
 
 // ── Chráněné sekce: profil / přehled uživatele ─────────────────
+export function buildUserGreetingHtml(user) {
+  if (!user) return ''
+  return `
+    <div class="profile-head">
+      <div class="hello">Dobrý den, ${escapeHtml((user.name || '').split(' ')[0] || user.name || 'uživateli')}</div>
+      <div class="subtle">${escapeHtml(user.email || '')}</div>
+    </div>`
+}
+
 export function buildUserOverviewHtml(user) {
   if (!user) {
     return `
@@ -1349,7 +1358,7 @@ export function buildUserOverviewHtml(user) {
             <div class="pass-top">
               <div>
                 <div class="pass-name">${escapeHtml(name)}</div>
-                <div class="pass-meta">z ${total} vstupů · platí do ${escapeHtml(exp)}</div>
+                <div class="pass-meta">${remaining} z ${total} vstupů · platí do ${escapeHtml(exp)}</div>
               </div>
               <div class="pass-count">${remaining}</div>
             </div>

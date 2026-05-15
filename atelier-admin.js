@@ -3,7 +3,7 @@
 // ============================================================
 
 import { sb } from './atelier-supabase.js'
-import { currentUser, buildUserOverviewHtml } from './atelier_auth.js'
+import { currentUser, buildUserGreetingHtml } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 
 // ── Role-aware scoping helpers ──────────────────────────────
@@ -612,10 +612,20 @@ export async function renderAdminDashboard() {
     const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthBookings])
     const monthNetRev = monthGrossRev - monthRefunds
 
+    const { buildStaffLessonsSectionHtml } = await import('./atelier-data.js')
+    const adminMyLessonsHtml = await buildStaffLessonsSectionHtml({
+      sectionTitle: 'Moje lekce',
+      sectionClass: 'admin-section-title',
+      sectionStyle: 'margin-top:18px;margin-bottom:14px;',
+      includeDeactivated: false,
+      maxActive: 20,
+    })
+
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:16px;">Přehled</div>
       <div class="admin-section-title" style="margin-top:0;">Můj účet</div>
-      ${buildUserOverviewHtml(currentUser)}
+      ${buildUserGreetingHtml(currentUser)}
+      ${adminMyLessonsHtml}
       <div class="admin-stat-grid">
         <div class="admin-stat-card">
           <div class="admin-stat-value">${todayLessons.length}</div>
