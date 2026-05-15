@@ -539,7 +539,7 @@ async function refreshPublicData() {
   }
 
   if (document.getElementById('screen-nastenka')?.classList.contains('active')) {
-    window.renderNastenkaMyCourses?.()
+    window.renderProfile?.()
   }
 }
 
@@ -561,80 +561,6 @@ function _escHtml(s) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
 }
-
-function _isWorkshopCourseId(cid) {
-  const c = window.AppState.courses.find(x => x.id === cid)
-  if (c) return !!c.is_workshop
-  const fromBooking = (myBookings ?? []).find(b => b.lesson?.course?.id === cid)
-  return !!fromBooking?.lesson?.course?.is_workshop
-}
-
-function _nastenkaCourseRow(cid, sub) {
-  const course = window.AppState.courses.find(c => c.id === cid)
-  const title = course ? loc(course.title) : (lang === 'cs' ? 'Kurz' : 'Course')
-  const color = course?.color_code ?? '#2854B9'
-  return `
-      <div class="booking-item" style="margin-bottom:10px;">
-        <button type="button" class="bk-link" onclick="window.openDetail?.('${cid}')">
-          <span class="dot" style="background:${color};flex-shrink:0;"></span>
-          <div style="min-width:0">
-            <div class="bk-title">${_escHtml(title)}</div>
-            <div class="bk-sub">${sub}</div>
-          </div>
-        </button>
-      </div>`
-}
-
-/** Kurzy a workshopy z aktivních rezervací. */
-function renderNastenkaMyCourses() {
-  const wrapK = document.getElementById('nastenka-courses-wrap')
-  const elK = document.getElementById('nastenka-courses')
-  const wrapW = document.getElementById('nastenka-workshops-wrap')
-  const elW = document.getElementById('nastenka-workshops')
-  if (!wrapK || !elK || !wrapW || !elW) return
-
-  if (!currentUser) {
-    wrapK.style.display = 'none'
-    elK.innerHTML = ''
-    wrapW.style.display = 'none'
-    elW.innerHTML = ''
-    return
-  }
-
-  const ids = [...new Set((myBookings ?? []).map(b => b.lesson?.course?.id).filter(Boolean))]
-  const regular = ids.filter(id => !_isWorkshopCourseId(id))
-  const wshop = ids.filter(id => _isWorkshopCourseId(id))
-
-  const fmtNastenkaCourseWhen = cid => {
-    const rows = (myBookings ?? [])
-      .filter(b => b.lesson?.course?.id === cid && b.lesson?.start_time)
-      .sort((a, b) => new Date(a.lesson.start_time) - new Date(b.lesson.start_time))
-    const iso = rows[0]?.lesson?.start_time
-    if (!iso) return lang === 'cs' ? 'Aktivní rezervace' : 'Active booking'
-    const d = new Date(iso)
-    const day = d.toLocaleDateString(lang === 'cs' ? 'cs-CZ' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'numeric' })
-    const time = d.toLocaleTimeString(lang === 'cs' ? 'cs-CZ' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
-    return `${day} · ${time}`
-  }
-
-  if (!regular.length) {
-    wrapK.style.display = 'none'
-    elK.innerHTML = ''
-  } else {
-    wrapK.style.display = 'block'
-    elK.innerHTML = regular.map(cid => _nastenkaCourseRow(cid, fmtNastenkaCourseWhen(cid))).join('')
-  }
-
-  if (!wshop.length) {
-    wrapW.style.display = 'none'
-    elW.innerHTML = ''
-  } else {
-    wrapW.style.display = 'block'
-    elW.innerHTML = wshop.map(cid => _nastenkaCourseRow(cid, fmtNastenkaCourseWhen(cid))).join('')
-  }
-}
-
-window.renderNastenkaMyCourses = renderNastenkaMyCourses
 
 // ============================================================
 // KALENDÁŘ

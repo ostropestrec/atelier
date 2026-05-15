@@ -633,6 +633,16 @@
       font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
       color: var(--rail-label); margin: 18px 0 10px; font-weight: 600;
     }
+    .nastenka-cards-2col{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:10px;
+    }
+    .nastenka-cards-2col .pass-item,
+    .nastenka-cards-2col .booking-item{ margin-bottom:0; }
+    @media (max-width: 640px){
+      .nastenka-cards-2col{ grid-template-columns:1fr; }
+    }
     .pass-item{
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -646,14 +656,6 @@
     .pass-count{ font-size: 16px; font-weight: 700; color: var(--primary); }
     .bar{ height: 6px; background: rgba(17,24,39,.08); border-radius: 999px; overflow:hidden; margin-top: 10px;}
     .bar > i{ display:block; height:100%; width: 0%; background: var(--primary); border-radius: 999px; }
-    .nastenka-grid{
-      display:grid;
-      grid-template-columns:minmax(0, 1.35fr) minmax(0, 1fr);
-      gap:20px;
-      align-items:start;
-    }
-    .nastenka-main-col, .nastenka-side-col{ min-width:0; }
-    .nastenka-side-col > div:first-child .section-h{ margin-top:0; }
     .booking-item{
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -702,9 +704,6 @@
       white-space: nowrap;
     }
     .pill.ok{ background: rgba(40,84,185,.10); color: var(--primary); border-color: rgba(40,84,185,.18); }
-    @media (max-width: 900px){
-      .nastenka-grid{ grid-template-columns:1fr; gap:0; }
-    }
     .btn-small{
       padding: 9px 12px; border-radius: var(--btn-radius); border: 1px solid var(--border);
       background: transparent; cursor:pointer; font-size: 13px; font-weight:600;
@@ -908,23 +907,7 @@
 <!-- ── Screen: Nástěnka ── -->
 <div class="screen active" id="screen-nastenka">
   <div class="sec-title">Nástěnka</div>
-  <div class="nastenka-grid">
-    <div class="nastenka-main-col">
-      <div id="nastenka-content"></div>
-    </div>
-
-    <div class="nastenka-side-col">
-      <div id="nastenka-courses-wrap" style="display:none;">
-        <div class="section-h" id="nastenka-courses-h">Moje kurzy</div>
-        <div id="nastenka-courses"></div>
-      </div>
-
-      <div id="nastenka-workshops-wrap" style="display:none;">
-        <div class="section-h">Moje workshopy</div>
-        <div id="nastenka-workshops"></div>
-      </div>
-    </div>
-  </div>
+  <div id="nastenka-content"></div>
 </div>
 
 <!-- ── Screen: Nastavení (z menu pod avatarem) ── -->
@@ -1205,7 +1188,6 @@
 
     if (id === 'nastenka') {
       window.renderProfile?.()
-      window.renderNastenkaMyCourses?.()
     }
     if (id === 'nastaveni') window.renderSettings?.()
 

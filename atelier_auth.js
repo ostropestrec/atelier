@@ -1330,8 +1330,6 @@ function renderNavigation(user) {
 // ── Chráněné sekce: profil ─────────────────────────────────────
 function renderProtectedSections(user) {
   const main = document.getElementById('nastenka-content')
-  const coursesWrap = document.getElementById('nastenka-courses-wrap')
-  const workshopsWrap = document.getElementById('nastenka-workshops-wrap')
   if (!main) return
 
   if (!user) {
@@ -1340,16 +1338,6 @@ function renderProtectedSections(user) {
         <div class="card-title">Vítejte v Ateliéru</div>
         <div class="card-meta">Přihlaste se pro přehled rezervací a permanentek. Nastavení účtu je pod avatarem. Mezitím můžete procházet kurzy a kalendář.</div>
       </div>`
-    if (coursesWrap) {
-      coursesWrap.style.display = 'none'
-      const nc = document.getElementById('nastenka-courses')
-      if (nc) nc.innerHTML = ''
-    }
-    if (workshopsWrap) {
-      workshopsWrap.style.display = 'none'
-      const nw = document.getElementById('nastenka-workshops')
-      if (nw) nw.innerHTML = ''
-    }
     return
   }
 
@@ -1385,7 +1373,7 @@ function renderProtectedSections(user) {
       </div>
 
       <div class="section-h">Aktivní permanentky</div>
-      ${passHtml || `<div class="empty">Nemáte žádné aktivní permanentky.</div>`}
+      ${passHtml ? `<div class="nastenka-cards-2col">${passHtml}</div>` : `<div class="empty">Nemáte žádné aktivní permanentky.</div>`}
       ${passHtml ? `
         <div class="card-meta" style="margin-top:10px;">
           V případě potřeby zrušení permanentky a vrácení peněz za zbylé vstupy nás prosím kontaktujte na jatakidu@gmail.com.
@@ -1394,7 +1382,7 @@ function renderProtectedSections(user) {
 
       <div class="section-h">Přihlášené lekce</div>
       ${(myBookings?.length
-        ? (myBookings.slice(0, 5).map(b => {
+        ? (`<div class="nastenka-cards-2col">` + myBookings.map(b => {
             const lesson = b.lesson
             const course = lesson?.course
             const color = course?.color_code ?? '#2854B9'
@@ -1423,18 +1411,16 @@ function renderProtectedSections(user) {
                 </div>
               </div>
             `
-          })).join('')
+          }).join('') + `</div>`)
         : `<div class="empty">Zatím nemáte žádné přihlášené lekce.</div>`)}
     `
   }
-  window.renderNastenkaMyCourses?.()
 }
 
 window.refreshMyAuthUI = async () => {
   if (!currentUser) return
   await refreshUserBookings()
   renderProtectedSections(currentUser)
-  window.renderNastenkaMyCourses?.()
 }
 
 // aby profil šel vykreslit i po přepnutí sekce (nav() maže obsah)
