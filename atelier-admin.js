@@ -1033,10 +1033,16 @@ function buildAdminCustomerPassesModal() {
         void window.adminCreateUserPassManual?.()
         return
       }
+      const delBtn = e.target.closest('[data-mup-delete]')
+      if (delBtn && root.contains(delBtn)) {
+        e.preventDefault()
+        void window.adminDeleteCustomerUserPass?.(delBtn)
+        return
+      }
       const btn = e.target.closest('[data-mup-save]')
       if (!btn || !root.contains(btn)) return
       e.preventDefault()
-      void window.adminSaveUserPassFromCard?.(btn.getAttribute('data-mup-save'))
+      void window.adminSaveUserPassFromCard?.(btn)
     })
   }
 }
@@ -1096,7 +1102,10 @@ function _mupPassesListHtml(passes) {
         </div>
       </div>
       <div data-mup-row-err style="display:none;font-size:12px;color:#791F1F;margin-bottom:8px;"></div>
-      <button type="button" class="btn-small primary" data-mup-save="${esc(up.id)}">Uložit změny</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn-small primary" data-mup-save="${esc(up.id)}">Uložit změny</button>
+        <button type="button" class="btn-small danger" data-mup-delete="${esc(up.id)}">Smazat</button>
+      </div>
     </div>`
   }).join('')
 }
@@ -1233,9 +1242,11 @@ window.adminCreateUserPassManual = async () => {
   }
 }
 
-window.adminSaveUserPassFromCard = async (userPassId) => {
+window.adminSaveUserPassFromCard = async saveBtn => {
+  if (!saveBtn?.getAttribute) return
+  const userPassId = saveBtn.getAttribute('data-mup-save')
   if (!userPassId) return
-  const card = document.querySelector(`[data-mup-card="${String(userPassId).replace(/"/g, '')}"]`)
+  const card = saveBtn.closest('[data-mup-card]')
   if (!card) return
   const errEl = card.querySelector('[data-mup-row-err]')
   if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
@@ -1273,14 +1284,19 @@ window.adminSaveUserPassFromCard = async (userPassId) => {
   const btn = card.querySelector('[data-mup-save]')
   if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…' }
   try {
-    const { error } = await sb.from('user_passes').update({
+    const { data, error } = await sb.from('user_passes').update({
       entries_total: entriesTotal,
       entries_remaining: entriesRemaining,
       expires_at: expiresAt,
       status,
       price_paid: pricePaid,
-    }).eq('id', userPassId)
+    }).eq('id', userPassId).select('id')
     if (error) throw error
+    if (!data?.length) {
+      throw new Error(
+        'Žádný řádek nebyl uložen — zkontrolujte roli administrátora v databázi (users.role) nebo RLS politiku user_passes.',
+      )
+    }
     window.showToast?.('Permanentka byla uložena.', 'ok')
     await _mupReloadBody()
     void renderAdminZakaznici()
@@ -1301,6 +1317,49 @@ window.adminSaveUserPassFromCard = async (userPassId) => {
     window.showToast?.('Chyba: ' + uiMsg, 'error')
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Uložit změny' }
+  }
+}
+
+window.adminDeleteCustomerUserPass = async (triggerEl) => {
+  const userPassId = triggerEl?.getAttribute?.('data-mup-delete')
+  if (!userPassId || !_mupEditUserId) return
+  if (!confirm('Opravdu smazat tuto permanentku zákazníka? Související rezervace zůstanou, ale ztratí vazbu na permanentku. Akce je nevratná.')) return
+  const card = triggerEl.closest?.('[data-mup-card]')
+  const errEl = card?.querySelector('[data-mup-row-err]')
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = '' }
+  const delBtn = card?.querySelector('[data-mup-delete]')
+  const saveBtn = card?.querySelector('[data-mup-save]')
+  if (delBtn) { delBtn.disabled = true; delBtn.textContent = 'Mažu…' }
+  if (saveBtn) saveBtn.disabled = true
+  try {
+    const { data, error } = await sb.from('user_passes').delete().eq('id', userPassId).select('id')
+    if (error) throw error
+    if (!data?.length) {
+      throw new Error(
+        'Permanentku se nepodařilo smazat — zkontrolujte oprávnění administrátora nebo RLS politiku user_passes.',
+      )
+    }
+    window.showToast?.('Permanentka byla smazána.', 'ok')
+    await _mupReloadBody()
+    void renderAdminZakaznici()
+  } catch (err) {
+    console.error('[Admin] adminDeleteCustomerUserPass:', err)
+    const msg = String(err?.message ?? err ?? '')
+    const looksLikeMissingRls =
+      msg.includes('row-level security')
+      || msg.includes('permission denied')
+      || msg.includes('new row violates row-level security policy')
+    const uiMsg = looksLikeMissingRls
+      ? 'V databázi chybí admin DELETE politika pro user_passes. Spusťte SQL migraci z FINAL_supabase_sql.sql.'
+      : (err.message || 'Smazání se nepodařilo.')
+    if (errEl) {
+      errEl.textContent = uiMsg
+      errEl.style.display = 'block'
+    }
+    window.showToast?.('Chyba: ' + uiMsg, 'error')
+  } finally {
+    if (delBtn) { delBtn.disabled = false; delBtn.textContent = 'Smazat' }
+    if (saveBtn) saveBtn.disabled = false
   }
 }
 
