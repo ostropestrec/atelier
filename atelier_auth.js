@@ -1335,6 +1335,34 @@ function passCardSurface(hex) {
   return `background:linear-gradient(168deg, ${h}26 0%, #ffffff 92%);border:1px solid ${h}48;`
 }
 
+/** Kurzy na aktivní permanentce (stejné pilulky jako katalog / admin). */
+function overviewPassCourseTagsHtml(allowedIds, colorHex) {
+  const ph = pickPassTheme(colorHex)
+  const isEn = String(document.documentElement?.lang || 'cs').toLowerCase().startsWith('en')
+  const hdr = isEn ? 'Courses' : 'Kurzy'
+  const pill = txt =>
+    `<span class="pass-shop-tag" style="background:${ph}22;color:${ph};">${escapeHtml(txt)}</span>`
+  const courses = window.AppState?.courses ?? []
+  const ids = Array.isArray(allowedIds) ? allowedIds : []
+  let inner
+  if (!ids.length) {
+    inner = pill(isEn ? 'Valid for all courses' : 'Platí na všechny kurzy')
+  } else {
+    const labels = ids
+      .map(id => {
+        const c = courses.find(x => String(x.id) === String(id))
+        return c ? locJson(c.title) : ''
+      })
+      .filter(Boolean)
+    inner = labels.length
+      ? labels.map(l => pill(l)).join('')
+      : pill(isEn ? 'Selected courses' : 'Vybrané kurzy (viz detail)')
+  }
+  return `
+    <div class="pass-shop-scope-heading">${hdr}</div>
+    <div class="pass-shop-course-tags">${inner}</div>`
+}
+
 // ── Chráněné sekce: profil / přehled uživatele ─────────────────
 export function buildUserGreetingHtml(user) {
   if (!user) return ''
@@ -1373,6 +1401,7 @@ export function buildUserOverviewHtml(user) {
               </div>
               <div class="pass-count" style="color:${ph};">${remaining}</div>
             </div>
+            ${overviewPassCourseTagsHtml(p?.allowed_course_ids, p?.color_code)}
             <div class="bar"><i style="width:${pct}%;background:${ph};"></i></div>
           </div>
         `

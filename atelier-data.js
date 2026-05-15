@@ -19,7 +19,13 @@ import {
 
 // ── Jazyk ─────────────────────────────────────────────────────
 export let lang = 'cs'
-export const setLang = l => { lang = l; renderAll() }
+export const setLang = l => {
+  lang = l === 'en' ? 'en' : 'cs'
+  try {
+    document.documentElement.lang = lang
+  } catch (_) { /* SSR / restrictive env */ }
+  renderAll()
+}
 const loc = obj => typeof obj === 'object' && obj ? (obj[lang] ?? obj.cs ?? '') : (obj ?? '')
 
 // umožní topbaru v index.html přepínat jazyk
@@ -47,7 +53,7 @@ function passCardSurfaceCss(hex) {
 function passShopCourseTagsBlock(ids, courseTitle, pc) {
   const hdr = `<div class="pass-shop-scope-heading">${lang === 'cs' ? 'Kurzy' : 'Courses'}</div>`
   const pill = txt =>
-    `<span class="pass-shop-tag" style="background:${pc}38;color:${pc};">${_escHtml(txt)}</span>`
+    `<span class="pass-shop-tag" style="background:${pc}22;color:${pc};">${_escHtml(txt)}</span>`
   if (!ids.length) {
     return `${hdr}<div class="pass-shop-course-tags">${pill(lang === 'cs' ? 'Platí na všechny kurzy' : 'Valid for all courses')}</div>`
   }
