@@ -1010,8 +1010,8 @@ function buildAdminCustomerPassesModal() {
     <div id="modal-admin-user-passes" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
       z-index:300;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;"
       onclick="if(event.target===this)window.closeAdminCustomerPassesModal?.()">
-      <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
-        width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
+      <div id="mup-panel" style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
+        width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;">
         <div style="padding:18px 18px 4px;">
           <div style="font-size:18px;font-weight:700;" id="mup-title">Permanentky zákazníka</div>
         </div>
@@ -1023,24 +1023,24 @@ function buildAdminCustomerPassesModal() {
         </div>
       </div>
     </div>`)
-  const root = document.getElementById('modal-admin-user-passes')
-  if (root && !root.dataset.mupDelegation) {
-    root.dataset.mupDelegation = '1'
-    root.addEventListener('click', (e) => {
+  const panel = document.getElementById('mup-panel')
+  if (panel && !panel.dataset.mupDelegation) {
+    panel.dataset.mupDelegation = '1'
+    panel.addEventListener('click', (e) => {
       const addBtn = e.target.closest('[data-mup-add]')
-      if (addBtn && root.contains(addBtn)) {
+      if (addBtn && panel.contains(addBtn)) {
         e.preventDefault()
         void window.adminCreateUserPassManual?.()
         return
       }
       const delBtn = e.target.closest('[data-mup-delete]')
-      if (delBtn && root.contains(delBtn)) {
+      if (delBtn && panel.contains(delBtn)) {
         e.preventDefault()
         void window.adminDeleteCustomerUserPass?.(delBtn)
         return
       }
       const btn = e.target.closest('[data-mup-save]')
-      if (!btn || !root.contains(btn)) return
+      if (!btn || !panel.contains(btn)) return
       e.preventDefault()
       void window.adminSaveUserPassFromCard?.(btn)
     })
@@ -1130,7 +1130,7 @@ function _mupAddFormHtml() {
             </select>
           </div>
           <button type="button" class="btn-small primary" data-mup-add="1"
-            onclick="window.adminCreateUserPassManual?.()" style="white-space:nowrap;">Připsat</button>
+            style="white-space:nowrap;">Připsat</button>
         </div>
       ` : `<div style="font-size:12px;color:#9b9b9b;">Nejsou k dispozici žádné aktivní typy permanentek.</div>`}
       <div id="mup-add-error" style="display:none;font-size:12px;color:#791F1F;margin-top:10px;"></div>
@@ -1158,6 +1158,10 @@ async function _mupReloadBody() {
 }
 
 window.openAdminCustomerPassesModal = async (userId, displayName) => {
+  const stale = document.getElementById('modal-admin-user-passes')
+  if (stale && !document.getElementById('mup-panel')) {
+    stale.remove()
+  }
   buildAdminCustomerPassesModal()
   _mupEditUserId = userId
   _mupDisplayName = displayName || 'Zákazník'
