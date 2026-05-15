@@ -616,16 +616,13 @@ export async function renderAdminDashboard() {
     const adminMyLessonsHtml = await buildStaffLessonsSectionHtml({
       sectionTitle: 'Moje lekce',
       sectionClass: 'admin-section-title',
-      sectionStyle: 'margin-top:18px;margin-bottom:14px;',
+      sectionStyle: 'margin-top:32px;margin-bottom:14px;',
       includeDeactivated: false,
       maxActive: 20,
     })
 
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:16px;">Přehled</div>
-      <div class="admin-section-title" style="margin-top:0;">Můj účet</div>
-      ${buildUserGreetingHtml(currentUser)}
-      ${adminMyLessonsHtml}
       <div class="admin-stat-grid">
         <div class="admin-stat-card">
           <div class="admin-stat-value">${todayLessons.length}</div>
@@ -652,10 +649,13 @@ export async function renderAdminDashboard() {
           <div class="admin-stat-label">Aktivní permanentky</div>
         </div>
       </div>
-      <div class="admin-section-title">Dnešní lekce</div>
+      <div class="admin-section-title" style="margin-top:24px;">Dnešní lekce</div>
       ${todayLessons.length ? todayLessons.map(l => _lessonRow(l)).join('') : `<div class="empty">Dnes nejsou žádné lekce.</div>`}
-      <div class="admin-section-title" style="margin-top:20px;">Nadcházející tento týden</div>
+      <div class="admin-section-title">Nadcházející tento týden</div>
       ${weekLessons.length ? weekLessons.map(l => _lessonRow(l, true)).join('') : `<div class="empty">Tento týden nejsou další lekce.</div>`}
+      <div class="admin-section-title">Můj účet</div>
+      ${buildUserGreetingHtml(currentUser)}
+      ${adminMyLessonsHtml}
     `
     })(), 'admin-dashboard')
   } catch (err) {
