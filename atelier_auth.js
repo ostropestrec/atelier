@@ -1328,14 +1328,14 @@ export function renderNavigation(user) {
   const sidebar = document.getElementById('sidebar')
   if (sidebar) {
     const items = _SIDEBAR_CFG[role] ?? _SIDEBAR_CFG.uzivatel
-    let sectionSeen = false
+    /** `--sep` jen když už nad sekcí jsou odkazy (ne první „prázdný“ section bez položek nad). */
+    let hasNavLinksAbove = false
     sidebar.innerHTML = items.map(item => {
       if (item.section) {
-        const separated = sectionSeen
-        sectionSeen = true
-        const sepCls = separated ? ' side-section-label--sep' : ''
+        const sepCls = hasNavLinksAbove ? ' side-section-label--sep' : ''
         return `<div class="side-section-label${sepCls}">${_navT(item.section)}</div>`
       }
+      hasNavLinksAbove = true
       return `<button class="side-link${activeId === item.id ? ' active' : ''}" onclick="nav('${item.id}', this)">${_navT(item.key)}</button>`
     }).join('')
   }
@@ -1356,6 +1356,11 @@ export function renderNavigation(user) {
 
 function pickPassTheme(hex) {
   return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : '#C4806E'
+}
+
+/** Bezpečná barva kurzu pro inline styly (rámečky, tečky). */
+function _overviewCourseHex(hex) {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : '#2854B9'
 }
 
 function passCardSurface(hex) {
@@ -1447,12 +1452,12 @@ export function buildUserOverviewHtml(user) {
   const bookingsHtml = (myBookings ?? []).map(b => {
     const lesson = b.lesson
     const course = lesson?.course
-    const color = course?.color_code ?? '#2854B9'
+    const color = _overviewCourseHex(course?.color_code)
     const title = locJson(course?.title)
     const owner = course?.owner?.name ?? '—'
     const when = lesson?.start_time ? fmtBookingWhen(lesson.start_time) : ''
     return `
-      <div class="booking-item">
+      <div class="booking-item" style="border:1px solid ${color};">
         <div class="bk-left">
           <span class="dot" style="background:${color}"></span>
           <div style="min-width:0">
