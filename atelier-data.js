@@ -1205,6 +1205,20 @@ window._bkUpdateMultiBtnLabel = () => {
   _refreshPopupPassSlotsCounter()
 }
 
+
+function _courseLessonsForBooking(courseId) {
+  return window.AppState.upcomingLessons
+    .filter(l => l.course_id === courseId)
+    .slice()
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+}
+
+function _fmtBkLessonLine(l) {
+  const start = new Date(l.start_time)
+  const end = new Date(l.end_time)
+  return `${fmtDayFull(start)} · ${fmtTime(start)}–${fmtTime(end)}`
+}
+
 /** Při platbě permanentkou: výběr více termínů (checkboxy), jinak klasický select. */
 function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
   const payEl = document.getElementById('bk-payment-opts')
@@ -1243,18 +1257,23 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
   const pre = preselectedLessonId != null ? String(preselectedLessonId) : ''
 
   if (box) {
-    box.innerHTML = bookable.length
-      ? bookable.map(l => {
+    box.innerHTML = courseLessons.length
+      ? courseLessons.map(l => {
           const lid = String(l.lesson_id ?? l.id)
-          const start = new Date(l.start_time)
-          const end = new Date(l.end_time)
+          const enrolled = isEnrolled(lid)
+          if (enrolled) {
+            return `<div class="bk-lesson-enrolled" style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);opacity:.55;color:#9b9b9b;">
+              <span style="font-size:12px;flex:1;">${_fmtBkLessonLine(l)}</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${lang === 'cs' ? 'PŘIHLÁŠENO' : 'ENROLLED'}</span>
+            </div>`
+          }
           const checked = pre && lid === pre ? ' checked' : ''
           return `<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);cursor:pointer;">
             <input type="checkbox" name="bk-lesson-cb" value="${lid}"${checked} style="margin-top:3px;accent-color:${color};"/>
-            <span style="font-size:12px;">${fmtDayFull(start)} · ${fmtTime(start)}–${fmtTime(end)} <span style="color:#6b6b6b;">(${l.available_spots} ${lang === 'cs' ? 'míst' : 'spots'})</span></span>
+            <span style="font-size:12px;">${_fmtBkLessonLine(l)} <span style="color:#6b6b6b;">(${l.available_spots} ${lang === 'cs' ? 'míst' : 'spots'})</span></span>
           </label>`
         }).join('')
-      : `<div style="font-size:12px;color:#9b9b9b;">${lang === 'cs' ? 'Žádné volné termíny.' : 'No available slots.'}</div>`
+      : `<div style="font-size:12px;color:#9b9b9b;">${lang === 'cs' ? 'Žádné vypsané termíny.' : 'No scheduled sessions.'}</div>`
   }
 
   if (hint) {
@@ -1296,18 +1315,31 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
   const nameEl = document.getElementById('bk-name')
   if (nameEl) nameEl.textContent = loc(course.title)
 
-  // Termíny s volnými místy
-  const courseLessons = window.AppState.upcomingLessons.filter(l => l.course_id === courseId && l.available_spots > 0)
+  const courseLessons = _courseLessonsForBooking(courseId)
   const lessonSel = document.getElementById('bk-lesson-select')
   if (lessonSel) {
     if (courseLessons.length) {
+      const selectable = courseLessons.filter(l => {
+        const lid = String(l.lesson_id ?? l.id)
+        return !isEnrolled(lid) && l.available_spots > 0
+      })
       lessonSel.innerHTML = courseLessons.map(l => {
-        const start = new Date(l.start_time)
-        const end   = new Date(l.end_time)
-        const lid   = l.lesson_id ?? l.id
-        return `<option value="${lid}" ${String(lid) === String(preselectedLessonId ?? '') ? 'selected' : ''}>
-          ${fmtDayFull(start)} · ${fmtTime(start)}–${fmtTime(end)} (${l.available_spots}${lang === 'cs' ? ' míst' : ' spots'})</option>`
+        const lid   = String(l.lesson_id ?? l.id)
+        const enrolled = isEnrolled(lid)
+        const full = !enrolled && l.available_spots <= 0
+        const line = _fmtBkLessonLine(l)
+        if (enrolled) {
+          return `<option value="" disabled>${line} · ${lang === 'cs' ? 'Přihlášeno' : 'Enrolled'}</option>`
+        }
+        if (full) {
+          return `<option value="" disabled>${line} · ${lang === 'cs' ? 'Plno' : 'Full'}</option>`
+        }
+        const selected = String(lid) === String(preselectedLessonId ?? '') ? 'selected' : ''
+        return `<option value="${lid}" ${selected}>${line} (${l.available_spots}${lang === 'cs' ? ' míst' : ' spots'})</option>`
       }).join('')
+      if (!selectable.length && !preselectedLessonId) {
+        lessonSel.innerHTML = `<option value="">${lang === 'cs' ? 'Žádné volné termíny k rezervaci' : 'No slots available to book'}</option>` + lessonSel.innerHTML
+      }
     } else if (preselectedLessonId) {
       lessonSel.innerHTML = `<option value="${preselectedLessonId}">${lang === 'cs' ? 'Vybraná lekce' : 'Selected lesson'}</option>`
     } else {
@@ -1419,7 +1451,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
     confirmBtn.textContent = lang === 'cs' ? 'Potvrdit rezervaci' : 'Confirm booking'
   }
 
-  _syncBkLessonPicker(course, courseLessons, preselectedLessonId)
+  _syncBkLessonPicker(course, _courseLessonsForBooking(courseId), preselectedLessonId)
 
   popup.style.display = 'flex'
 }
@@ -1440,10 +1472,7 @@ window._bkSelectPayment = (el, value) => {
   const courseId = payEl.dataset.courseid
   const course = window.AppState.courses.find(c => c.id === courseId)
   const selVal = document.getElementById('bk-lesson-select')?.value || ''
-  const courseLessons = window.AppState.upcomingLessons.filter(
-    l => l.course_id === courseId && l.available_spots > 0,
-  )
-  _syncBkLessonPicker(course, courseLessons, selVal || null)
+  _syncBkLessonPicker(course, _courseLessonsForBooking(courseId), selVal || null)
 }
 
 window.confirmBooking = async () => {

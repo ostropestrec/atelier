@@ -614,6 +614,8 @@ export async function renderAdminDashboard() {
 
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:16px;">Přehled</div>
+      <div class="admin-section-title" style="margin-top:0;">Můj účet</div>
+      ${buildUserOverviewHtml(currentUser)}
       <div class="admin-stat-grid">
         <div class="admin-stat-card">
           <div class="admin-stat-value">${todayLessons.length}</div>
@@ -644,8 +646,6 @@ export async function renderAdminDashboard() {
       ${todayLessons.length ? todayLessons.map(l => _lessonRow(l)).join('') : `<div class="empty">Dnes nejsou žádné lekce.</div>`}
       <div class="admin-section-title" style="margin-top:20px;">Nadcházející tento týden</div>
       ${weekLessons.length ? weekLessons.map(l => _lessonRow(l, true)).join('') : `<div class="empty">Tento týden nejsou další lekce.</div>`}
-      <div class="admin-section-title" style="margin-top:28px;">Můj účet</div>
-      ${buildUserOverviewHtml(currentUser)}
     `
     })(), 'admin-dashboard')
   } catch (err) {
@@ -734,6 +734,22 @@ export async function renderAdminKurzy() {
     const { data: courses, error } = await _scopeOwnerQuery(baseQuery)
     if (error) throw error
     const pageTitle = _isStaffLektor() ? 'Moje kurzy' : 'Kurzy'
+    const activeCourses = (courses ?? []).filter(c => c.is_active)
+    const inactiveCourses = (courses ?? []).filter(c => !c.is_active)
+    let listBody = ''
+    if (!activeCourses.length && !inactiveCourses.length) {
+      listBody = `<div class="empty">Žádné kurzy. Vytvořte první kliknutím na tlačítko výše.</div>`
+    } else {
+      if (activeCourses.length) {
+        listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${activeCourses.length} aktivních kurzů</div>`
+        listBody += activeCourses.map(_courseCard).join('')
+      }
+      if (inactiveCourses.length) {
+        listBody += `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9b9b9b;font-weight:600;margin:20px 0 10px;">Deaktivované kurzy</div>`
+        listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${inactiveCourses.length} kurzů — lze trvale smazat</div>`
+        listBody += inactiveCourses.map(_courseCard).join('')
+      }
+    }
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <div class="page-title">${pageTitle}</div>
@@ -742,7 +758,7 @@ export async function renderAdminKurzy() {
           <button class="btn-small" onclick="window.adminNewCourse?.()">+ Nový kurz</button>
         </div>
       </div>
-      ${courses?.length ? courses.map(_courseCard).join('') : `<div class="empty">Žádné kurzy. Vytvořte první kliknutím na tlačítko výše.</div>`}
+      ${listBody}
     `
     })(), 'admin-kurzy')
   } catch (err) {
@@ -764,7 +780,7 @@ function _courseCard(course) {
   const isWorkshop = !!course.is_workshop
   const editFn     = isWorkshop ? 'adminEditWorkshop' : 'adminEditCourse'
   return `
-    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;">
+    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
       <div style="width:5px;background:${color};flex-shrink:0;"></div>
       <div style="flex:1;padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
@@ -772,6 +788,7 @@ function _courseCard(course) {
             <div style="font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;">
               ${esc(title)}
               ${isWorkshop ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FFF4E0;color:#8B5C00;letter-spacing:.04em;">WORKSHOP</span>` : ''}
+              ${!active ? '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:4px;">DEAKTIVOVÁNO</span>' : ''}
             </div>
             <div style="font-size:11px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;">
               <span>Lektor: <b>${esc(ownerName ?? '—')}</b></span>
@@ -792,7 +809,8 @@ function _courseCard(course) {
           <button class="btn-small" onclick="window.${editFn}?.('${esc(course.id)}')">Upravit</button>
           ${active
             ? `<button class="btn-small danger" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">Deaktivovat</button>`
-            : `<button class="btn-small" onclick="window.adminToggleCourse?.('${esc(course.id)}',true)">Aktivovat</button>`}
+            : `<button class="btn-small" onclick="window.adminToggleCourse?.('${esc(course.id)}',true)">Aktivovat</button>
+               <button class="btn-small danger" onclick="window.adminDeleteCourse?.('${esc(course.id)}')">Smazat</button>`}
         </div>
       </div>
     </div>`
@@ -3051,6 +3069,42 @@ window.adminToggleCourse = async (courseId, activate) => {
   } catch (err) {
     console.error('[Admin] adminToggleCourse:', err)
     window.showToast?.('Chyba: ' + (err.message ?? err), 'error')
+  }
+}
+
+window.adminDeleteCourse = async (courseId) => {
+  if (!courseId || !confirm('Opravdu trvale smazat tento deaktivovaný kurz včetně termínů? Akce je nevratná.')) return
+  try {
+    const { data: course, error: loadErr } = await sb.from('courses')
+      .select('id, is_active')
+      .eq('id', courseId)
+      .maybeSingle()
+    if (loadErr) throw loadErr
+    if (!course) throw new Error('Kurz nenalezen.')
+    if (course.is_active) {
+      throw new Error('Smazat lze jen deaktivovaný kurz — nejprve ho deaktivujte.')
+    }
+    const { data: lessonRows, error: lesErr } = await sb.from('lessons').select('id').eq('course_id', courseId)
+    if (lesErr) throw lesErr
+    const lessonIds = (lessonRows ?? []).map(l => l.id)
+    if (lessonIds.length) {
+      const { count, error: bookErr } = await sb.from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'booked')
+        .in('lesson_id', lessonIds)
+      if (bookErr) throw bookErr
+      if ((count ?? 0) > 0) {
+        throw new Error('Kurz má stále aktivní rezervace — nelze smazat.')
+      }
+    }
+    const { error } = await sb.from('courses').delete().eq('id', courseId)
+    if (error) throw error
+    window.showToast?.('Kurz byl smazán.', 'ok')
+    renderAdminKurzy()
+    void window.refreshPublicData?.()
+  } catch (err) {
+    console.error('[Admin] adminDeleteCourse:', err)
+    window.showToast?.('Nepodařilo se smazat kurz: ' + (err.message ?? err), 'error')
   }
 }
 
