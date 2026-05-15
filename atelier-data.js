@@ -866,13 +866,13 @@ export function renderKurzy() {
         <div class="cxi">
           <div>
             ${buildCourseImage(c)}
-            <div style="font-size:11px;color:#6b6b6b;line-height:1.6;">${desc}</div>
-          </div>
-          <div class="cxi-right">
+            <div style="font-size:11px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
             <button type="button" class="btn-detail" onclick="openDetail('${c.id}')">
               ${lang === 'cs' ? 'Detail kurzu →' : 'Course detail →'}
             </button>
-            <div class="blbl" style="margin-top:12px;">${lang === 'cs' ? 'Vypsané termíny' : 'All scheduled dates'}</div>
+          </div>
+          <div class="cxi-right">
+            <div class="blbl">${lang === 'cs' ? 'Vypsané termíny' : 'All scheduled dates'}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
               ${buildTermPills(upcoming, color, c.id, false)}
             </div>
