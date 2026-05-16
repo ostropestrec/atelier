@@ -157,8 +157,8 @@ function _adminScopeSwitchHtml(active, setterName) {
   ].join(';')
   return `
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
-      <button type="button" style="${btn(current === 'moje')}" onclick="window.${setterName}?.('moje')">MOJE</button>
       <button type="button" style="${btn(current === 'vsechny')}" onclick="window.${setterName}?.('vsechny')">VŠECHNY</button>
+      <button type="button" style="${btn(current === 'moje')}" onclick="window.${setterName}?.('moje')">MOJE</button>
     </div>`
 }
 
@@ -342,8 +342,8 @@ function _adminDashboardSwitchHtml(active = _adminDashboardView) {
   const accountLabel = _adminLocale() === 'en' ? 'MY ACCOUNT' : 'MŮJ ÚČET'
   return `
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
-      <button type="button" style="${btn(mineActive)}" onclick="window.adminSetDashboardView?.('moje')">MOJE</button>
       <button type="button" style="${btn(allActive)}" onclick="window.adminSetDashboardView?.('vsechny')">VŠECHNY</button>
+      <button type="button" style="${btn(mineActive)}" onclick="window.adminSetDashboardView?.('moje')">MOJE</button>
       <button type="button" style="${btn(accountActive)}" onclick="window.adminSetDashboardView?.('ucet')">${accountLabel}</button>
     </div>`
 }

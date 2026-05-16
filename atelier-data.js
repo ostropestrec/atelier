@@ -2459,8 +2459,8 @@ function _staffScopeSwitchHtml() {
   ].join(';')
   return `
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
-      <button type="button" style="${btn(active === 'moje')}" onclick="window.setStaffLessonsScope?.('moje')">MOJE</button>
       <button type="button" style="${btn(active === 'vsechny')}" onclick="window.setStaffLessonsScope?.('vsechny')">VŠECHNY</button>
+      <button type="button" style="${btn(active === 'moje')}" onclick="window.setStaffLessonsScope?.('moje')">MOJE</button>
     </div>`
 }
 
@@ -2645,7 +2645,7 @@ export async function buildMojeLekceMarkup() {
     includeDeactivated: true,
     scope: _staffLessonsScope,
   })
-  return `<div class="sec-title">Lekce</div>${_staffScopeSwitchHtml()}${body}`
+  return `<div class="page-title" style="margin-bottom:16px;">Lekce</div>${_staffScopeSwitchHtml()}${body}`
 }
 
 
@@ -2654,14 +2654,14 @@ async function renderMojeLekce() {
   if (!el) return
 
   if (!currentUser) {
-    el.innerHTML = `<div class="sec-title">Lekce</div><div class="empty">Přihlaste se.</div>`
+    el.innerHTML = `<div class="page-title" style="margin-bottom:16px;">Lekce</div><div class="empty">Přihlaste se.</div>`
     return
   }
 
   window._renderMojeLekceSeq = (window._renderMojeLekceSeq ?? 0) + 1
   const seq = window._renderMojeLekceSeq
 
-  el.innerHTML = `<div class="sec-title">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty" style="padding:40px;">Načítám…</div>`
+  el.innerHTML = `<div class="page-title" style="margin-bottom:16px;">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty" style="padding:40px;">Načítám…</div>`
 
   const canApply = () => {
     if ((window._renderMojeLekceSeq ?? 0) !== seq) return false
@@ -2680,7 +2680,7 @@ async function renderMojeLekce() {
   } catch (e) {
     console.error('[renderMojeLekce] chyba — plný objekt:')
     console.dir(e, { depth: null })
-    applyHtml(`<div class="sec-title">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty">Chyba při načítání (detail v konzoli).</div>`)
+    applyHtml(`<div class="page-title" style="margin-bottom:16px;">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty">Chyba při načítání (detail v konzoli).</div>`)
   }
 }
 
