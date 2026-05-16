@@ -3313,6 +3313,25 @@ window.adminCancelCustomerBooking = async (bookingId, lessonId, paymentType, use
 
 window.adminOpenLessonDetail = async (lessonId) => {
   if (!lessonId) return
+  if (_isStaffLektor()) {
+    try {
+      const { data: lesson, error: lessonErr } = await sb.from('lessons')
+        .select('id, course:courses(owner_id)')
+        .eq('id', lessonId)
+        .maybeSingle()
+      if (lessonErr) throw lessonErr
+      if (!lesson) throw new Error(_adm('lessonActions.errLessonNotFound'))
+      const course = Array.isArray(lesson.course) ? lesson.course[0] : lesson.course
+      if (String(course?.owner_id ?? '') !== String(currentUser?.id ?? '')) {
+        window.showToast?.(_adm('lessonActions.errNotOwnAttendees'), 'error')
+        return
+      }
+    } catch (err) {
+      console.error('[Admin] adminOpenLessonDetail ownership:', err)
+      window.showToast?.(err.message ?? _adm('lessonActions.errNotOwnAttendees'), 'error')
+      return
+    }
+  }
   buildLessonAttendeesModal()
   const modal = document.getElementById('modal-lesson-attendees')
   const listEl = document.getElementById('mla-list')

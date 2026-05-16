@@ -905,7 +905,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const staffUser = _isStaffUser()
   const role = _currentRole()
   const courseOwnerId = Array.isArray(course?.owner) ? course.owner[0]?.id : course?.owner?.id
-  const canDeactivateLesson = role === 'admin'
+  const canManageLesson = role === 'admin'
     || (role === 'lektor' && String(course?.owner_id ?? courseOwnerId ?? '') === String(currentUser?.id ?? ''))
 
   const enrBadge = document.getElementById('kal-enrolled')
@@ -937,11 +937,12 @@ function openKalendarPopup(lesson, course, enrolled) {
     }
     if (attendeesBtn) {
       attendeesBtn.textContent = _tp('admin.btn.attendees')
+      attendeesBtn.style.display = canManageLesson ? '' : 'none'
       attendeesBtn.onclick = () => window.adminOpenLessonDetail?.(lid)
     }
     if (deactivateBtn) {
       deactivateBtn.textContent = _tp('admin.btn.deactivate')
-      deactivateBtn.style.display = canDeactivateLesson ? '' : 'none'
+      deactivateBtn.style.display = canManageLesson ? '' : 'none'
       deactivateBtn.onclick = () => window.adminDeactivateLesson?.(lid)
     }
   }
