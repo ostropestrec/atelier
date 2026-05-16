@@ -561,7 +561,7 @@
     .dh:last-child{ border-right:none; }
     .dd { font-size: 18px; font-weight: 600; display: block; line-height:1.1; }
     .dd.td { color: var(--primary); }
-    .dn { font-size: 10px; color: var(--section-heading-accent); text-transform: uppercase; letter-spacing:.12em; margin-top: 4px; display:block; }
+    .dn { font-size: 10px; color: #9b9b9b; text-transform: uppercase; letter-spacing:.12em; margin-top: 4px; display:block; }
 
     .cal-body{
       display:grid;
@@ -604,6 +604,36 @@
     .evn { font-size: 9px; font-weight: 600; line-height: 1.2; }
     .evt { font-size: 8px; opacity: .8; }
     .evb { font-size: 8px; font-weight: 600; margin-top: 1px; }
+    @media (max-width: 640px) {
+      :root { --cal-hour: 64px; }
+      .cal-head,
+      .cal-body {
+        grid-template-columns: 34px repeat(7, minmax(0, 1fr));
+      }
+      .dh {
+        padding: 6px 1px 5px;
+      }
+      .dd {
+        font-size: 13px;
+      }
+      .dn {
+        font-size: 8px;
+        letter-spacing: .04em;
+        margin-top: 2px;
+      }
+      .time-slot {
+        padding: 5px 3px 0 0;
+        font-size: 9px;
+      }
+      .ev {
+        left: 1px;
+        right: 1px;
+        padding: 3px 2px;
+        border-radius: 4px;
+      }
+      .evn { font-size: 8.5px; line-height: 1.15; }
+      .evt, .evb { font-size: 7.5px; }
+    }
 
     /* ── Externí platba (Stripe) — druhý dialog ── */
     .ep-pay-lead {
