@@ -465,7 +465,7 @@ async function fetchCoursesMap() {
   }
   try {
     const { data } = await adminRace(
-      sb.from('courses').select('id, title, color_code, description_short, images, is_workshop'),
+      sb.from('courses').select('id, title, color_code, description_short, images, is_workshop, owner_id'),
       'fetchCoursesMap',
     )
     return Object.fromEntries((data ?? []).map(c => [c.id, normalizeCourseRecord(c)]))
@@ -722,7 +722,6 @@ export async function renderAdminDashboard() {
       { data: todayAvail },
       { data: weekAvail },
       { data: allAvail },
-      { data: allCourses },
       monthPassesRes,
       { count: activePasses },
       monthBookingsRes,
@@ -739,9 +738,6 @@ export async function renderAdminDashboard() {
         .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
         .gte('start_time', today.toISOString())
         .eq('status', 'active').order('start_time').limit(80),
-      sb.from('courses')
-        .select('id, title, color_code, is_active, is_workshop, capacity_default, price_single, cancellation_hours, owner:users!owner_id(id,name)')
-        .order('title->cs'),
       sb.from('user_passes').select('price_paid, refund_status, refund_amount')
         .gte('created_at', monthStart.toISOString()),
       sb.from('user_passes').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -790,19 +786,24 @@ export async function renderAdminDashboard() {
     const todayLessons = enrich(todayAvail)
     const weekLessons  = enrich(weekAvail)
     const allLessons   = enrich(allAvail)
-    const coursesList  = allCourses ?? []
+    const ownCourseOwnerId = String(currentUser?.id ?? '')
+    const belongsToCurrentAdmin = l => String(l.course?.owner_id ?? l.course?.owner?.id ?? '') === ownCourseOwnerId
+    const useMineScope = _adminDashboardView === 'moje'
+    const shownTodayLessons = useMineScope ? todayLessons.filter(belongsToCurrentAdmin) : todayLessons
+    const shownWeekLessons  = useMineScope ? weekLessons.filter(belongsToCurrentAdmin) : weekLessons
+    const shownAllLessons   = useMineScope ? allLessons.filter(belongsToCurrentAdmin) : allLessons
 
-    const totalCap    = todayLessons.reduce((s, l) => s + (l.capacity ?? 0), 0)
-    const totalBooked = todayLessons.reduce((s, l) => s + (Number(l.booked_count) || 0), 0)
+    const totalCap    = shownTodayLessons.reduce((s, l) => s + (l.capacity ?? 0), 0)
+    const totalBooked = shownTodayLessons.reduce((s, l) => s + (Number(l.booked_count) || 0), 0)
     const occupancy   = totalCap > 0 ? Math.round((totalBooked / totalCap) * 100) : 0
     const monthGrossRev = _sumGrossRevenue([...monthPasses, ...monthBookings])
     const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthBookings])
     const monthNetRev = monthGrossRev - monthRefunds
 
-    const allViewHtml = `
+    const lessonScopeHtml = `
       <div class="admin-stat-grid">
         <div class="admin-stat-card">
-          <div class="admin-stat-value">${todayLessons.length}</div>
+          <div class="admin-stat-value">${shownTodayLessons.length}</div>
           <div class="admin-stat-label">${esc(_adm('dashboard.statTodayLessons'))}</div>
         </div>
         <div class="admin-stat-card">
@@ -827,20 +828,19 @@ export async function renderAdminDashboard() {
         </div>
       </div>
       <div class="admin-section-title">${esc(_adm('dashboard.sectionToday'))}</div>
-      ${todayLessons.length ? `<div class="nastenka-cards-2col">${todayLessons.map(l => _lessonRow(l)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
+      ${shownTodayLessons.length ? `<div class="nastenka-cards-2col">${shownTodayLessons.map(l => _lessonRow(l)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
       <div class="admin-section-title">${esc(_adm('dashboard.sectionWeek'))}</div>
-      ${weekLessons.length ? `<div class="nastenka-cards-2col">${weekLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
+      ${shownWeekLessons.length ? `<div class="nastenka-cards-2col">${shownWeekLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
       <div class="admin-section-title">${esc(_adminLocale() === 'en' ? 'All lessons' : 'Všechny lekce')}</div>
-      ${allLessons.length ? `<div class="nastenka-cards-2col">${allLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adminLocale() === 'en' ? 'No upcoming lessons.' : 'Žádné nadcházející lekce.')}</div>`}
-      <div class="admin-section-title">${esc(_adminLocale() === 'en' ? 'All courses' : 'Všechny kurzy')}</div>
-      ${coursesList.length ? `<div class="nastenka-cards-2col">${coursesList.map(_courseCard).join('')}</div>` : `<div class="empty">${esc(_adm('kurzy.empty'))}</div>`}`
+      ${shownAllLessons.length ? `<div class="nastenka-cards-2col">${shownAllLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adminLocale() === 'en' ? 'No upcoming lessons.' : 'Žádné nadcházející lekce.')}</div>`}`
 
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px;">
         <div class="page-title" style="margin-bottom:0;">${esc(_adm('dashboard.title'))}</div>
         ${_adminDashboardSwitchHtml()}
       </div>
-      ${_adminDashboardView === 'moje' ? _adminAccountSectionHtml() : allViewHtml}
+      ${lessonScopeHtml}
+      ${_adminAccountSectionHtml()}
     `
     })(), 'admin-dashboard')
   } catch (err) {
