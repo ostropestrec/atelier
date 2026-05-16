@@ -49,7 +49,11 @@ function _refreshStaffViewAfterCancel() {
   if (_isStaffAdmin()) {
     void renderAdminDashboard()
   } else if (_isStaffLektor()) {
-    void window.renderMojeLekce?.()
+    if (document.getElementById('screen-nastenka')?.classList.contains('active')) {
+      void renderLektorDashboard()
+    } else {
+      void window.renderMojeLekce?.()
+    }
   }
 }
 
@@ -843,6 +847,128 @@ export async function renderAdminDashboard() {
     el.innerHTML = `<div class="empty">${esc(_adm('err.loadData'))}</div>`
   }
 }
+
+export async function renderLektorDashboard() {
+  if (!_isStaffLektor()) return
+  const el = document.getElementById('nastenka-content')
+  if (!el) return
+
+  const prevHtml = el.innerHTML
+  const loadNeedle = _adm('loading.overview')
+  const stable = _adminHadStableContent(prevHtml, loadNeedle)
+  if (stable) {
+    console.log('[Debug] Lektor dashboard: obnovuji data na pozadí')
+  } else {
+    el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
+  }
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+  const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7)
+
+  try {
+    await adminRace((async () => {
+      const { data: ownCourses, error: coursesErr } = await sb.from('courses')
+        .select('id, title, color_code, description_short, images, is_workshop, owner_id')
+        .eq('owner_id', currentUser?.id)
+        .eq('is_active', true)
+      if (coursesErr) throw coursesErr
+
+      const courseRows = ownCourses ?? []
+      const courseIds = courseRows.map(c => c.id)
+      const courseMap = Object.fromEntries(courseRows.map(c => [c.id, normalizeCourseRecord(c)]))
+
+      let todayAvail = []
+      let weekAvail = []
+      let allAvail = []
+      if (courseIds.length) {
+        ;[
+          { data: todayAvail = [] },
+          { data: weekAvail = [] },
+          { data: allAvail = [] },
+        ] = await Promise.all([
+          sb.from('lesson_availability')
+            .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
+            .in('course_id', courseIds)
+            .gte('start_time', today.toISOString()).lt('start_time', tomorrow.toISOString())
+            .eq('status', 'active').order('start_time'),
+          sb.from('lesson_availability')
+            .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
+            .in('course_id', courseIds)
+            .gte('start_time', tomorrow.toISOString()).lt('start_time', weekEnd.toISOString())
+            .eq('status', 'active').order('start_time'),
+          sb.from('lesson_availability')
+            .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
+            .in('course_id', courseIds)
+            .gte('start_time', today.toISOString())
+            .eq('status', 'active').order('start_time').limit(80),
+        ])
+      }
+
+      const enrich = rows => (rows ?? []).map(l => ({ ...l, course: courseMap[l.course_id] }))
+      const todayLessons = enrich(todayAvail)
+      const weekLessons = enrich(weekAvail)
+      const allLessons = enrich(allAvail)
+
+      let activePassCount = 0
+      try {
+        const { data: ownPasses, error: passesErr } = await sb.from('passes')
+          .select('id')
+          .eq('owner_id', currentUser?.id)
+          .eq('is_active', true)
+        if (passesErr) throw passesErr
+        const passIds = (ownPasses ?? []).map(p => p.id)
+        if (passIds.length) {
+          const { count, error: userPassesErr } = await sb.from('user_passes')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'active')
+            .in('pass_id', passIds)
+          if (userPassesErr) throw userPassesErr
+          activePassCount = count ?? 0
+        }
+      } catch (passErr) {
+        console.warn('[Lektor dashboard] Aktivní permanentky se nepodařilo načíst:', passErr)
+      }
+
+      const totalCap = todayLessons.reduce((s, l) => s + (l.capacity ?? 0), 0)
+      const totalBooked = todayLessons.reduce((s, l) => s + (Number(l.booked_count) || 0), 0)
+      const occupancy = totalCap > 0 ? Math.round((totalBooked / totalCap) * 100) : 0
+
+      el.innerHTML = `
+        <div class="admin-stat-grid">
+          <div class="admin-stat-card">
+            <div class="admin-stat-value">${todayLessons.length}</div>
+            <div class="admin-stat-label">${esc(_adm('dashboard.statTodayLessons'))}</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-value">${occupancy}&thinsp;%</div>
+            <div class="admin-stat-label">${esc(_adm('dashboard.statOccupancy'))}</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-value">${activePassCount}</div>
+            <div class="admin-stat-label">${esc(_adm('dashboard.statActivePasses'))}</div>
+          </div>
+        </div>
+        <div class="admin-section-title">${esc(_adm('dashboard.sectionToday'))}</div>
+        ${todayLessons.length ? `<div class="nastenka-cards-2col">${todayLessons.map(l => _lessonRow(l)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
+        <div class="admin-section-title">${esc(_adm('dashboard.sectionWeek'))}</div>
+        ${weekLessons.length ? `<div class="nastenka-cards-2col">${weekLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
+        <div class="admin-section-title">${esc(_adminLocale() === 'en' ? 'All lessons' : 'Všechny lekce')}</div>
+        ${allLessons.length ? `<div class="nastenka-cards-2col">${allLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adminLocale() === 'en' ? 'No upcoming lessons.' : 'Žádné nadcházející lekce.')}</div>`}
+      `
+    })(), 'lektor-dashboard')
+  } catch (err) {
+    if (err?.code === 'TIMEOUT' && stable) {
+      console.warn('[Debug] Lektor dashboard: timeout — obnovuji předchozí obsah')
+      el.innerHTML = prevHtml
+      return
+    }
+    console.error('[Admin] renderLektorDashboard:', err)
+    el.innerHTML = `<div class="empty">${esc(_adm('err.loadData'))}</div>`
+  }
+}
+
+window.renderLektorDashboard = renderLektorDashboard
 
 window.adminLessonActionButtons = (lessonId, status = 'active') => {
   const lid = String(lessonId ?? '').replace(/'/g, "\'")
@@ -3420,6 +3546,7 @@ window.adminDeleteCourse = async (courseId) => {
 window.__refreshAdminScreen = async (route) => {
   if (!route) return
   console.log('[Debug] __refreshAdminScreen:', route, '(bez init, jen překreslit sekci)')
+  if (route === 'nastenka' && _isStaffLektor()) await renderLektorDashboard()
   if (route === 'admin-dashboard' || route === 'sprava')   await renderAdminDashboard()
   if (route === 'admin-kurzy')       await renderAdminKurzy()
   if (route === 'admin-zakaznici')   await renderAdminZakaznici()

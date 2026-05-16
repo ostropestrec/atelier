@@ -1543,15 +1543,33 @@ function _isAdminOnDashboard() {
   return role === 'admin' && document.getElementById('screen-admin-dashboard')?.classList.contains('active')
 }
 
+function _isLektorOnOverview() {
+  const role = window.__userRole ?? currentUser?.role ?? 'uzivatel'
+  return role === 'lektor' && document.getElementById('screen-nastenka')?.classList.contains('active')
+}
+
 function renderProtectedSections(user) {
   const main = document.getElementById('nastenka-content')
   if (!main) return
+  const role = window.__userRole ?? user?.role ?? 'uzivatel'
+  if (role === 'lektor') {
+    if (typeof window.renderLektorDashboard === 'function') {
+      void window.renderLektorDashboard()
+    } else {
+      main.innerHTML = `<div class="empty" style="padding:40px;">${escapeHtml(t(_overviewLocale(), 'admin.loading.overview'))}</div>`
+    }
+    return
+  }
   main.innerHTML = buildUserOverviewHtml(user)
 }
 
 function _refreshUserOverviewUI() {
   if (_isAdminOnDashboard()) {
     void window.__refreshAdminScreen?.('admin-dashboard')
+    return
+  }
+  if (_isLektorOnOverview()) {
+    void window.__refreshAdminScreen?.('nastenka')
     return
   }
   renderProtectedSections(currentUser)

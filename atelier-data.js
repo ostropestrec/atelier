@@ -46,6 +46,21 @@ function _tp(path, params) {
   return t(_locale(), path, params)
 }
 
+function _currentRole() {
+  return window.__userRole ?? window.AppState?.role ?? currentUser?.role ?? 'uzivatel'
+}
+
+function _isStaffUser() {
+  const role = _currentRole()
+  return role === 'admin' || role === 'lektor'
+}
+
+function _staffBookingDisabledMessage() {
+  return _locale() === 'en'
+    ? 'Admins and instructors manage lessons; they cannot book them.'
+    : 'Admin a lektor lekce pouze spravují, nemohou se na ně přihlašovat.'
+}
+
 function refreshStaticI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const path = el.getAttribute('data-i18n')
@@ -887,6 +902,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   window._kalOpenLessonId = lid != null ? String(lid) : ''
   const enrolledBooking = myBookings.find(b => String(b?.lesson?.id ?? '') === String(lid))
   const canCancelEnrolledBooking = canUserCancelBooking(enrolledBooking)
+  const staffUser = _isStaffUser()
 
   const enrBadge = document.getElementById('kal-enrolled')
   const bEnr     = document.getElementById('kal-btns-enr')
@@ -900,11 +916,15 @@ function openKalendarPopup(lesson, course, enrolled) {
   const cKalCancel = document.getElementById('kal-cancel-booking-btn')
   if (cKalCancel) cKalCancel.textContent = _tp('kal.cancelBooking')
   if (bEnr)     bEnr.style.display     = enrolled && canCancelEnrolledBooking ? 'block' : 'none'
-  if (bFree)    bFree.style.display    = enrolled ? 'none'  : 'grid'
+  if (bFree)    bFree.style.display    = enrolled || staffUser ? 'none'  : 'grid'
   if (rezBtn) {
     rezBtn.style.background = color
     rezBtn.textContent = _tp('booking.btn.book')
     rezBtn.onclick = () => {
+      if (_isStaffUser()) {
+        window.showToast?.(_staffBookingDisabledMessage(), 'error')
+        return
+      }
       window.closeAll?.()
       window.openBookingPopup?.(lesson.course_id, null, lesson.lesson_id ?? lesson.id)
     }
@@ -1108,6 +1128,7 @@ function buildTermPills(upcoming, color, courseId, interactive = true) {
 }
 
 function buildCourseReserveButton(c, color) {
+  if (_isStaffUser()) return ''
   return `
     <button type="button" class="btn-res" id="res-btn-${c.id}" style="background:${color};margin-top:4px;"
       onclick="window.reserveFromCard('${c.id}')">
@@ -1116,6 +1137,7 @@ function buildCourseReserveButton(c, color) {
 }
 
 function buildBuyPanel(c, color) {
+  if (_isStaffUser()) return ''
   return `
     <div class="bo bo-pay"
       id="buy-single-${c.id}"
@@ -1676,6 +1698,10 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
 // ── Booking popup ─────────────────────────────────────────────
 window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferredPayValue = null) => {
   if (!currentUser) { window.openAuthPopup?.(); return }
+  if (_isStaffUser()) {
+    window.showToast?.(_staffBookingDisabledMessage(), 'error')
+    return
+  }
 
   const course = window.AppState.courses.find(c => c.id === courseId)
   if (!course) return
@@ -1874,6 +1900,10 @@ window._bkSelectPayment = (el, value) => {
 
 window.confirmBooking = async () => {
   if (!currentUser?.id) { window.openAuthPopup?.(); return }
+  if (_isStaffUser()) {
+    window.showToast?.(_staffBookingDisabledMessage(), 'error')
+    return
+  }
 
   const confirmBtn = document.getElementById('bk-confirm-btn')
   if (confirmBtn?.disabled) return
@@ -2244,14 +2274,14 @@ async function renderCourseDetail(courseId) {
           <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId, false)}</div>
         </div>` : ''}
 
-      ${upcoming.some(l => l.available_spots > 0)
+      ${!_isStaffUser() && upcoming.some(l => l.available_spots > 0)
         ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
              onclick="window.openBookingPopup?.('${courseId}')">
              ${_tp('booking.btn.continueToBooking')}
            </button>`
-        : `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
+        : (!_isStaffUser() ? `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
              ${_tp('courses.allSessionsFull')}
-           </div>`}
+           </div>` : '')}
     </div>`
 
   _refreshDetailPassSlotsRow(courseId)
@@ -2358,6 +2388,10 @@ window.selectPayment = (el, courseId, type, passId, buyEntries = null, buyPrice 
 
 window.reserveFromCard = async (courseId) => {
   if (!currentUser) { window.openAuthPopup?.(); return }
+  if (_isStaffUser()) {
+    window.showToast?.(_staffBookingDisabledMessage(), 'error')
+    return
+  }
 
   const btn = document.getElementById(`res-btn-${courseId}`)
   if (btn?.disabled) return  // Prevence duplicitního kliknutí
@@ -2441,6 +2475,12 @@ let _staffLessonsScope = 'vsechny'
 
 function _staffLessonsIsAdmin() {
   return (window.__userRole ?? window.AppState?.role) === 'admin'
+}
+
+function _staffLessonsPageTitle() {
+  return (window.__userRole ?? window.AppState?.role) === 'lektor'
+    ? _tp('pages.myLessonsTitle')
+    : _tp('nav.myLessons')
 }
 
 function _staffScopeSwitchHtml() {
@@ -2639,13 +2679,14 @@ export async function buildStaffLessonsSectionHtml({
 }
 
 export async function buildMojeLekceMarkup() {
+  const title = _staffLessonsPageTitle()
   const body = await buildStaffLessonsSectionHtml({
     sectionTitle: '',
     sectionClass: 'sec-title',
     includeDeactivated: true,
     scope: _staffLessonsScope,
   })
-  return `<div class="page-title" style="margin-bottom:16px;">Lekce</div>${_staffScopeSwitchHtml()}${body}`
+  return `<div class="page-title" style="margin-bottom:16px;">${_escHtml(title)}</div>${_staffScopeSwitchHtml()}${body}`
 }
 
 
@@ -2654,14 +2695,14 @@ async function renderMojeLekce() {
   if (!el) return
 
   if (!currentUser) {
-    el.innerHTML = `<div class="page-title" style="margin-bottom:16px;">Lekce</div><div class="empty">Přihlaste se.</div>`
+    el.innerHTML = `<div class="page-title" style="margin-bottom:16px;">${_escHtml(_staffLessonsPageTitle())}</div><div class="empty">Přihlaste se.</div>`
     return
   }
 
   window._renderMojeLekceSeq = (window._renderMojeLekceSeq ?? 0) + 1
   const seq = window._renderMojeLekceSeq
 
-  el.innerHTML = `<div class="page-title" style="margin-bottom:16px;">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty" style="padding:40px;">Načítám…</div>`
+  el.innerHTML = `<div class="page-title" style="margin-bottom:16px;">${_escHtml(_staffLessonsPageTitle())}</div>${_staffScopeSwitchHtml()}<div class="empty" style="padding:40px;">Načítám…</div>`
 
   const canApply = () => {
     if ((window._renderMojeLekceSeq ?? 0) !== seq) return false
@@ -2680,7 +2721,7 @@ async function renderMojeLekce() {
   } catch (e) {
     console.error('[renderMojeLekce] chyba — plný objekt:')
     console.dir(e, { depth: null })
-    applyHtml(`<div class="page-title" style="margin-bottom:16px;">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty">Chyba při načítání (detail v konzoli).</div>`)
+    applyHtml(`<div class="page-title" style="margin-bottom:16px;">${_escHtml(_staffLessonsPageTitle())}</div>${_staffScopeSwitchHtml()}<div class="empty">Chyba při načítání (detail v konzoli).</div>`)
   }
 }
 
