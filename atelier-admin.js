@@ -3,7 +3,7 @@
 // ============================================================
 
 import { sb } from './atelier-supabase.js'
-import { currentUser } from './atelier_auth.js'
+import { currentUser, userPasses, myBookings, canUserCancelBooking } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 import { normalizeCourseRecord, courseImageUrls } from './atelier-data.js'
 import { t } from './translations.js'
@@ -281,6 +281,109 @@ function fmtPrice(n) {
 function fmtDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString(_adminFmtLocaleTag(), { day: 'numeric', month: 'numeric', year: 'numeric' })
+}
+
+function _adminAccountHeading() {
+  return _adminLocale() === 'en' ? 'MY ACCOUNT' : 'MŮJ ÚČET'
+}
+
+function _adminBookingWhen(iso) {
+  const d = new Date(iso)
+  const day = d.toLocaleDateString(_adminFmtLocaleTag(), { weekday: 'short', day: 'numeric', month: 'numeric' })
+  const time = d.toLocaleTimeString(_adminFmtLocaleTag(), { hour: '2-digit', minute: '2-digit' })
+  return `${day} · ${time}`
+}
+
+function _adminPassCourseTagsHtml(allowedIds, colorHex) {
+  const ph = _passHexOrDefault(colorHex)
+  const courses = window.AppState?.courses ?? []
+  const ids = Array.isArray(allowedIds) ? allowedIds : []
+  const hdr = esc(t(_adminLocale(), 'nav.courses'))
+  const pill = txt => `<span class="pass-shop-tag" style="background:${ph}22;color:${ph};">${esc(txt)}</span>`
+  const labels = ids
+    .map(id => {
+      const c = courses.find(x => String(x.id) === String(id))
+      return loc(c?.title)
+    })
+    .filter(Boolean)
+  const inner = ids.length
+    ? (labels.length ? labels.map(pill).join('') : pill(t(_adminLocale(), 'catalog.selectedCoursesDetail')))
+    : pill(t(_adminLocale(), 'catalog.validAllCourses'))
+  return `
+    <div class="pass-shop-scope-heading">${hdr}</div>
+    <div class="pass-shop-course-tags">${inner}</div>`
+}
+
+function _adminAccountPassCard(up) {
+  const p = up.pass
+  const name = loc(p?.name) || t(_adminLocale(), 'dashboard.passFallback')
+  const total = Number(up.entries_total ?? p?.entries_total ?? 0) || 0
+  const remaining = Number(up.entries_remaining ?? 0) || 0
+  const used = Math.max(0, total - remaining)
+  const pct = total ? Math.round((used / total) * 100) : 0
+  const ph = _passHexOrDefault(p?.color_code)
+  const exp = up.expires_at ? fmtDate(up.expires_at) : ''
+  return `
+    <div class="pass-item" style="${_passCardSurfaceStyle(ph)}">
+      <div class="pass-top">
+        <div>
+          <div class="pass-name">${esc(name)}</div>
+          <div class="pass-meta">${esc(t(_adminLocale(), 'dashboard.passMeta', { remaining, total, date: exp }))}</div>
+        </div>
+        <div class="pass-count" style="color:${ph};">${remaining}</div>
+      </div>
+      ${_adminPassCourseTagsHtml(p?.allowed_course_ids, p?.color_code)}
+      <div class="bar"><i style="width:${pct}%;background:${ph};"></i></div>
+    </div>`
+}
+
+function _adminAccountBookingCard(b) {
+  const lesson = b.lesson
+  const course = lesson?.course
+  const color = _courseThemeHex(course?.color_code)
+  const title = loc(course?.title) || t(_adminLocale(), 'dashboard.lessonFallback')
+  const owner = course?.owner?.name ?? '—'
+  const when = lesson?.start_time ? _adminBookingWhen(lesson.start_time) : ''
+  const courseId = esc(String(course?.id ?? ''))
+  const bookingId = esc(String(b.id ?? ''))
+  return `
+    <div class="booking-item" style="border:1px solid ${color};">
+      <div class="bk-left">
+        <span class="dot" style="background:${color}"></span>
+        <div style="min-width:0">
+          <div class="bk-title">
+            <a href="javascript:void(0)" onclick="window.openDetail?.('${courseId}')"
+              style="color:inherit;text-decoration:none;">
+              ${esc(title)}
+            </a>
+          </div>
+          <div class="bk-sub">${esc(when)} · ${esc(owner)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="pill ok">${esc(t(_adminLocale(), 'common.enrolled'))}</span>
+        ${canUserCancelBooking(b)
+          ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${bookingId}')">${esc(t(_adminLocale(), 'dashboard.unenroll'))}</button>`
+          : ''}
+      </div>
+    </div>`
+}
+
+function _adminAccountSectionHtml() {
+  const passesHtml = (userPasses ?? []).map(_adminAccountPassCard).join('')
+  const bookingsHtml = (myBookings ?? []).map(_adminAccountBookingCard).join('')
+  return `
+    <div class="admin-section-title">${esc(_adminAccountHeading())}</div>
+    <div class="section-h" style="margin-top:0;">${esc(t(_adminLocale(), 'dashboard.sectionPasses'))}</div>
+    ${passesHtml ? `<div class="nastenka-cards-2col">${passesHtml}</div>` : `<div class="empty">${esc(t(_adminLocale(), 'dashboard.emptyPasses'))}</div>`}
+    ${passesHtml ? `
+      <div class="card-meta" style="margin-top:10px;">
+        ${esc(t(_adminLocale(), 'dashboard.refundNote'))}
+      </div>
+    ` : ''}
+    <div class="section-h">${esc(t(_adminLocale(), 'dashboard.sectionBookings'))}</div>
+    ${bookingsHtml ? `<div class="nastenka-cards-2col">${bookingsHtml}</div>` : `<div class="empty">${esc(t(_adminLocale(), 'dashboard.emptyBookings'))}</div>`}
+  `
 }
 
 function fmtDateTime(iso) {
@@ -656,15 +759,6 @@ export async function renderAdminDashboard() {
     const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthBookings])
     const monthNetRev = monthGrossRev - monthRefunds
 
-    const { buildStaffLessonsSectionHtml } = await import('./atelier-data.js')
-    const adminMyLessonsHtml = await buildStaffLessonsSectionHtml({
-      sectionTitle: _adm('dashboard.myLessonsSection'),
-      sectionClass: 'admin-section-title',
-      sectionStyle: '',
-      includeDeactivated: false,
-      maxActive: 20,
-    })
-
     el.innerHTML = `
       <div class="page-title">${esc(_adm('dashboard.title'))}</div>
       <div class="admin-stat-grid">
@@ -697,7 +791,7 @@ export async function renderAdminDashboard() {
       ${todayLessons.length ? `<div class="nastenka-cards-2col">${todayLessons.map(l => _lessonRow(l)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
       <div class="admin-section-title">${esc(_adm('dashboard.sectionWeek'))}</div>
       ${weekLessons.length ? `<div class="nastenka-cards-2col">${weekLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
-      ${adminMyLessonsHtml}
+      ${_adminAccountSectionHtml()}
     `
     })(), 'admin-dashboard')
   } catch (err) {
