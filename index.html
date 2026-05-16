@@ -8,6 +8,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Svelte islands feature flags (opt-in přes localStorage). Drží se brzy v <head>,
+       aby legacy DOM nikdy neprobliknul, když je flag zapnutý. -->
+  <script>
+    (function () {
+      try {
+        window.__features = window.__features || {}
+        window.__features.svelteCalendar = localStorage.getItem('feature.svelteCalendar') === '1'
+        if (window.__features.svelteCalendar) {
+          document.documentElement.classList.add('feat-svelte-calendar')
+        }
+      } catch (_) { /* private mode, SSR, atd. */ }
+    })()
+  </script>
+  <style>
+    /* Když je flag ON: schovej legacy mřížku, ukaž island root. Když OFF: opačně. */
+    .feat-svelte-calendar #screen-kalendar > .cal-ctrl,
+    .feat-svelte-calendar #screen-kalendar > .cal-wrap { display: none !important; }
+    html:not(.feat-svelte-calendar) #calendar-root { display: none !important; }
+  </style>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1235,6 +1255,9 @@
 
 <!-- ── Screen: Kalendář ── -->
 <div class="screen active" id="screen-kalendar">
+  <!-- Svelte island mount point (viditelný jen pokud window.__features.svelteCalendar) -->
+  <div id="calendar-root"></div>
+
   <div class="cal-ctrl">
     <button onclick="calPrev()">‹</button>
     <span class="pt" id="cal-week-label"></span>
@@ -1620,6 +1643,15 @@
      atelier-admin.js se lazy-importuje v atelier-data.js až pro adminy. -->
 <script type="module" src="atelier-data.js"></script>
 <script type="module" src="atelier_auth.js"></script>
+
+<!-- AtelierAPI fasáda: tenký namespace nad existujícími window.* aliasy.
+     Bez vlastní byznys logiky; pouze delegace + re-export t() + event helpers. -->
+<script type="module" src="atelier-api.js"></script>
+
+<!-- Svelte islands bundle (Vite build). Musí být poslední — registruje
+     se do window.__appNavHooks a očekává window.AtelierAPI z předchozího řádku.
+     Feature-flagged: aktivuje se přes localStorage.setItem('feature.svelteCalendar','1'). -->
+<script type="module" src="./dist/atelier-svelte.js"></script>
 
 </body>
 </html>

@@ -18,6 +18,7 @@ import {
   renderNavigation,
 } from './atelier_auth.js'
 import { t, UI_LANG_STORAGE_KEY } from './translations.js'
+import { EVENTS, emit } from './atelier-events.js'
 
 // ── Jazyk ─────────────────────────────────────────────────────
 export let lang = 'cs'
@@ -130,6 +131,7 @@ export const setLang = l => {
     localStorage.setItem(UI_LANG_STORAGE_KEY, lang)
     _syncDocumentLang()
   } catch (_) { /* */ }
+  emit(EVENTS.LANG_CHANGED, { lang })
   renderAll()
   window.syncLangUI?.(lang)
   window.refreshStaticI18n?.()
@@ -554,6 +556,7 @@ async function fetchCourses() {
 
   if (!primary.error) {
     window.AppState.courses = (primary.data ?? []).map(normalizeCourseRecord)
+    emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'primary' })
     return
   }
 
@@ -589,6 +592,7 @@ async function fetchCourses() {
     ...c,
     owner: ownerMap[c.owner_id] ?? null,
   }))
+  emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'fallback' })
 }
 
 function _calcDurMin(startStr, endStr) {
@@ -611,6 +615,7 @@ async function fetchLessons(from = window.AppState.weekStart) {
     .order('start_time')
   if (error) { console.error('fetchLessons:', error); return }
   window.AppState.lessons = data ?? []
+  emit(EVENTS.LESSONS_UPDATED, { scope: 'week', from: from.toISOString() })
 }
 
 // ── Fetch: všechny budoucí lekce (pro kurzy + booking) ───────
@@ -624,6 +629,7 @@ async function fetchUpcomingLessons() {
     .limit(300)
   if (error) { console.error('fetchUpcomingLessons:', error); return }
   window.AppState.upcomingLessons = data ?? []
+  emit(EVENTS.LESSONS_UPDATED, { scope: 'upcoming' })
 }
 
 // ── Realtime: živá obsazenost (debounce — tab / burst events nesmí zahltit UI) ──

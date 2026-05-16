@@ -1,0 +1,21 @@
+{
+  "name": "atelier-svelte-islands",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Svelte islands prezentační vrstva nad vanilla atelier-data.js / atelier_auth.js. Build pouze pro svelte/* — vanilla moduly se nebundlují.",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@tsconfig/svelte": "^5.0.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "tslib": "^2.6.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}

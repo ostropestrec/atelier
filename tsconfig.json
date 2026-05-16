@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": []
+  },
+  "include": [
+    "svelte/**/*",
+    "atelier-api.d.ts",
+    "atelier-api.js",
+    "atelier-events.js"
+  ],
+  "exclude": [
+    "atelier-data.js",
+    "atelier_auth.js",
+    "atelier-admin.js",
+    "atelier-supabase.js",
+    "atelier-sanitize.js",
+    "atelier_gdpr_js.js",
+    "translations.js",
+    "node_modules",
+    "dist"
+  ]
+}
