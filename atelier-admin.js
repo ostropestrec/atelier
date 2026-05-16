@@ -807,7 +807,7 @@ export async function renderAdminKurzy() {
         listBody += activeCourses.map(_courseCard).join('')
       }
       if (inactiveCourses.length) {
-        listBody += `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9b9b9b;font-weight:600;margin:20px 0 10px;">${esc(_adm('kurzy.sectionInactive'))}</div>`
+        listBody += `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">${esc(_adm('kurzy.sectionInactive'))}</div>`
         listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nInactiveDelete', { n: inactiveCourses.length })}</div>`
         listBody += inactiveCourses.map(_courseCard).join('')
       }

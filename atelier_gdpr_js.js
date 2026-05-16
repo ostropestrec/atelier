@@ -355,7 +355,7 @@ export function injectDeleteButton(lang = 'cs') {
   section.innerHTML = `
     <div style="
       font-size:10px;font-weight:500;letter-spacing:.08em;
-      text-transform:uppercase;color:#9b9b9b;margin-bottom:8px;
+      text-transform:uppercase;color:var(--section-heading-accent);margin-bottom:8px;
     ">
       ${t('Nebezpečná zóna', 'Danger zone')}
     </div>

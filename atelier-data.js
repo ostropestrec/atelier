@@ -2542,7 +2542,7 @@ export async function buildStaffLessonsSectionHtml({
     sections.push(active.map(renderTermCard).join(''))
   }
   if (deactivated.length) {
-    sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9b9b9b;font-weight:600;margin:20px 0 10px;">Deaktivované termíny</div>`)
+    sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">Deaktivované termíny</div>`)
     sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${deactivated.length} termínů — lze trvale smazat</div>`)
     sections.push(deactivated.map(renderTermCard).join(''))
   }
