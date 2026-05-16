@@ -1057,6 +1057,7 @@ function renderAuthUI(user) {
   if (!av) return
 
   if (user) {
+    av.style.display = ''
     av.textContent = getInitials(user.name || user.email)
     av.classList.remove('g')
     av.classList.add('u')
@@ -1068,6 +1069,7 @@ function renderAuthUI(user) {
     if (nm)   nm.textContent           = user.name || user.email
     if (sbtn) sbtn.style.display       = 'none'
   } else {
+    av.style.display = 'none'
     av.textContent = '?'
     av.classList.remove('u')
     av.classList.add('g')
@@ -1078,6 +1080,7 @@ function renderAuthUI(user) {
     av.style.color = ''
     if (nm)   nm.textContent           = 'Přihlásit se'
     if (sbtn) sbtn.style.display       = ''
+    document.getElementById('av-menu')?.classList.remove('on')
   }
 }
 
