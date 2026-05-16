@@ -2540,7 +2540,7 @@ function _staffScopeSwitchHtml() {
     'cursor:pointer',
   ].join(';')
   return `
-    <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
+    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start;flex-wrap:wrap;margin-bottom:22px;">
       <button type="button" style="${btn(active === 'vsechny')}" onclick="window.setStaffLessonsScope?.('vsechny')">${allLabel}</button>
       <button type="button" style="${btn(active === 'moje')}" onclick="window.setStaffLessonsScope?.('moje')">${mineLabel}</button>
     </div>`

@@ -163,7 +163,7 @@ function _adminScopeSwitchHtml(active, setterName) {
     'cursor:pointer',
   ].join(';')
   return `
-    <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
+    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start;flex-wrap:wrap;margin-bottom:22px;">
       <button type="button" style="${btn(current === 'vsechny')}" onclick="window.${setterName}?.('vsechny')">${allLabel}</button>
       <button type="button" style="${btn(current === 'moje')}" onclick="window.${setterName}?.('moje')">${mineLabel}</button>
     </div>`
@@ -351,7 +351,7 @@ function _adminDashboardSwitchHtml(active = _adminDashboardView) {
     'cursor:pointer',
   ].join(';')
   return `
-    <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start;flex-wrap:wrap;">
       <button type="button" style="${btn(allActive)}" onclick="window.adminSetDashboardView?.('vsechny')">${allLabel}</button>
       <button type="button" style="${btn(mineActive)}" onclick="window.adminSetDashboardView?.('moje')">${mineLabel}</button>
     </div>`
