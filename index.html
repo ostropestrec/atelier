@@ -72,9 +72,6 @@
         border-radius: var(--shell-radius);
         box-shadow: var(--shell-shadow);
         min-height: calc(100vh - 44px);
-        height: calc(100vh - 44px);
-        max-height: calc(100vh - 44px);
-        overflow: hidden;
       }
       .layout-shell > .topbar {
         border-top-left-radius: var(--shell-radius);
@@ -184,19 +181,21 @@
     @media (min-width: 1024px){
       .app{
         display:flex;
-        align-items: stretch;
+        align-items: flex-start;
         flex: 1;
         min-height: 0;
-        overflow: hidden;
       }
       .sidebar{
         display:flex; flex-direction:column; gap: 2px;
         width: 220px; flex: 0 0 220px;
         border-right: 1px solid var(--border);
         padding: 18px 10px 20px;
+        position: sticky;
+        top: 64px;
+        align-self: flex-start;
+        max-height: calc(100vh - 64px);
         overflow-y: auto;
         overscroll-behavior: contain;
-        align-self: stretch;
       }
       .side-link{
         width:100%; text-align:left; box-sizing: border-box;
@@ -220,9 +219,6 @@
       .content{
         flex: 1;
         min-width: 0;
-        min-height: 0;
-        overflow-y: auto;
-        overscroll-behavior: contain;
         padding: 22px clamp(18px, 2.5vw, 28px) 28px;
       }
       .nav{ display:none !important; }
