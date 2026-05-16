@@ -1124,7 +1124,7 @@
   <main class="content">
 
 <!-- ── Screen: Přehled ── -->
-<div class="screen active" id="screen-nastenka">
+<div class="screen" id="screen-nastenka">
   <div class="sec-title" data-i18n="nav.overview">Přehled</div>
   <div id="nastenka-content"></div>
 </div>
@@ -1205,7 +1205,7 @@
 </div>
 
 <!-- ── Screen: Kalendář ── -->
-<div class="screen" id="screen-kalendar">
+<div class="screen active" id="screen-kalendar">
   <div class="cal-ctrl">
     <button onclick="calPrev()">‹</button>
     <span class="pt" id="cal-week-label"></span>
@@ -1411,6 +1411,12 @@
     // Lekce, které učím — admin i lektor
     const lektorSections    = new Set(['moje-lekce'])
     const protectedAll      = new Set(['nastaveni', 'permanentky', ...lektorSections, ...staffSections, ...adminOnlySections])
+
+    if (id === 'nastenka' && !(window.isAuthenticated?.())) {
+      id = 'kalendar'
+      el = document.querySelector('.side-link[onclick*="kalendar"]')
+        ?? document.querySelector('.nav button[onclick*="kalendar"]')
+    }
 
     if (protectedAll.has(id) && !(window.isAuthenticated?.())) {
       window.openAuthPopup?.()

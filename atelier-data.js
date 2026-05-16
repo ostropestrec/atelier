@@ -394,10 +394,10 @@ async function init() {
     window.syncLangUI?.(lang)
     window.refreshStaticI18n?.()
 
-    // Defaultní obrazovka podle role: admin → přehled (dashboard), lektor → vlastní lekce, ostatní → přehled.
+    // Defaultní obrazovka podle role: admin → přehled, lektor → vlastní lekce, přihlášený uživatel → přehled, host → kalendář.
     const defaultPage = _role === 'admin'
       ? 'admin-dashboard'
-      : (_role === 'lektor' ? 'moje-lekce' : 'nastenka')
+      : (_role === 'lektor' ? 'moje-lekce' : (currentUser ? 'nastenka' : 'kalendar'))
     window.nav?.(defaultPage)
 
     subscribeToLessons()

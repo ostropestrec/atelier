@@ -1081,6 +1081,9 @@ function renderAuthUI(user) {
     if (nm)   nm.textContent           = 'Přihlásit se'
     if (sbtn) sbtn.style.display       = ''
     document.getElementById('av-menu')?.classList.remove('on')
+    if (document.getElementById('screen-nastenka')?.classList.contains('active')) {
+      window.nav?.('kalendar')
+    }
   }
 }
 
@@ -1276,6 +1279,10 @@ function _navT(path) {
 }
 
 const _SIDEBAR_CFG = {
+  guest: [
+    { id: 'kalendar',  key: 'nav.calendar' },
+    { id: 'kurzy',     key: 'nav.courses' },
+  ],
   uzivatel: [
     { id: 'nastenka',  key: 'nav.overview' },
     { id: 'kalendar',  key: 'nav.calendar' },
@@ -1303,6 +1310,10 @@ const _SIDEBAR_CFG = {
 }
 
 const _BOTTOM_NAV = {
+  guest: [
+    { id: 'kalendar',  key: 'nav.calendar',  icon: _SVG.cal  },
+    { id: 'kurzy',     key: 'nav.courses',   icon: _SVG.book },
+  ],
   uzivatel: [
     { id: 'nastenka',  key: 'nav.overview',  icon: _SVG.home },
     { id: 'kalendar',  key: 'nav.calendar',  icon: _SVG.cal  },
@@ -1322,10 +1333,13 @@ const _BOTTOM_NAV = {
 }
 
 export function renderNavigation(user) {
-  const role = user?.role ?? 'uzivatel'
+  const role = user ? (user.role ?? 'uzivatel') : 'guest'
   window.__userRole = role
 
-  const activeId = document.querySelector('.screen.active')?.id?.replace('screen-', '') ?? 'nastenka'
+  const rawActiveId = document.querySelector('.screen.active')?.id?.replace('screen-', '')
+  const activeId = (!user && rawActiveId === 'nastenka')
+    ? 'kalendar'
+    : (rawActiveId ?? (user ? 'nastenka' : 'kalendar'))
 
   // Sidebar
   const sidebar = document.getElementById('sidebar')
