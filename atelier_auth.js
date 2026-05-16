@@ -773,7 +773,7 @@ window.submitPasswordLogin = async () => {
 
   const { error } = await sb.auth.signInWithPassword({ email, password: pass })
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Přihlásit se' }
+  if (btn) { btn.disabled = false; btn.textContent = 'Přihlásit se heslem' }
   if (error) {
     if (errEl) { errEl.textContent = _authErr(error.message); errEl.style.display = 'block' }
   } else {
@@ -828,7 +828,7 @@ window.submitMagicLink = async () => {
 
   const result = await signIn(input.value.trim())
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Zaslat přihlašovací odkaz' }
+  if (btn) { btn.disabled = false; btn.textContent = 'Poslat přihlašovací odkaz' }
   if (result.error) {
     if (errEl) { errEl.textContent = result.error; errEl.style.display = 'block' }
   } else {
@@ -930,6 +930,9 @@ const _ERR  = 'display:none;font-size:11px;color:#791F1F;background:#FCEBEB;bord
 const _OK   = 'display:none;font-size:11px;color:#085041;background:#E1F5EE;border-radius:6px;padding:8px 10px;margin-bottom:8px;'
 const _LBL  = 'font-size:11px;color:#6b6b6b;display:block;margin-bottom:4px;'
 const _DIV  = 'display:flex;align-items:center;gap:8px;margin:10px 0;'
+const _AUTH_CARD = 'border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:12px;background:#fff;'
+const _AUTH_H = 'font-size:12px;font-weight:700;color:#111;margin-bottom:3px;'
+const _AUTH_P = 'font-size:10px;color:#6b6b6b;line-height:1.45;margin-bottom:10px;'
 
 function buildAuthPopup() {
   if (document.getElementById('auth-overlay')) return
@@ -939,7 +942,7 @@ function buildAuthPopup() {
       display:none;align-items:center;justify-content:center;z-index:200;padding:16px;"
       onclick="if(event.target===this)closeAuthPopup()">
       <div style="background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.18);
-        width:100%;max-width:340px;overflow:hidden;" onclick="event.stopPropagation()">
+        width:100%;max-width:380px;overflow:hidden;" onclick="event.stopPropagation()">
 
         <!-- Taby -->
         <div style="display:flex;border-bottom:0.5px solid rgba(0,0,0,.08);">
@@ -981,30 +984,36 @@ function buildAuthPopup() {
           <div id="auth-form-login">
             <label style="${_LBL}">E-mail</label>
             <input id="auth-email-input" type="email" placeholder="jmeno@email.cz"
-              onkeydown="if(event.key==='Enter')submitPasswordLogin()"
-              style="${_INP}" />
-
-            <label style="${_LBL}">Heslo</label>
-            <input id="auth-pass-input" type="password" placeholder="········"
-              onkeydown="if(event.key==='Enter')submitPasswordLogin()"
+              onkeydown="if(event.key==='Enter')submitMagicLink()"
               style="${_INP}" />
 
             <div id="auth-error" style="${_ERR}"></div>
             <div id="auth-sent" style="${_OK}">✓ Přihlašovací odkaz odeslán. Zkontroluj schránku.</div>
 
-            <button id="auth-submit-btn" onclick="submitPasswordLogin()" style="${_BTN}">
-              Přihlásit se
-            </button>
+            <div style="${_AUTH_CARD};margin-bottom:10px;">
+              <div style="${_AUTH_H}">Přihlašovací odkaz na e-mail</div>
+              <div style="${_AUTH_P}">Pošleme ti odkaz do schránky. Není potřeba zadávat heslo.</div>
+              <button id="auth-magic-btn" onclick="submitMagicLink()" style="${_BTN}">
+                Poslat přihlašovací odkaz
+              </button>
+            </div>
 
-            <div style="text-align:center;margin-top:10px;display:flex;flex-direction:column;gap:6px;">
-              <button type="button" id="auth-forgot-link" onclick="submitForgotPassword()"
-                style="background:none;border:none;color:#2854B9;font-size:11px;cursor:pointer;padding:0;">
-                Zapomenuté heslo?
+            <div style="${_AUTH_CARD}">
+              <div style="${_AUTH_H}">Přihlášení heslem</div>
+              <div style="${_AUTH_P}">Klasické přihlášení pomocí e-mailu a hesla.</div>
+              <label style="${_LBL}">Heslo</label>
+              <input id="auth-pass-input" type="password" placeholder="········"
+                onkeydown="if(event.key==='Enter')submitPasswordLogin()"
+                style="${_INP}" />
+              <button id="auth-submit-btn" onclick="submitPasswordLogin()" style="${_BTN}">
+                Přihlásit se heslem
               </button>
-              <button id="auth-magic-btn" onclick="submitMagicLink()"
-                style="background:none;border:none;color:#2854B9;font-size:11px;cursor:pointer;padding:0;">
-                Zaslat přihlašovací odkaz místo hesla
-              </button>
+              <div style="text-align:center;margin-top:10px;">
+                <button type="button" id="auth-forgot-link" onclick="submitForgotPassword()"
+                  style="background:none;border:none;color:#2854B9;font-size:11px;cursor:pointer;padding:0;">
+                  Zapomenuté heslo?
+                </button>
+              </div>
             </div>
           </div>
 
