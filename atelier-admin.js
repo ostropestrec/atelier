@@ -1266,25 +1266,25 @@ function _zakaznikRow(user) {
     }),
   ].join(' · ')
   return `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
       <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;
         display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;">
         ${esc(initials(user.name || user.email))}
       </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(user.name || _adm('misc.dash'))}</div>
-        <div style="font-size:11px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(user.email)}</div>
-        <div style="font-size:11px;color:#8a8c90;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px;">${esc(summary)}</div>
+      <div style="flex:1 1 260px;min-width:0;overflow-wrap:anywhere;word-break:break-word;">
+        <div style="font-size:13px;font-weight:500;line-height:1.4;">${esc(user.name || _adm('misc.dash'))}</div>
+        <div style="font-size:11px;color:#6b6b6b;line-height:1.45;margin-top:2px;">${esc(user.email)}</div>
+        <div style="font-size:11px;color:#8a8c90;line-height:1.45;margin-top:4px;">${esc(summary)}</div>
       </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;max-width:160px;">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-start;flex:1 1 160px;min-width:0;">
         ${passes.slice(0, 2).map(up => `
           <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;
-            background:rgba(40,84,185,.10);color:var(--primary);border:1px solid rgba(40,84,185,.18);white-space:nowrap;">
+            background:rgba(40,84,185,.10);color:var(--primary);border:1px solid rgba(40,84,185,.18);line-height:1.35;overflow-wrap:anywhere;word-break:break-word;max-width:100%;">
             ${esc(up || _adm('misc.pass'))}
           </span>`).join('')}
       </div>
-      <div style="flex-shrink:0;">
-        <div style="display:flex;gap:8px;align-items:center;">
+      <div style="flex:0 1 auto;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button type="button" class="btn-small"
             onclick="window.openAdminCustomerHistoryModal?.('${esc(user.id)}')">${esc(_adm('customers.btnHistory'))}</button>
           <button type="button" class="btn-small" title="${esc(_adm('customers.tooltipEditPasses'))}"
