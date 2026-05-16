@@ -2500,20 +2500,20 @@ export async function buildStaffLessonsSectionHtml({
           <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
             <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lid}')">
               <div style="width:5px;background:${color};flex-shrink:0;"></div>
-              <div style="flex:1;padding:12px 14px;display:flex;align-items:center;gap:12px;">
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:13px;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              <div style="flex:1;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+                  <div style="font-size:13px;font-weight:600;line-height:1.35;">
                     ${title}${course?.is_workshop ? ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">WORKSHOP</span>' : ''}
                     ${isOff ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:6px;">DEAKTIVOVÁNO</span>' : ''}
                   </div>
-                  <div style="font-size:11px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
-                </div>
-                <div style="flex-shrink:0;text-align:right;min-width:60px;">
-                  <div style="font-size:13px;font-weight:600;">${booked}/${cap}</div>
-                  <div style="font-size:10px;color:#9b9b9b;margin-bottom:4px;">obsazeno</div>
-                  <div style="width:60px;height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
-                    <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
+                  <div style="margin-top:2px;">
+                    <div style="font-size:13px;font-weight:600;">${booked}/${cap}</div>
+                    <div style="font-size:10px;color:#9b9b9b;margin-bottom:4px;">obsazeno</div>
+                    <div style="width:100%;height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
+                      <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
+                    </div>
                   </div>
+                  <div style="font-size:11px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
                 </div>
                 <div style="flex-shrink:0;">
                   <div style="display:flex;flex-direction:column;gap:6px;">
