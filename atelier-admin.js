@@ -149,6 +149,8 @@ let _adminPassesScope = 'vsechny'
 
 function _adminScopeSwitchHtml(active, setterName) {
   const current = active === 'moje' ? 'moje' : 'vsechny'
+  const allLabel = esc(t(_adminLocale(), 'common.all')).toUpperCase()
+  const mineLabel = esc(t(_adminLocale(), 'common.mine')).toUpperCase()
   const btn = isActive => [
     'padding:8px 14px',
     'border-radius:999px',
@@ -162,8 +164,8 @@ function _adminScopeSwitchHtml(active, setterName) {
   ].join(';')
   return `
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
-      <button type="button" style="${btn(current === 'vsechny')}" onclick="window.${setterName}?.('vsechny')">VŠECHNY</button>
-      <button type="button" style="${btn(current === 'moje')}" onclick="window.${setterName}?.('moje')">MOJE</button>
+      <button type="button" style="${btn(current === 'vsechny')}" onclick="window.${setterName}?.('vsechny')">${allLabel}</button>
+      <button type="button" style="${btn(current === 'moje')}" onclick="window.${setterName}?.('moje')">${mineLabel}</button>
     </div>`
 }
 
@@ -182,7 +184,7 @@ window.adminSetPassesScope = (scope) => {
 }
 
 window.adminSetDashboardView = (view) => {
-  const next = view === 'moje' || view === 'ucet' ? view : 'vsechny'
+  const next = view === 'moje' ? view : 'vsechny'
   if (_adminDashboardView === next) return
   _adminDashboardView = next
   void renderAdminDashboard()
@@ -332,14 +334,11 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString(_adminFmtLocaleTag(), { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
-function _adminAccountHeading() {
-  return _adminLocale() === 'en' ? 'MY ACCOUNT' : 'MŮJ ÚČET'
-}
-
 function _adminDashboardSwitchHtml(active = _adminDashboardView) {
   const mineActive = active === 'moje'
   const allActive = active === 'vsechny'
-  const accountActive = active === 'ucet'
+  const allLabel = esc(t(_adminLocale(), 'common.all')).toUpperCase()
+  const mineLabel = esc(t(_adminLocale(), 'common.mine')).toUpperCase()
   const btn = isActive => [
     'padding:8px 14px',
     'border-radius:999px',
@@ -351,12 +350,10 @@ function _adminDashboardSwitchHtml(active = _adminDashboardView) {
     'letter-spacing:.08em',
     'cursor:pointer',
   ].join(';')
-  const accountLabel = _adminLocale() === 'en' ? 'MY ACCOUNT' : 'MŮJ ÚČET'
   return `
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
-      <button type="button" style="${btn(allActive)}" onclick="window.adminSetDashboardView?.('vsechny')">VŠECHNY</button>
-      <button type="button" style="${btn(mineActive)}" onclick="window.adminSetDashboardView?.('moje')">MOJE</button>
-      <button type="button" style="${btn(accountActive)}" onclick="window.adminSetDashboardView?.('ucet')">${accountLabel}</button>
+      <button type="button" style="${btn(allActive)}" onclick="window.adminSetDashboardView?.('vsechny')">${allLabel}</button>
+      <button type="button" style="${btn(mineActive)}" onclick="window.adminSetDashboardView?.('moje')">${mineLabel}</button>
     </div>`
 }
 
@@ -834,7 +831,7 @@ export async function renderAdminDashboard() {
         <div class="page-title" style="margin-bottom:14px;">${esc(_adm('dashboard.title'))}</div>
         ${_adminDashboardSwitchHtml()}
       </div>
-      ${_adminDashboardView === 'ucet' ? _adminAccountSectionHtml() : lessonScopeHtml}
+      ${lessonScopeHtml}
     `
     })(), 'admin-dashboard')
   } catch (err) {

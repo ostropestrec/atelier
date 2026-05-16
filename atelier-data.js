@@ -907,6 +907,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const enrBadge = document.getElementById('kal-enrolled')
   const bEnr     = document.getElementById('kal-btns-enr')
   const bFree    = document.getElementById('kal-btns-free')
+  const bStaff   = document.getElementById('kal-btns-staff')
   const rezBtn   = document.getElementById('kal-rez-btn')
 
   if (enrBadge) {
@@ -917,6 +918,28 @@ function openKalendarPopup(lesson, course, enrolled) {
   if (cKalCancel) cKalCancel.textContent = _tp('kal.cancelBooking')
   if (bEnr)     bEnr.style.display     = enrolled && canCancelEnrolledBooking ? 'block' : 'none'
   if (bFree)    bFree.style.display    = enrolled || staffUser ? 'none'  : 'grid'
+  if (bStaff)   bStaff.style.display   = staffUser ? 'grid' : 'none'
+  if (staffUser) {
+    const detailBtn = document.getElementById('kal-detail-btn')
+    const attendeesBtn = document.getElementById('kal-attendees-btn')
+    const deactivateBtn = document.getElementById('kal-deactivate-btn')
+    if (detailBtn) {
+      detailBtn.textContent = _tp('admin.btn.courseDetail')
+      detailBtn.onclick = () => {
+        const pop = document.getElementById('pop-kal')
+        if (pop) pop.style.display = 'none'
+        window.openDetail?.(lesson.course_id)
+      }
+    }
+    if (attendeesBtn) {
+      attendeesBtn.textContent = _tp('admin.btn.attendees')
+      attendeesBtn.onclick = () => window.adminOpenLessonDetail?.(lid)
+    }
+    if (deactivateBtn) {
+      deactivateBtn.textContent = _tp('admin.btn.deactivate')
+      deactivateBtn.onclick = () => window.adminDeactivateLesson?.(lid)
+    }
+  }
   if (rezBtn) {
     rezBtn.style.background = color
     rezBtn.textContent = _tp('booking.btn.book')
@@ -2486,6 +2509,8 @@ function _staffLessonsPageTitle() {
 function _staffScopeSwitchHtml() {
   if (!_staffLessonsIsAdmin()) return ''
   const active = _staffLessonsScope === 'vsechny' ? 'vsechny' : 'moje'
+  const allLabel = _escHtml(_tp('common.all')).toUpperCase()
+  const mineLabel = _escHtml(_tp('common.mine')).toUpperCase()
   const btn = isActive => [
     'padding:8px 14px',
     'border-radius:999px',
@@ -2499,8 +2524,8 @@ function _staffScopeSwitchHtml() {
   ].join(';')
   return `
     <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
-      <button type="button" style="${btn(active === 'vsechny')}" onclick="window.setStaffLessonsScope?.('vsechny')">VŠECHNY</button>
-      <button type="button" style="${btn(active === 'moje')}" onclick="window.setStaffLessonsScope?.('moje')">MOJE</button>
+      <button type="button" style="${btn(active === 'vsechny')}" onclick="window.setStaffLessonsScope?.('vsechny')">${allLabel}</button>
+      <button type="button" style="${btn(active === 'moje')}" onclick="window.setStaffLessonsScope?.('moje')">${mineLabel}</button>
     </div>`
 }
 
