@@ -373,7 +373,7 @@ function _adminAccountSectionHtml() {
   const passesHtml = (userPasses ?? []).map(_adminAccountPassCard).join('')
   const bookingsHtml = (myBookings ?? []).map(_adminAccountBookingCard).join('')
   return `
-    <div class="admin-section-title">${esc(_adminAccountHeading())}</div>
+    <div style="font-size:18px;font-weight:700;color:var(--text);margin:var(--overview-section-gap) 0 18px;">${esc(_adminAccountHeading())}</div>
     <div class="section-h" style="margin-top:0;">${esc(t(_adminLocale(), 'dashboard.sectionPasses'))}</div>
     ${passesHtml ? `<div class="nastenka-cards-2col">${passesHtml}</div>` : `<div class="empty">${esc(t(_adminLocale(), 'dashboard.emptyPasses'))}</div>`}
     ${passesHtml ? `
