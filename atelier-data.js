@@ -2560,7 +2560,7 @@ export async function buildStaffLessonsSectionHtml({
                   <div style="font-size:11px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
                   <div style="margin-top:2px;">
                     <div style="font-size:13px;font-weight:600;">${booked}/${cap}</div>
-                    <div style="font-size:10px;color:#9b9b9b;margin-bottom:4px;">obsazeno</div>
+                    <div style="font-size:10px;color:#9b9b9b;margin-bottom:4px;">${_tp('courses.occupied')}</div>
                     <div style="width:100%;height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
                       <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
                     </div>
