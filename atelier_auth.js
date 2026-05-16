@@ -756,7 +756,7 @@ window.closeAuthPopup = () => {
 
 // ── Přihlášení heslem ─────────────────────────────────────────
 window.submitPasswordLogin = async () => {
-  const email  = document.getElementById('auth-email-input')?.value.trim()
+  const email  = document.getElementById('auth-login-email-input')?.value.trim()
   const pass   = document.getElementById('auth-pass-input')?.value
   const btn    = document.getElementById('auth-submit-btn')
   const errEl  = document.getElementById('auth-error')
@@ -783,7 +783,7 @@ window.submitPasswordLogin = async () => {
 
 // ── Magic link ────────────────────────────────────────────────
 window.submitForgotPassword = async () => {
-  const input = document.getElementById('auth-email-input')
+  const input = document.getElementById('auth-login-email-input')
   const errEl = document.getElementById('auth-error')
   const sentEl = document.getElementById('auth-sent')
   const linkBtn = document.getElementById('auth-forgot-link')
@@ -982,17 +982,16 @@ function buildAuthPopup() {
 
           <!-- ── Formulář: přihlášení ── -->
           <div id="auth-form-login">
-            <label style="${_LBL}">E-mail</label>
-            <input id="auth-email-input" type="email" placeholder="jmeno@email.cz"
-              onkeydown="if(event.key==='Enter')submitMagicLink()"
-              style="${_INP}" />
-
             <div id="auth-error" style="${_ERR}"></div>
             <div id="auth-sent" style="${_OK}">✓ Přihlašovací odkaz odeslán. Zkontroluj schránku.</div>
 
             <div style="${_AUTH_CARD};margin-bottom:10px;">
               <div style="${_AUTH_H}">Přihlašovací odkaz na e-mail</div>
               <div style="${_AUTH_P}">Pošleme ti odkaz do schránky. Není potřeba zadávat heslo.</div>
+              <label style="${_LBL}">E-mail</label>
+              <input id="auth-email-input" type="email" placeholder="jmeno@email.cz"
+                onkeydown="if(event.key==='Enter')submitMagicLink()"
+                style="${_INP}" />
               <button id="auth-magic-btn" onclick="submitMagicLink()" style="${_BTN}">
                 Poslat přihlašovací odkaz
               </button>
@@ -1001,6 +1000,10 @@ function buildAuthPopup() {
             <div style="${_AUTH_CARD}">
               <div style="${_AUTH_H}">Přihlášení heslem</div>
               <div style="${_AUTH_P}">Klasické přihlášení pomocí e-mailu a hesla.</div>
+              <label style="${_LBL}">E-mail</label>
+              <input id="auth-login-email-input" type="email" placeholder="jmeno@email.cz"
+                onkeydown="if(event.key==='Enter')submitPasswordLogin()"
+                style="${_INP}" />
               <label style="${_LBL}">Heslo</label>
               <input id="auth-pass-input" type="password" placeholder="········"
                 onkeydown="if(event.key==='Enter')submitPasswordLogin()"
