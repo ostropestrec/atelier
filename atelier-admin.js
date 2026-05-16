@@ -692,6 +692,8 @@ export async function renderAdminDashboard() {
     const [
       { data: todayAvail },
       { data: weekAvail },
+      { data: allAvail },
+      { data: allCourses },
       monthPassesRes,
       { count: activePasses },
       monthBookingsRes,
@@ -704,6 +706,13 @@ export async function renderAdminDashboard() {
         .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
         .gte('start_time', tomorrow.toISOString()).lt('start_time', weekEnd.toISOString())
         .eq('status', 'active').order('start_time'),
+      sb.from('lesson_availability')
+        .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
+        .gte('start_time', today.toISOString())
+        .eq('status', 'active').order('start_time').limit(80),
+      sb.from('courses')
+        .select('id, title, color_code, is_active, is_workshop, capacity_default, price_single, cancellation_hours, owner:users!owner_id(id,name)')
+        .order('title->cs'),
       sb.from('user_passes').select('price_paid, refund_status, refund_amount')
         .gte('created_at', monthStart.toISOString()),
       sb.from('user_passes').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -751,6 +760,8 @@ export async function renderAdminDashboard() {
     const enrich = rows => (rows ?? []).map(l => ({ ...l, course: courseMap[l.course_id] }))
     const todayLessons = enrich(todayAvail)
     const weekLessons  = enrich(weekAvail)
+    const allLessons   = enrich(allAvail)
+    const coursesList  = allCourses ?? []
 
     const totalCap    = todayLessons.reduce((s, l) => s + (l.capacity ?? 0), 0)
     const totalBooked = todayLessons.reduce((s, l) => s + (Number(l.booked_count) || 0), 0)
@@ -791,6 +802,10 @@ export async function renderAdminDashboard() {
       ${todayLessons.length ? `<div class="nastenka-cards-2col">${todayLessons.map(l => _lessonRow(l)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
       <div class="admin-section-title">${esc(_adm('dashboard.sectionWeek'))}</div>
       ${weekLessons.length ? `<div class="nastenka-cards-2col">${weekLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
+      <div class="admin-section-title">${esc(_adminLocale() === 'en' ? 'All lessons' : 'Všechny lekce')}</div>
+      ${allLessons.length ? `<div class="nastenka-cards-2col">${allLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adminLocale() === 'en' ? 'No upcoming lessons.' : 'Žádné nadcházející lekce.')}</div>`}
+      <div class="admin-section-title">${esc(_adminLocale() === 'en' ? 'All courses' : 'Všechny kurzy')}</div>
+      ${coursesList.length ? `<div class="nastenka-cards-2col">${coursesList.map(_courseCard).join('')}</div>` : `<div class="empty">${esc(_adm('kurzy.empty'))}</div>`}
       ${_adminAccountSectionHtml()}
     `
     })(), 'admin-dashboard')
