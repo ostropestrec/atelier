@@ -1735,7 +1735,7 @@ export async function renderAdminPermanentky() {
         <button class="btn-small" onclick="window.openPassModal?.()">${esc(_adm('passesPage.btnNew'))}</button>
       </div>
       ${passes?.length
-        ? passes.map(p => _passCard(p, courseMap)).join('')
+        ? `<div class="nastenka-cards-2col">${passes.map(p => _passCard(p, courseMap)).join('')}</div>`
         : `<div class="empty">${esc(_adm('passesPage.empty'))}</div>`}
     `
     })(), 'admin-permanentky')
@@ -1756,7 +1756,7 @@ function _passCard(pass, courseMap) {
   const ph = _passHexOrDefault(pass.color_code)
   const courseNames = (pass.allowed_course_ids ?? []).map(id => loc(courseMap[id]?.title)).filter(Boolean)
   return `
-    <div style="border-radius:12px;padding:14px 16px;margin-bottom:10px;${tint}">
+    <div class="admin-pass-card" style="border-radius:12px;padding:14px 16px;margin-bottom:10px;${tint}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(name)}</div>
