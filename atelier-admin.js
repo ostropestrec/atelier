@@ -141,6 +141,7 @@ function _ensureQuillLoaded() {
 
 let _adminDashboardView = 'vsechny'
 let _adminCoursesScope = 'vsechny'
+let _adminPassesScope = 'vsechny'
 
 function _adminScopeSwitchHtml(active, setterName) {
   const current = active === 'moje' ? 'moje' : 'vsechny'
@@ -167,6 +168,13 @@ window.adminSetCoursesScope = (scope) => {
   if (_adminCoursesScope === next) return
   _adminCoursesScope = next
   void renderAdminKurzy()
+}
+
+window.adminSetPassesScope = (scope) => {
+  const next = scope === 'moje' ? 'moje' : 'vsechny'
+  if (_adminPassesScope === next) return
+  _adminPassesScope = next
+  void renderAdminPermanentky()
 }
 
 window.adminSetDashboardView = (view) => {
@@ -1836,9 +1844,12 @@ export async function renderAdminPermanentky() {
   else el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   try {
     await adminRace((async () => {
-    const basePassesQuery = sb.from('passes')
+    let basePassesQuery = sb.from('passes')
       .select('id, name, entries_total, price, validity_weeks, is_active, allowed_course_ids, color_code')
       .order('created_at', { ascending: false })
+    if (_isStaffAdmin() && _adminPassesScope === 'moje' && currentUser?.id) {
+      basePassesQuery = basePassesQuery.eq('owner_id', currentUser.id)
+    }
     const { data: passes, error } = await _scopeOwnerQuery(basePassesQuery)
     if (error) throw error
 
@@ -1850,11 +1861,13 @@ export async function renderAdminPermanentky() {
     }
 
     const pageTitle = _isStaffLektor() ? _adm('passesPage.pageTitleMine') : _adm('passesPage.pageTitleManage')
+    const scopeSwitchHtml = _isStaffAdmin() ? _adminScopeSwitchHtml(_adminPassesScope, 'adminSetPassesScope') : ''
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <div class="page-title">${esc(pageTitle)}</div>
         <button class="btn-small" onclick="window.openPassModal?.()">${esc(_adm('passesPage.btnNew'))}</button>
       </div>
+      ${scopeSwitchHtml}
       ${passes?.length
         ? `<div class="nastenka-cards-2col">${passes.map(p => _passCard(p, courseMap)).join('')}</div>`
         : `<div class="empty">${esc(_adm('passesPage.empty'))}</div>`}

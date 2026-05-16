@@ -2437,7 +2437,7 @@ function isSameDay(a, b) {
 }
 
 // ── Moje lekce (lektor / admin) ───────────────────────────────
-let _staffLessonsScope = 'moje'
+let _staffLessonsScope = 'vsechny'
 
 function _staffLessonsIsAdmin() {
   return (window.__userRole ?? window.AppState?.role) === 'admin'
