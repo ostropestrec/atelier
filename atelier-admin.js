@@ -141,7 +141,7 @@ function _ensureQuillLoaded() {
 
 let _adminDashboardView = 'vsechny'
 window.adminSetDashboardView = (view) => {
-  const next = view === 'moje' ? 'moje' : 'vsechny'
+  const next = view === 'moje' || view === 'ucet' ? view : 'vsechny'
   if (_adminDashboardView === next) return
   _adminDashboardView = next
   void renderAdminDashboard()
@@ -297,22 +297,25 @@ function _adminAccountHeading() {
 
 function _adminDashboardSwitchHtml(active = _adminDashboardView) {
   const mineActive = active === 'moje'
-  const allActive = !mineActive
+  const allActive = active === 'vsechny'
+  const accountActive = active === 'ucet'
   const btn = isActive => [
     'padding:8px 14px',
     'border-radius:999px',
-    'border:1px solid var(--section-heading-accent)',
-    `background:${isActive ? 'var(--section-heading-accent)' : '#fff'}`,
+    `border:1px solid ${isActive ? 'var(--primary)' : 'var(--section-heading-accent)'}`,
+    `background:${isActive ? 'var(--primary)' : '#fff'}`,
     `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
     'font-size:11px',
     'font-weight:700',
     'letter-spacing:.08em',
     'cursor:pointer',
   ].join(';')
+  const accountLabel = _adminLocale() === 'en' ? 'MY ACCOUNT' : 'MŮJ ÚČET'
   return `
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
       <button type="button" style="${btn(mineActive)}" onclick="window.adminSetDashboardView?.('moje')">MOJE</button>
       <button type="button" style="${btn(allActive)}" onclick="window.adminSetDashboardView?.('vsechny')">VŠECHNY</button>
+      <button type="button" style="${btn(accountActive)}" onclick="window.adminSetDashboardView?.('ucet')">${accountLabel}</button>
     </div>`
 }
 
@@ -714,7 +717,6 @@ export async function renderAdminDashboard() {
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
   const weekEnd  = new Date(today); weekEnd.setDate(today.getDate() + 7)
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
 
   try {
     await adminRace((async () => {
@@ -722,9 +724,7 @@ export async function renderAdminDashboard() {
       { data: todayAvail },
       { data: weekAvail },
       { data: allAvail },
-      monthPassesRes,
-      { count: activePasses },
-      monthBookingsRes,
+      activePassRowsRes,
     ] = await Promise.all([
       sb.from('lesson_availability')
         .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
@@ -738,48 +738,10 @@ export async function renderAdminDashboard() {
         .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots')
         .gte('start_time', today.toISOString())
         .eq('status', 'active').order('start_time').limit(80),
-      sb.from('user_passes').select('price_paid, refund_status, refund_amount')
-        .gte('created_at', monthStart.toISOString()),
-      sb.from('user_passes').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      sb.from('bookings').select('price_paid, status, payment_type, refund_status, refund_amount')
-        .eq('payment_type', 'single')
-        .gte('created_at', monthStart.toISOString()),
+      sb.from('user_passes')
+        .select('id, pass:passes(owner_id)')
+        .eq('status', 'active'),
     ])
-
-    let monthPasses = monthPassesRes.data ?? []
-    if (monthPassesRes.error) {
-      if (!_looksLikeMissingRefundColumns(monthPassesRes.error)) throw monthPassesRes.error
-      const fallbackPassesRes = await sb.from('user_passes')
-        .select('price_paid')
-        .gte('created_at', monthStart.toISOString())
-      if (fallbackPassesRes.error) throw fallbackPassesRes.error
-      monthPasses = (fallbackPassesRes.data ?? []).map(row => ({
-        ...row,
-        type: 'pass',
-        refund_status: 'not_required',
-        refund_amount: null,
-      }))
-    } else {
-      monthPasses = monthPasses.map(row => ({ ...row, type: 'pass' }))
-    }
-
-    let monthBookings = monthBookingsRes.data ?? []
-    if (monthBookingsRes.error) {
-      if (!_looksLikeMissingRefundColumns(monthBookingsRes.error)) throw monthBookingsRes.error
-      const fallbackBookingsRes = await sb.from('bookings')
-        .select('price_paid, status, payment_type')
-        .eq('payment_type', 'single')
-        .gte('created_at', monthStart.toISOString())
-      if (fallbackBookingsRes.error) throw fallbackBookingsRes.error
-      monthBookings = (fallbackBookingsRes.data ?? []).map(row => ({
-        ...row,
-        type: 'single',
-        refund_status: null,
-        refund_amount: null,
-      }))
-    } else {
-      monthBookings = monthBookings.map(row => ({ ...row, type: 'single' }))
-    }
 
     const courseMap = await fetchCoursesMap()
     const enrich = rows => (rows ?? []).map(l => ({ ...l, course: courseMap[l.course_id] }))
@@ -792,13 +754,18 @@ export async function renderAdminDashboard() {
     const shownTodayLessons = useMineScope ? todayLessons.filter(belongsToCurrentAdmin) : todayLessons
     const shownWeekLessons  = useMineScope ? weekLessons.filter(belongsToCurrentAdmin) : weekLessons
     const shownAllLessons   = useMineScope ? allLessons.filter(belongsToCurrentAdmin) : allLessons
+    if (activePassRowsRes.error) throw activePassRowsRes.error
+    const activePassRows = activePassRowsRes.data ?? []
+    const activePassCount = useMineScope
+      ? activePassRows.filter(row => {
+          const pass = Array.isArray(row.pass) ? row.pass[0] : row.pass
+          return String(pass?.owner_id ?? '') === ownCourseOwnerId
+        }).length
+      : activePassRows.length
 
     const totalCap    = shownTodayLessons.reduce((s, l) => s + (l.capacity ?? 0), 0)
     const totalBooked = shownTodayLessons.reduce((s, l) => s + (Number(l.booked_count) || 0), 0)
     const occupancy   = totalCap > 0 ? Math.round((totalBooked / totalCap) * 100) : 0
-    const monthGrossRev = _sumGrossRevenue([...monthPasses, ...monthBookings])
-    const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthBookings])
-    const monthNetRev = monthGrossRev - monthRefunds
 
     const lessonScopeHtml = `
       <div class="admin-stat-grid">
@@ -811,19 +778,7 @@ export async function renderAdminDashboard() {
           <div class="admin-stat-label">${esc(_adm('dashboard.statOccupancy'))}</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthGrossRev)}</div>
-          <div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRefunds)}</div>
-          <div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthNetRev)}</div>
-          <div class="admin-stat-label">${esc(_adm('dashboard.statNet'))}</div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-value">${activePasses ?? 0}</div>
+          <div class="admin-stat-value">${activePassCount}</div>
           <div class="admin-stat-label">${esc(_adm('dashboard.statActivePasses'))}</div>
         </div>
       </div>
@@ -835,12 +790,11 @@ export async function renderAdminDashboard() {
       ${shownAllLessons.length ? `<div class="nastenka-cards-2col">${shownAllLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adminLocale() === 'en' ? 'No upcoming lessons.' : 'Žádné nadcházející lekce.')}</div>`}`
 
     el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px;">
-        <div class="page-title" style="margin-bottom:0;">${esc(_adm('dashboard.title'))}</div>
+      <div style="margin-bottom:22px;">
+        <div class="page-title" style="margin-bottom:14px;">${esc(_adm('dashboard.title'))}</div>
         ${_adminDashboardSwitchHtml()}
       </div>
-      ${lessonScopeHtml}
-      ${_adminAccountSectionHtml()}
+      ${_adminDashboardView === 'ucet' ? _adminAccountSectionHtml() : lessonScopeHtml}
     `
     })(), 'admin-dashboard')
   } catch (err) {
