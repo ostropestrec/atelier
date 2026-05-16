@@ -1478,7 +1478,14 @@ export function buildUserOverviewHtml(user) {
       })
       .join('')
 
-  const bookingsHtml = (myBookings ?? []).map(b => {
+  const nowMs = Date.now()
+  const upcomingBookings = (myBookings ?? []).filter(b => {
+    const lesson = b.lesson
+    const boundary = lesson?.end_time ?? lesson?.start_time
+    return boundary ? new Date(boundary).getTime() >= nowMs : false
+  })
+
+  const bookingsHtml = upcomingBookings.map(b => {
     const lesson = b.lesson
     const course = lesson?.course
     const color = _overviewCourseHex(course?.color_code)
