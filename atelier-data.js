@@ -143,8 +143,13 @@ const LESSONS_SELECT =
 const BOOKINGS_LIVE_REFRESH_COOLDOWN_MS = 4000
 
 const DEFAULT_PASS_THEME = '#C4806E'
+const DEFAULT_COURSE_THEME = '#2854B9'
 function passThemeHex(hex) {
   return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : DEFAULT_PASS_THEME
+}
+/** Bezpečná barva kurzu pro rámečky / akcenty (stejně jako nástěnka). */
+function courseThemeHex(hex) {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : DEFAULT_COURSE_THEME
 }
 function passCardSurfaceCss(hex) {
   const h = passThemeHex(hex)
@@ -770,7 +775,7 @@ export function renderKalendar() {
 
   window.AppState.lessons.forEach(l => {
     const course  = window.AppState.courses.find(c => c.id === l.course_id)
-    const color   = course?.color_code ?? '#2854B9'
+    const color   = courseThemeHex(course?.color_code)
     const start   = new Date(l.start_time)
     const end     = new Date(l.end_time)
     const dayIdx  = (start.getDay() + 6) % 7  // 0=Po … 6=Ne
@@ -858,7 +863,7 @@ window.calNext = calNext
 
 // Popup při kliknutí na lekci v kalendáři
 function openKalendarPopup(lesson, course, enrolled) {
-  const color   = course?.color_code ?? '#2854B9'
+  const color   = courseThemeHex(course?.color_code)
   const name    = course ? loc(course.title) : '—'
   const start   = new Date(lesson.start_time)
   const end     = new Date(lesson.end_time)
@@ -987,7 +992,7 @@ export function renderKurzy() {
   }
 
   window.AppState.courses.forEach(c => {
-    const color    = c.color_code ?? '#2854B9'
+    const color    = courseThemeHex(c.color_code)
     const title    = loc(c.title)
     const desc     = loc(c.description_short)
     const ownerName = Array.isArray(c.owner) ? c.owner[0]?.name : c.owner?.name
@@ -1051,6 +1056,7 @@ export function renderKurzy() {
         </div>
       </div>`
 
+    card.style.border = `1px solid ${color}`
     container.appendChild(card)
   })
 }
@@ -1183,7 +1189,7 @@ async function loadPassesForCourse(courseId) {
   if (!panel) return
 
   const c     = window.AppState.courses.find(x => x.id === courseId)
-  const color = c?.color_code ?? '#2854B9'
+  const color = courseThemeHex(c?.color_code)
   const prevState = window._cardState[courseId] ?? {}
 
   // ── 1. Aktivní permanentky uživatele platné pro tento kurz ──
@@ -1595,7 +1601,7 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
   const multiW = document.getElementById('bk-lesson-multi-wrap')
   const hint = document.getElementById('bk-multi-hint')
   const btn = document.getElementById('bk-confirm-btn')
-  const color = course?.color_code ?? '#2854B9'
+  const color = courseThemeHex(course?.color_code)
 
   const isPass = payVal.startsWith('up-')
   const userPassId = isPass ? payVal.replace('up-', '') : null
@@ -1673,7 +1679,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
 
   const course = window.AppState.courses.find(c => c.id === courseId)
   if (!course) return
-  const color = course.color_code ?? '#2854B9'
+  const color = courseThemeHex(course.color_code)
 
   const popup = document.getElementById('pop-booking')
   if (!popup) return
@@ -1834,7 +1840,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
 window._bkSelectPayment = (el, value) => {
   const payEl = document.getElementById('bk-payment-opts')
   if (!payEl) return
-  const courseFallback = payEl.dataset.color ?? '#2854B9'
+  const courseFallback = courseThemeHex(payEl.dataset.color)
   payEl.dataset.selected = value
   payEl.querySelectorAll('.bk-opt').forEach(o => {
     o.classList.remove('bk-opt-sel')
@@ -2123,7 +2129,7 @@ async function renderCourseDetail(courseId) {
   const course = window.AppState.courses.find(c => c.id === courseId)
   if (!course) { el.innerHTML = `<div class="empty">Kurz nenalezen.</div>`; return }
 
-  const color     = course.color_code ?? '#2854B9'
+  const color     = courseThemeHex(course.color_code)
   const title     = loc(course.title)
   const descShort = loc(course.description_short)
   const descLong  = loc(course.description_long)
@@ -2300,7 +2306,7 @@ window.pickTerm = (el, color, courseId) => {
 }
 
 window.selectPayment = (el, courseId, type, passId, buyEntries = null, buyPrice = null) => {
-  const color = el.dataset.color ?? '#2854B9'
+  const color = courseThemeHex(el.dataset.color)
   document.querySelectorAll(`.bo-pay[data-course-id="${courseId}"]`).forEach(b => {
     b.style.borderColor = 'rgba(0,0,0,.12)'
     b.style.borderWidth = '0.5px'
@@ -2476,7 +2482,7 @@ export async function buildStaffLessonsSectionHtml({
 
   const renderTermCard = l => {
     const course  = courseMap[l.course_id]
-    const color   = course?.color_code ?? '#2854B9'
+    const color   = courseThemeHex(course?.color_code)
     const title   = loc(course?.title) || 'Lekce'
     const booked  = Number(l.booked_count || 0)
     const cap     = l.capacity ?? 0
@@ -2491,7 +2497,7 @@ export async function buildStaffLessonsSectionHtml({
     const isOff   = l.status === 'cancelled'
     const actions = window.adminLessonActionButtons?.(lid, l.status ?? 'active') ?? ''
     return `
-          <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
+          <div style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
             <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lid}')">
               <div style="width:5px;background:${color};flex-shrink:0;"></div>
               <div style="flex:1;padding:12px 14px;display:flex;align-items:center;gap:12px;">

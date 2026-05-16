@@ -83,6 +83,9 @@ let _mwNewFiles       = []
 function _passHexOrDefault(hex) {
   return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : PASS_PALETTE[0]
 }
+function _courseThemeHex(hex) {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(hex || '').trim()) ? String(hex).trim() : PRESET_COLORS[0]
+}
 
 function _passCardSurfaceStyle(hex) {
   const h = _passHexOrDefault(hex)
@@ -734,7 +737,7 @@ window.adminLessonActionButtons = (lessonId, status = 'active') => {
 }
 
 function _lessonRow(lesson, showDate = false) {
-  const color  = lesson.course?.color_code ?? '#2854B9'
+  const color  = _courseThemeHex(lesson.course?.color_code)
   const title  = loc(lesson.course?.title) || _adm('misc.lessonFallback')
   const booked = Number(lesson.booked_count || 0)
   const cap    = lesson.capacity ?? 0
@@ -744,8 +747,16 @@ function _lessonRow(lesson, showDate = false) {
   const dateStr = new Date(lesson.start_time).toLocaleDateString(tag, { weekday: 'short', day: 'numeric', month: 'numeric' })
   const status = lesson.status ?? 'active'
   const spotsLbl = _adm('misc.spotsSuffix')
+  const rowStyle = [
+    `border:1px solid ${color}`,
+    'border-radius:12px',
+    'margin-bottom:10px',
+    'padding:12px 16px',
+    'background:#fff',
+    status === 'cancelled' ? 'opacity:.75' : '',
+  ].filter(Boolean).join(';')
   return `
-    <div class="admin-lesson-row"${status === 'cancelled' ? ' style="opacity:.75;"' : ''}>
+    <div class="admin-lesson-row" style="${rowStyle}">
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
         <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;"></div>
         <div style="min-width:0;">
@@ -824,7 +835,7 @@ export async function renderAdminKurzy() {
 }
 
 function _courseCard(course) {
-  const color      = course.color_code ?? '#2854B9'
+  const color      = _courseThemeHex(course.color_code)
   const title      = loc(course.title) || _adm('misc.courseFallback')
   const ownerName  = Array.isArray(course.owner) ? course.owner[0]?.name : course.owner?.name
   const active     = course.is_active
@@ -833,7 +844,7 @@ function _courseCard(course) {
   const workshopLbl = _adm('kurzy.workshopBadge')
   const deactBadge = _adm('state.deactivatedBadge')
   return `
-    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
+    <div style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
       <div style="width:5px;background:${color};flex-shrink:0;"></div>
       <div style="flex:1;padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
