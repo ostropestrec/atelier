@@ -3430,8 +3430,21 @@ async function _refreshAfterLessonChange() {
 }
 
 window.adminDeactivateLesson = async (lessonId) => {
-  if (!lessonId || !confirm(_adm('lessonActions.confirmDeactivate'))) return
+  if (!lessonId) return
   try {
+    if (_isStaffLektor()) {
+      const { data: lesson, error: lessonErr } = await sb.from('lessons')
+        .select('id, course:courses(owner_id)')
+        .eq('id', lessonId)
+        .maybeSingle()
+      if (lessonErr) throw lessonErr
+      if (!lesson) throw new Error(_adm('lessonActions.errLessonNotFound'))
+      const course = Array.isArray(lesson.course) ? lesson.course[0] : lesson.course
+      if (String(course?.owner_id ?? '') !== String(currentUser?.id ?? '')) {
+        throw new Error(_adm('lessonActions.errNotOwnLesson'))
+      }
+    }
+    if (!confirm(_adm('lessonActions.confirmDeactivate'))) return
     const { error: rpcErr } = await sb.rpc('admin_cancel_lesson', { p_lesson_id: lessonId })
     if (rpcErr) {
       const missFn = rpcErr.code === 'PGRST202'
