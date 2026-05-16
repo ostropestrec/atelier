@@ -2531,8 +2531,8 @@ function _staffScopeSwitchHtml() {
   const btn = isActive => [
     'padding:8px 14px',
     'border-radius:999px',
-    `border:1px solid ${isActive ? 'var(--primary)' : 'var(--section-heading-accent)'}`,
-    `background:${isActive ? 'var(--primary)' : '#fff'}`,
+    'border:1px solid var(--section-heading-accent)',
+    `background:${isActive ? 'var(--section-heading-accent)' : '#fff'}`,
     `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
     'font-size:11px',
     'font-weight:700',
