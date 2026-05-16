@@ -5,6 +5,7 @@
 import { sb } from './atelier-supabase.js'
 import { currentUser } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
+import { normalizeCourseRecord, courseImageUrls } from './atelier-data.js'
 import { t } from './translations.js'
 
 function _adminLocale() {
@@ -328,14 +329,14 @@ function showErr(el, msg) {
 async function fetchCoursesMap() {
   const cached = window.AppState?.courses
   if (cached?.length) {
-    return Object.fromEntries(cached.map(c => [c.id, c]))
+    return Object.fromEntries(cached.map(c => [c.id, normalizeCourseRecord(c)]))
   }
   try {
     const { data } = await adminRace(
-      sb.from('courses').select('id, title, color_code'),
+      sb.from('courses').select('id, title, color_code, description_short, images, is_workshop'),
       'fetchCoursesMap',
     )
-    return Object.fromEntries((data ?? []).map(c => [c.id, c]))
+    return Object.fromEntries((data ?? []).map(c => [c.id, normalizeCourseRecord(c)]))
   } catch (e) {
     console.warn('[Debug] fetchCoursesMap: timeout nebo chyba → mapa bez titulků:', e?.message ?? e)
     return {}
@@ -710,20 +711,6 @@ export async function renderAdminDashboard() {
   }
 }
 
-
-function _lessonAdminDashButtons(lessonId, status = 'active') {
-  const lid = esc(String(lessonId))
-  if (status === 'cancelled') {
-    return `<button type="button" class="btn-small danger admin-dash-act" style="font-size:11px;padding:6px 10px;"
-      data-admin-lesson-act="delete" data-lesson-id="${lid}">${esc(_adm('btn.delete'))}</button>`
-  }
-  return `
-        <button type="button" class="btn-small admin-dash-act" style="font-size:11px;padding:6px 10px;"
-          data-admin-lesson-act="attendees" data-lesson-id="${lid}">${esc(_adm('btn.attendees'))}</button>
-        <button type="button" class="btn-small danger admin-dash-act" style="font-size:11px;padding:6px 10px;"
-          data-admin-lesson-act="deactivate" data-lesson-id="${lid}">${esc(_adm('btn.deactivate'))}</button>`
-}
-
 window.adminLessonActionButtons = (lessonId, status = 'active') => {
   const lid = String(lessonId ?? '').replace(/'/g, "\'")
   if (status === 'cancelled') {
@@ -737,41 +724,58 @@ window.adminLessonActionButtons = (lessonId, status = 'active') => {
 }
 
 function _lessonRow(lesson, showDate = false) {
-  const color  = _courseThemeHex(lesson.course?.color_code)
-  const title  = loc(lesson.course?.title) || _adm('misc.lessonFallback')
-  const booked = Number(lesson.booked_count || 0)
-  const cap    = lesson.capacity ?? 0
-  const pct    = cap > 0 ? Math.round((booked / cap) * 100) : 0
-  const timeStr = fmtTimeOnly(lesson.start_time)
-  const tag = _adminFmtLocaleTag()
+  const color   = _courseThemeHex(lesson.course?.color_code)
+  const course  = lesson.course || {}
+  const title   = loc(course.title) || _adm('misc.lessonFallback')
+  const booked  = Number(lesson.booked_count || 0)
+  const cap     = lesson.capacity ?? 0
+  const pct     = cap > 0 ? Math.round((booked / cap) * 100) : 0
+  const tag     = _adminFmtLocaleTag()
   const dateStr = new Date(lesson.start_time).toLocaleDateString(tag, { weekday: 'short', day: 'numeric', month: 'numeric' })
-  const status = lesson.status ?? 'active'
-  const spotsLbl = _adm('misc.spotsSuffix')
-  const rowStyle = [
-    `border:1px solid ${color}`,
-    'border-radius:12px',
-    'margin-bottom:10px',
-    'padding:12px 16px',
-    'background:#fff',
-    status === 'cancelled' ? 'opacity:.75' : '',
-  ].filter(Boolean).join(';')
+  const timeStr = `${fmtTimeOnly(lesson.start_time)}–${fmtTimeOnly(lesson.end_time || lesson.start_time)}`
+  const status  = lesson.status ?? 'active'
+  const lid     = String(lesson.lesson_id ?? lesson.id ?? '')
+  const lidJs   = lid.replace(/'/g, "\\'")
+  const imgUrl  = courseImageUrls(course)[0] ?? null
+  const desc    = loc(course.description_short)
+  const workshopBadge = course.is_workshop
+    ? ` <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">${esc(_adm('kurzy.workshopBadge'))}</span>`
+    : ''
+  const actions = window.adminLessonActionButtons?.(lid, status) ?? ''
+  const detailLbl = esc(t(_adminLocale(), 'courses.detailLink'))
+  const courseId  = esc(String(lesson.course_id ?? course.id ?? ''))
+  const rowOpacity = status === 'cancelled' ? 'opacity:.75;' : ''
   return `
-    <div class="admin-lesson-row" style="${rowStyle}">
-      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;"></div>
-        <div style="min-width:0;">
-          <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</div>
-          <div style="font-size:11px;color:#6b6b6b;">${showDate ? dateStr + ' · ' : ''}${timeStr} · ${booked}/${cap} ${spotsLbl}</div>
+    <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;${rowOpacity}">
+      <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lidJs}')">
+        <div style="flex:1;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:13px;font-weight:600;line-height:1.35;">${esc(title)}${workshopBadge}</div>
+            <div style="font-size:11px;color:#6b6b6b;">${showDate ? esc(dateStr) + ' · ' : ''}${esc(timeStr)}</div>
+            <div style="margin-top:2px;">
+              <div style="font-size:13px;font-weight:600;">${booked}/${cap}</div>
+              <div style="font-size:10px;color:#9b9b9b;margin-bottom:4px;">obsazeno</div>
+              <div style="width:100%;height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink:0;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              ${actions}
+            </div>
+          </div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
-        <div style="width:72px;">
-          <div style="height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
-            <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
+      <div class="ml-cx" id="ml-cx-${lid}">
+        <div style="padding:0 14px 14px 14px;">
+          <div style="font-size:12px;color:#6b6b6b;line-height:1.65;overflow:hidden;margin-bottom:10px;">
+            ${imgUrl ? `<img src="${esc(imgUrl)}" style="float:left;width:108px;height:108px;object-fit:cover;border-radius:8px;margin:0 12px 8px 0;" alt="" />` : ''}
+            ${desc || ''}
           </div>
-          <div style="font-size:10px;color:#9b9b9b;text-align:right;margin-top:2px;">${pct} %</div>
+          <button type="button" class="btn-detail" onclick="window.openDetail?.('${courseId}')">${detailLbl}</button>
         </div>
-        ${_lessonAdminDashButtons(lesson.lesson_id ?? lesson.id, lesson.status ?? 'active')}
       </div>
     </div>`
 }
@@ -3281,32 +3285,6 @@ window.adminDeleteCourse = async (courseId) => {
     window.showToast?.(_adm('toast.courseDeleteFail', { msg: err.message ?? err }), 'error')
   }
 }
-
-// ── Delegace kliků v Dashboardu (řádky lekcí se přepisují innerHTML — jeden listener na body) ──
-;(function installAdminDashboardClickDelegation() {
-  if (window.__adminDashboardDelegationInstalled) return
-  window.__adminDashboardDelegationInstalled = true
-  document.body.addEventListener('click', (e) => {
-    const btn = e.target.closest('button.admin-dash-act[data-admin-lesson-act][data-lesson-id]')
-    if (!btn) return
-    const dash = document.getElementById('admin-dash-content')
-    if (!dash?.contains(btn)) return
-    const id = btn.getAttribute('data-lesson-id')
-    const act = btn.getAttribute('data-admin-lesson-act')
-    if (!id || !act) return
-    e.preventDefault()
-    if (act === 'attendees') {
-      console.log('[Debug] Delegace admin dashboard → adminOpenLessonDetail:', id)
-      void window.adminOpenLessonDetail?.(id)
-    } else if (act === 'deactivate' || act === 'cancel') {
-      console.log('[Debug] Delegace admin dashboard → adminDeactivateLesson:', id)
-      void window.adminDeactivateLesson?.(id)
-    } else if (act === 'delete') {
-      console.log('[Debug] Delegace admin dashboard → adminDeleteLesson:', id)
-      void window.adminDeleteLesson?.(id)
-    }
-  })
-})()
 
 // ── Navigace podle hooků z index.html (`nav()` → __appNavHooks) ───────────────────
 window.__refreshAdminScreen = async (route) => {

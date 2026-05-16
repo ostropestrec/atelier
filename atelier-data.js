@@ -501,7 +501,7 @@ async function runBackgroundDataSync(reason) {
 }
 
 /** Jednotný seznam URL z `courses.images` (jediný zdroj fotek kurzu). */
-function courseImageUrls(course) {
+export function courseImageUrls(course) {
   const raw = course?.images
   if (!Array.isArray(raw)) return []
   const out = []
@@ -513,7 +513,7 @@ function courseImageUrls(course) {
   return out.slice(0, 4)
 }
 
-function normalizeCourseRecord(c) {
+export function normalizeCourseRecord(c) {
   if (!c || typeof c !== 'object') return c
   return { ...c, images: courseImageUrls(c) }
 }
@@ -2499,8 +2499,8 @@ export async function buildStaffLessonsSectionHtml({
     return `
           <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
             <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lid}')">
-              <div style="width:5px;background:${color};flex-shrink:0;"></div>
               <div style="flex:1;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;">
+                <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
                 <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
                   <div style="font-size:13px;font-weight:600;line-height:1.35;">
                     ${title}${course?.is_workshop ? ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">WORKSHOP</span>' : ''}
@@ -2523,7 +2523,7 @@ export async function buildStaffLessonsSectionHtml({
               </div>
             </div>
             <div class="ml-cx" id="ml-cx-${lid}">
-              <div style="padding:0 14px 14px 19px;">
+              <div style="padding:0 14px 14px 14px;">
                 <div style="font-size:12px;color:#6b6b6b;line-height:1.65;overflow:hidden;margin-bottom:10px;">
                   ${imgUrl ? `<img src="${imgUrl}" style="float:left;width:108px;height:108px;object-fit:cover;border-radius:8px;margin:0 12px 8px 0;" alt="" />` : ''}
                   ${desc || ''}
