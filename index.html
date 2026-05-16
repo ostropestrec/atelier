@@ -675,13 +675,26 @@
     #nastenka-content .card-meta{ margin-top: 12px; margin-bottom: 8px; }
     #nastenka-content .section-h + .empty,
     #nastenka-content .section-h + .nastenka-cards-2col{ margin-bottom: 4px; }
-    #nastenka-content .booking-item:last-child{ margin-bottom: 4px; }
     .nastenka-cards-2col{
       display:grid;
       grid-template-columns:repeat(2, minmax(0, 1fr));
       gap:10px;
     }
-    .nastenka-cards-2col .pass-item{ margin-bottom:0; }
+    .nastenka-cards-2col .pass-item,
+    .nastenka-cards-2col .booking-item{ margin-bottom:0; }
+    /* Karty rezervací v mřížce: pod sebou jako permanentky v úzkém sloupci */
+    .nastenka-cards-2col .booking-item{
+      flex-direction:column;
+      align-items:stretch;
+      gap:12px;
+      min-height:0;
+    }
+    .nastenka-cards-2col .booking-item > div:last-child{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
     @media (max-width: 640px){
       .nastenka-cards-2col{ grid-template-columns:1fr; }
     }

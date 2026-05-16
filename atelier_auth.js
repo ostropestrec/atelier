@@ -1498,7 +1498,7 @@ export function buildUserOverviewHtml(user) {
     ` : ''}
 
     <div class="section-h">${escapeHtml(t(locale, 'dashboard.sectionBookings'))}</div>
-    ${bookingsHtml || `<div class="empty">${escapeHtml(t(locale, 'dashboard.emptyBookings'))}</div>`}
+    ${bookingsHtml ? `<div class="nastenka-cards-2col">${bookingsHtml}</div>` : `<div class="empty">${escapeHtml(t(locale, 'dashboard.emptyBookings'))}</div>`}
   `
 }
 
