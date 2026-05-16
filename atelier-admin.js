@@ -139,6 +139,14 @@ function _ensureQuillLoaded() {
   return _quillLoadPromise
 }
 
+let _adminDashboardView = 'vsechny'
+window.adminSetDashboardView = (view) => {
+  const next = view === 'moje' ? 'moje' : 'vsechny'
+  if (_adminDashboardView === next) return
+  _adminDashboardView = next
+  void renderAdminDashboard()
+}
+
 // Prewarm: admin modul se loaduje jen pro adminy, takže Quill bezpečně předtáhneme — k otevření modálu
 // stejně dojde téměř určitě, a tady aspoň běží paralelně s prvním renderem admin sekce.
 _ensureQuillLoaded().catch(() => {})
@@ -285,6 +293,27 @@ function fmtDate(iso) {
 
 function _adminAccountHeading() {
   return _adminLocale() === 'en' ? 'MY ACCOUNT' : 'MŮJ ÚČET'
+}
+
+function _adminDashboardSwitchHtml(active = _adminDashboardView) {
+  const mineActive = active === 'moje'
+  const allActive = !mineActive
+  const btn = isActive => [
+    'padding:8px 14px',
+    'border-radius:999px',
+    'border:1px solid var(--section-heading-accent)',
+    `background:${isActive ? 'var(--section-heading-accent)' : '#fff'}`,
+    `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
+    'font-size:11px',
+    'font-weight:700',
+    'letter-spacing:.08em',
+    'cursor:pointer',
+  ].join(';')
+  return `
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button type="button" style="${btn(mineActive)}" onclick="window.adminSetDashboardView?.('moje')">MOJE</button>
+      <button type="button" style="${btn(allActive)}" onclick="window.adminSetDashboardView?.('vsechny')">VŠECHNY</button>
+    </div>`
 }
 
 function _adminBookingWhen(iso) {
@@ -770,8 +799,7 @@ export async function renderAdminDashboard() {
     const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthBookings])
     const monthNetRev = monthGrossRev - monthRefunds
 
-    el.innerHTML = `
-      <div class="page-title">${esc(_adm('dashboard.title'))}</div>
+    const allViewHtml = `
       <div class="admin-stat-grid">
         <div class="admin-stat-card">
           <div class="admin-stat-value">${todayLessons.length}</div>
@@ -805,8 +833,14 @@ export async function renderAdminDashboard() {
       <div class="admin-section-title">${esc(_adminLocale() === 'en' ? 'All lessons' : 'Všechny lekce')}</div>
       ${allLessons.length ? `<div class="nastenka-cards-2col">${allLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adminLocale() === 'en' ? 'No upcoming lessons.' : 'Žádné nadcházející lekce.')}</div>`}
       <div class="admin-section-title">${esc(_adminLocale() === 'en' ? 'All courses' : 'Všechny kurzy')}</div>
-      ${coursesList.length ? `<div class="nastenka-cards-2col">${coursesList.map(_courseCard).join('')}</div>` : `<div class="empty">${esc(_adm('kurzy.empty'))}</div>`}
-      ${_adminAccountSectionHtml()}
+      ${coursesList.length ? `<div class="nastenka-cards-2col">${coursesList.map(_courseCard).join('')}</div>` : `<div class="empty">${esc(_adm('kurzy.empty'))}</div>`}`
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px;">
+        <div class="page-title" style="margin-bottom:0;">${esc(_adm('dashboard.title'))}</div>
+        ${_adminDashboardSwitchHtml()}
+      </div>
+      ${_adminDashboardView === 'moje' ? _adminAccountSectionHtml() : allViewHtml}
     `
     })(), 'admin-dashboard')
   } catch (err) {
@@ -844,20 +878,16 @@ function _lessonRow(lesson, showDate = false) {
   const timeStr = `${fmtTimeOnly(lesson.start_time)}–${fmtTimeOnly(lesson.end_time || lesson.start_time)}`
   const status  = lesson.status ?? 'active'
   const lid     = String(lesson.lesson_id ?? lesson.id ?? '')
-  const lidJs   = lid.replace(/'/g, "\\'")
-  const imgUrl  = courseImageUrls(course)[0] ?? null
-  const desc    = loc(course.description_short)
   const workshopBadge = course.is_workshop
     ? ` <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">${esc(_adm('kurzy.workshopBadge'))}</span>`
     : ''
   const actions = window.adminLessonActionButtons?.(lid, status) ?? ''
-  const detailLbl = esc(t(_adminLocale(), 'courses.detailLink'))
   const courseId  = esc(String(lesson.course_id ?? course.id ?? ''))
   const rowOpacity = status === 'cancelled' ? 'opacity:.75;' : ''
   return `
     <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;${rowOpacity}">
-      <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lidJs}')">
-        <div style="flex:1;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;">
+      <div style="display:flex;">
+        <div onclick="window.openDetail?.('${courseId}')" style="flex:1;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
           <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
             <div style="font-size:13px;font-weight:600;line-height:1.35;">${esc(title)}${workshopBadge}</div>
@@ -870,20 +900,11 @@ function _lessonRow(lesson, showDate = false) {
               </div>
             </div>
           </div>
-          <div style="flex-shrink:0;">
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              ${actions}
-            </div>
-          </div>
         </div>
-      </div>
-      <div class="ml-cx" id="ml-cx-${lid}">
-        <div style="padding:0 14px 14px 14px;">
-          <div style="font-size:12px;color:#6b6b6b;line-height:1.65;overflow:hidden;margin-bottom:10px;">
-            ${imgUrl ? `<img src="${esc(imgUrl)}" style="float:left;width:108px;height:108px;object-fit:cover;border-radius:8px;margin:0 12px 8px 0;" alt="" />` : ''}
-            ${desc || ''}
+        <div style="flex-shrink:0;padding:12px 14px 12px 0;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${actions}
           </div>
-          <button type="button" class="btn-detail" onclick="window.openDetail?.('${courseId}')">${detailLbl}</button>
         </div>
       </div>
     </div>`
