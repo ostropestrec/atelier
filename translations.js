@@ -546,6 +546,8 @@ export const UI_TRANSLATIONS = {
         errLessonNotFound: 'Lekce nenalezena.',
         errNotOwnLesson: 'Tuto lekci může deaktivovat pouze její lektor.',
         errDeleteActiveBookings: 'Lekci s aktivními rezervacemi nelze smazat.',
+        sectionPast: 'Uplynulé lekce',
+        emptyPast: 'Žádné uplynulé lekce.',
       },
       courseActions: {
         confirmToggleOn: 'Aktivovat kurz?',
@@ -1101,6 +1103,8 @@ export const UI_TRANSLATIONS = {
         errLessonNotFound: 'Lesson not found.',
         errNotOwnLesson: 'Only this lesson’s instructor can deactivate it.',
         errDeleteActiveBookings: 'Cannot delete a lesson that still has active bookings.',
+        sectionPast: 'Past lessons',
+        emptyPast: 'No past lessons.',
       },
       courseActions: {
         confirmToggleOn: 'Activate course?',

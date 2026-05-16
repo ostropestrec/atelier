@@ -2500,6 +2500,8 @@ function isSameDay(a, b) {
 
 // ── Moje lekce (lektor / admin) ───────────────────────────────
 let _staffLessonsScope = 'vsechny'
+let _staffPastLessonsPage = 1
+const STAFF_PAST_LESSONS_PAGE_SIZE = 10
 
 function _staffLessonsIsAdmin() {
   return (window.__userRole ?? window.AppState?.role) === 'admin'
@@ -2538,6 +2540,14 @@ window.setStaffLessonsScope = (scope) => {
   const next = scope === 'vsechny' && _staffLessonsIsAdmin() ? 'vsechny' : 'moje'
   if (_staffLessonsScope === next) return
   _staffLessonsScope = next
+  _staffPastLessonsPage = 1
+  void window.renderMojeLekce?.()
+}
+
+window.setStaffPastLessonsPage = (page) => {
+  const next = Math.max(1, Number(page) || 1)
+  if (_staffPastLessonsPage === next) return
+  _staffPastLessonsPage = next
   void window.renderMojeLekce?.()
 }
 
@@ -2560,7 +2570,6 @@ export async function buildStaffLessonsSectionHtml({
   const showAllStaffLessons = scope === 'vsechny' && _staffLessonsIsAdmin()
   let coursesQuery = sb.from('courses')
     .select('id, title, color_code, is_workshop, description_short, images')
-    .eq('is_active', true)
   if (!showAllStaffLessons) coursesQuery = coursesQuery.eq('owner_id', currentUser.id)
   const { data: myCourses } = await coursesQuery
 
@@ -2571,14 +2580,28 @@ export async function buildStaffLessonsSectionHtml({
   const courseMap = Object.fromEntries(myCourses.map(c => [c.id, normalizeCourseRecord(c)]))
   const courseIds = myCourses.map(c => c.id)
   const workshopCourseIds = myCourses.filter(c => c.is_workshop).map(c => c.id)
+  const nowIso = new Date().toISOString()
 
   const { data: terms } = await sb.from('lesson_availability')
     .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots, status')
     .in('course_id', courseIds)
-    .gte('start_time', new Date().toISOString())
+    .gte('start_time', nowIso)
     .in('status', ['active', 'cancelled'])
     .order('start_time')
     .limit(80)
+
+  const pastFrom = (_staffPastLessonsPage - 1) * STAFF_PAST_LESSONS_PAGE_SIZE
+  const pastTo = pastFrom + STAFF_PAST_LESSONS_PAGE_SIZE - 1
+  const { data: pastLessons, count: pastLessonsCount, error: pastLessonsErr } = await sb.from('lessons')
+    .select('id, course_id, start_time, end_time, status', { count: 'exact' })
+    .in('course_id', courseIds)
+    .lt('start_time', nowIso)
+    .in('status', ['active', 'cancelled'])
+    .order('start_time', { ascending: false })
+    .range(pastFrom, pastTo)
+  if (pastLessonsErr) {
+    console.warn('[Moje lekce] Uplynulé lekce se nepodařilo načíst:', pastLessonsErr)
+  }
 
   let allTerms = terms ?? []
   if (workshopCourseIds.length) {
@@ -2586,7 +2609,7 @@ export async function buildStaffLessonsSectionHtml({
     const { data: workshopLessons, error: workshopLessonsErr } = await sb.from('lessons')
       .select('id, course_id, start_time, end_time, capacity, status')
       .in('course_id', workshopCourseIds)
-      .gte('start_time', new Date().toISOString())
+      .gte('start_time', nowIso)
       .in('status', ['active', 'cancelled'])
       .order('start_time')
       .limit(80)
@@ -2633,10 +2656,6 @@ export async function buildStaffLessonsSectionHtml({
   let active = allTerms.filter(l => l.status === 'active')
   const deactivated = includeDeactivated ? allTerms.filter(l => l.status === 'cancelled') : []
   if (maxActive != null && maxActive > 0) active = active.slice(0, maxActive)
-
-  if (!active.length && !deactivated.length) {
-    return titleHtml + `<div class="empty">Žádné nadcházející termíny.</div>`
-  }
 
   const renderTermCard = l => {
     const course  = courseMap[l.course_id]
@@ -2694,10 +2713,76 @@ export async function buildStaffLessonsSectionHtml({
           </div>`
   }
 
+  const renderPastLessonRow = l => {
+    const course = courseMap[l.course_id]
+    const color = courseThemeHex(course?.color_code)
+    const title = loc(course?.title) || _tp('common.lessonFallback')
+    const start = new Date(l.start_time)
+    const end = new Date(l.end_time || l.start_time)
+    const dateStr = start.toLocaleDateString(lang === 'cs' ? 'cs-CZ' : 'en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
+    })
+    const timeStr = `${fmtTime(start)}–${fmtTime(end)}`
+    const lid = _escHtml(String(l.id ?? l.lesson_id ?? ''))
+    return `
+      <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;background:#fff;margin-bottom:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="min-width:0;display:flex;align-items:flex-start;gap:12px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
+          <div style="min-width:0;">
+            <div style="font-size:13px;font-weight:600;line-height:1.35;">${_escHtml(title)}</div>
+            <div style="font-size:11px;color:#6b6b6b;margin-top:4px;">${_escHtml(dateStr)} · ${_escHtml(timeStr)}</div>
+          </div>
+        </div>
+        <button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;flex-shrink:0;"
+          onclick="window.adminOpenLessonDetail?.('${lid}')">${_escHtml(_tp('admin.btn.attendees'))}</button>
+      </div>`
+  }
+
+  const renderPastPagination = total => {
+    const pageCount = Math.ceil((Number(total) || 0) / STAFF_PAST_LESSONS_PAGE_SIZE)
+    if (pageCount <= 1) return ''
+    const current = Math.min(_staffPastLessonsPage, pageCount)
+    const pages = []
+    const addPage = n => {
+      if (n >= 1 && n <= pageCount && !pages.includes(n)) pages.push(n)
+    }
+    addPage(1)
+    for (let n = current - 2; n <= current + 2; n += 1) addPage(n)
+    addPage(pageCount)
+    pages.sort((a, b) => a - b)
+
+    let last = 0
+    const btns = []
+    for (const n of pages) {
+      if (last && n - last > 1) {
+        btns.push(`<span style="font-size:12px;color:#9b9b9b;padding:0 2px;">…</span>`)
+      }
+      const activePage = n === current
+      btns.push(`
+        <button type="button"
+          style="min-width:30px;height:30px;border-radius:999px;border:1px solid ${activePage ? 'var(--primary)' : 'var(--section-heading-accent)'};background:${activePage ? 'var(--primary)' : '#fff'};color:${activePage ? '#fff' : 'var(--section-heading-accent)'};font-size:11px;font-weight:700;cursor:pointer;"
+          onclick="window.setStaffPastLessonsPage?.(${n})">${n}</button>`)
+      last = n
+    }
+    return `<div style="display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:14px;">${btns.join('')}</div>`
+  }
+
   const sections = []
   if (active.length) {
     sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${active.length} aktivních termínů</div>`)
     sections.push(`<div class="nastenka-cards-2col">${active.map(renderTermCard).join('')}</div>`)
+  } else if (!deactivated.length) {
+    sections.push(`<div class="empty">Žádné nadcházející termíny.</div>`)
+  }
+  sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">${_escHtml(_tp('admin.lessonActions.sectionPast'))}</div>`)
+  if ((pastLessons ?? []).length) {
+    sections.push(`<div>${(pastLessons ?? []).map(renderPastLessonRow).join('')}</div>`)
+    sections.push(renderPastPagination(pastLessonsCount ?? 0))
+  } else {
+    sections.push(`<div class="empty">${_escHtml(_tp('admin.lessonActions.emptyPast'))}</div>`)
   }
   if (deactivated.length) {
     sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">Deaktivované termíny</div>`)
