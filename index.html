@@ -695,6 +695,24 @@
       gap:8px;
       align-items:center;
     }
+    /* Lektor / admin: termíny (Moje lekce, blok na přehledu) a kurzy ve dvou sloupcích */
+    .nastenka-cards-2col .staff-term-card,
+    .nastenka-cards-2col .admin-course-card {
+      margin-bottom: 0 !important;
+    }
+    /* Admin přehled: řádek lekce v úzkém sloupci (jako rezervace uživatele) */
+    #admin-dash-content .nastenka-cards-2col .admin-lesson-row {
+      margin-bottom: 0 !important;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    #admin-dash-content .nastenka-cards-2col .admin-lesson-row > div:last-child {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
     @media (max-width: 640px){
       .nastenka-cards-2col{ grid-template-columns:1fr; }
     }

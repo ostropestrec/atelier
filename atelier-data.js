@@ -2497,7 +2497,7 @@ export async function buildStaffLessonsSectionHtml({
     const isOff   = l.status === 'cancelled'
     const actions = window.adminLessonActionButtons?.(lid, l.status ?? 'active') ?? ''
     return `
-          <div style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
+          <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
             <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lid}')">
               <div style="width:5px;background:${color};flex-shrink:0;"></div>
               <div style="flex:1;padding:12px 14px;display:flex;align-items:center;gap:12px;">
@@ -2539,12 +2539,12 @@ export async function buildStaffLessonsSectionHtml({
   const sections = []
   if (active.length) {
     sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${active.length} aktivních termínů</div>`)
-    sections.push(active.map(renderTermCard).join(''))
+    sections.push(`<div class="nastenka-cards-2col">${active.map(renderTermCard).join('')}</div>`)
   }
   if (deactivated.length) {
     sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">Deaktivované termíny</div>`)
     sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${deactivated.length} termínů — lze trvale smazat</div>`)
-    sections.push(deactivated.map(renderTermCard).join(''))
+    sections.push(`<div class="nastenka-cards-2col">${deactivated.map(renderTermCard).join('')}</div>`)
   }
 
   return titleHtml + sections.join('')

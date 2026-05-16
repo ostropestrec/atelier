@@ -693,9 +693,9 @@ export async function renderAdminDashboard() {
         </div>
       </div>
       <div class="admin-section-title">${esc(_adm('dashboard.sectionToday'))}</div>
-      ${todayLessons.length ? todayLessons.map(l => _lessonRow(l)).join('') : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
+      ${todayLessons.length ? `<div class="nastenka-cards-2col">${todayLessons.map(l => _lessonRow(l)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyToday'))}</div>`}
       <div class="admin-section-title">${esc(_adm('dashboard.sectionWeek'))}</div>
-      ${weekLessons.length ? weekLessons.map(l => _lessonRow(l, true)).join('') : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
+      ${weekLessons.length ? `<div class="nastenka-cards-2col">${weekLessons.map(l => _lessonRow(l, true)).join('')}</div>` : `<div class="empty">${esc(_adm('dashboard.emptyWeek'))}</div>`}
       ${adminMyLessonsHtml}
     `
     })(), 'admin-dashboard')
@@ -804,12 +804,12 @@ export async function renderAdminKurzy() {
     } else {
       if (activeCourses.length) {
         listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nActive', { n: activeCourses.length })}</div>`
-        listBody += activeCourses.map(_courseCard).join('')
+        listBody += `<div class="nastenka-cards-2col">${activeCourses.map(_courseCard).join('')}</div>`
       }
       if (inactiveCourses.length) {
         listBody += `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">${esc(_adm('kurzy.sectionInactive'))}</div>`
         listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nInactiveDelete', { n: inactiveCourses.length })}</div>`
-        listBody += inactiveCourses.map(_courseCard).join('')
+        listBody += `<div class="nastenka-cards-2col">${inactiveCourses.map(_courseCard).join('')}</div>`
       }
     }
     el.innerHTML = `
@@ -844,7 +844,7 @@ function _courseCard(course) {
   const workshopLbl = _adm('kurzy.workshopBadge')
   const deactBadge = _adm('state.deactivatedBadge')
   return `
-    <div style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
+    <div class="admin-course-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
       <div style="width:5px;background:${color};flex-shrink:0;"></div>
       <div style="flex:1;padding:14px 16px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
