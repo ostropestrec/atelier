@@ -549,6 +549,7 @@ export const UI_TRANSLATIONS = {
         errDeleteActiveBookings: 'Lekci s aktivními rezervacemi nelze smazat.',
         sectionPast: 'Uplynulé lekce',
         emptyPast: 'Žádné uplynulé lekce.',
+        sectionDeactivated: 'Deaktivované termíny',
       },
       courseActions: {
         confirmToggleOn: 'Aktivovat kurz?',
@@ -1107,6 +1108,7 @@ export const UI_TRANSLATIONS = {
         errDeleteActiveBookings: 'Cannot delete a lesson that still has active bookings.',
         sectionPast: 'Past lessons',
         emptyPast: 'No past lessons.',
+        sectionDeactivated: 'Deactivated sessions',
       },
       courseActions: {
         confirmToggleOn: 'Activate course?',

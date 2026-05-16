@@ -1599,6 +1599,15 @@ window.toggleML = id => {
   if (!wasOpen) exp.classList.add('on')
 }
 
+window.toggleStaffArchiveSection = id => {
+  const body = document.getElementById('staff-archive-' + id)
+  const chev = document.getElementById('staff-archive-chev-' + id)
+  if (!body) return
+  const isOpen = body.style.display !== 'none'
+  body.style.display = isOpen ? 'none' : 'block'
+  if (chev) chev.textContent = isOpen ? '›' : '⌄'
+}
+
 function _bkBindLessonCheckboxDelegation() {
   const box = document.getElementById('bk-lesson-checkboxes')
   if (!box || box.dataset.delegBound === '1') return
@@ -2729,7 +2738,7 @@ export async function buildStaffLessonsSectionHtml({
     const timeStr = `${fmtTime(start)}–${fmtTime(end)}`
     const lid = _escHtml(String(l.id ?? l.lesson_id ?? ''))
     return `
-      <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;background:#fff;margin-bottom:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;background:#fff;margin-bottom:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;opacity:.75;">
         <div style="min-width:0;display:flex;align-items:flex-start;gap:12px;">
           <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
           <div style="min-width:0;">
@@ -2741,6 +2750,22 @@ export async function buildStaffLessonsSectionHtml({
           onclick="window.adminOpenLessonDetail?.('${lid}')">${_escHtml(_tp('admin.btn.attendees'))}</button>
       </div>`
   }
+
+  const renderArchiveAccordion = (id, title, count, bodyHtml) => `
+    <div style="margin-top:20px;">
+      <button type="button"
+        onclick="window.toggleStaffArchiveSection?.('${id}')"
+        style="width:100%;border:0;background:transparent;padding:0;margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;text-align:left;">
+        <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;">${_escHtml(title)}</span>
+        <span style="display:flex;align-items:center;gap:8px;font-size:11px;color:#9b9b9b;">
+          ${Number.isFinite(Number(count)) ? `<span>${Number(count)}</span>` : ''}
+          <span id="staff-archive-chev-${id}" style="font-size:18px;line-height:1;">›</span>
+        </span>
+      </button>
+      <div id="staff-archive-${id}" style="display:none;">
+        ${bodyHtml}
+      </div>
+    </div>`
 
   const renderPastPagination = total => {
     const pageCount = Math.ceil((Number(total) || 0) / STAFF_PAST_LESSONS_PAGE_SIZE)
@@ -2778,17 +2803,20 @@ export async function buildStaffLessonsSectionHtml({
   } else if (!deactivated.length) {
     sections.push(`<div class="empty">Žádné nadcházející termíny.</div>`)
   }
-  sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">${_escHtml(_tp('admin.lessonActions.sectionPast'))}</div>`)
-  if ((pastLessons ?? []).length) {
-    sections.push(`<div>${(pastLessons ?? []).map(renderPastLessonRow).join('')}</div>`)
-    sections.push(renderPastPagination(pastLessonsCount ?? 0))
-  } else {
-    sections.push(`<div class="empty">${_escHtml(_tp('admin.lessonActions.emptyPast'))}</div>`)
-  }
+  const pastBodyHtml = (pastLessons ?? []).length
+    ? `<div>${(pastLessons ?? []).map(renderPastLessonRow).join('')}</div>${renderPastPagination(pastLessonsCount ?? 0)}`
+    : `<div class="empty">${_escHtml(_tp('admin.lessonActions.emptyPast'))}</div>`
+  sections.push(renderArchiveAccordion(
+    'past',
+    _tp('admin.lessonActions.sectionPast'),
+    pastLessonsCount ?? 0,
+    pastBodyHtml,
+  ))
   if (deactivated.length) {
-    sections.push(`<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">Deaktivované termíny</div>`)
-    sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${deactivated.length} termínů — lze trvale smazat</div>`)
-    sections.push(`<div class="nastenka-cards-2col">${deactivated.map(renderTermCard).join('')}</div>`)
+    const deactivatedBodyHtml = `
+      <div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${deactivated.length} termínů — lze trvale smazat</div>
+      <div class="nastenka-cards-2col">${deactivated.map(renderTermCard).join('')}</div>`
+    sections.push(renderArchiveAccordion('deactivated', _tp('admin.lessonActions.sectionDeactivated'), deactivated.length, deactivatedBodyHtml))
   }
 
   return titleHtml + sections.join('')
