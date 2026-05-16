@@ -2506,6 +2506,7 @@ export async function buildStaffLessonsSectionHtml({
                     ${title}${course?.is_workshop ? ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">WORKSHOP</span>' : ''}
                     ${isOff ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:6px;">DEAKTIVOVÁNO</span>' : ''}
                   </div>
+                  <div style="font-size:11px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
                   <div style="margin-top:2px;">
                     <div style="font-size:13px;font-weight:600;">${booked}/${cap}</div>
                     <div style="font-size:10px;color:#9b9b9b;margin-bottom:4px;">obsazeno</div>
@@ -2513,7 +2514,6 @@ export async function buildStaffLessonsSectionHtml({
                       <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
                     </div>
                   </div>
-                  <div style="font-size:11px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
                 </div>
                 <div style="flex-shrink:0;">
                   <div style="display:flex;flex-direction:column;gap:6px;">
