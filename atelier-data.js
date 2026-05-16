@@ -2463,6 +2463,7 @@ export async function buildStaffLessonsSectionHtml({
 
   const courseMap = Object.fromEntries(myCourses.map(c => [c.id, normalizeCourseRecord(c)]))
   const courseIds = myCourses.map(c => c.id)
+  const workshopCourseIds = myCourses.filter(c => c.is_workshop).map(c => c.id)
 
   const { data: terms } = await sb.from('lesson_availability')
     .select('lesson_id, course_id, start_time, end_time, capacity, booked_count, available_spots, status')
@@ -2472,8 +2473,58 @@ export async function buildStaffLessonsSectionHtml({
     .order('start_time')
     .limit(80)
 
-  let active = (terms ?? []).filter(l => l.status === 'active')
-  const deactivated = includeDeactivated ? (terms ?? []).filter(l => l.status === 'cancelled') : []
+  let allTerms = terms ?? []
+  if (workshopCourseIds.length) {
+    const seenLessonIds = new Set(allTerms.map(l => String(l.lesson_id ?? l.id)))
+    const { data: workshopLessons, error: workshopLessonsErr } = await sb.from('lessons')
+      .select('id, course_id, start_time, end_time, capacity, status')
+      .in('course_id', workshopCourseIds)
+      .gte('start_time', new Date().toISOString())
+      .in('status', ['active', 'cancelled'])
+      .order('start_time')
+      .limit(80)
+    if (workshopLessonsErr) {
+      console.warn('[Moje lekce] Workshopy z lessons se nepodařilo načíst:', workshopLessonsErr)
+    } else {
+      const missingWorkshopLessons = (workshopLessons ?? [])
+        .filter(l => !seenLessonIds.has(String(l.id)))
+      const missingLessonIds = missingWorkshopLessons.map(l => l.id)
+      let bookedByLessonId = {}
+      if (missingLessonIds.length) {
+        const { data: bookingRows, error: bookingErr } = await sb.from('bookings')
+          .select('lesson_id')
+          .in('lesson_id', missingLessonIds)
+          .eq('status', 'booked')
+        if (bookingErr) {
+          console.warn('[Moje lekce] Obsazenost workshopů se nepodařilo načíst:', bookingErr)
+        } else {
+          bookedByLessonId = (bookingRows ?? []).reduce((acc, row) => {
+            const id = String(row.lesson_id)
+            acc[id] = (acc[id] ?? 0) + 1
+            return acc
+          }, {})
+        }
+      }
+      allTerms = allTerms.concat(missingWorkshopLessons.map(l => {
+        const booked = bookedByLessonId[String(l.id)] ?? 0
+        const cap = Number(l.capacity ?? 0)
+        return {
+          lesson_id: l.id,
+          course_id: l.course_id,
+          start_time: l.start_time,
+          end_time: l.end_time,
+          capacity: cap,
+          booked_count: booked,
+          available_spots: Math.max(0, cap - booked),
+          status: l.status ?? 'active',
+        }
+      }))
+    }
+  }
+  allTerms.sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
+
+  let active = allTerms.filter(l => l.status === 'active')
+  const deactivated = includeDeactivated ? allTerms.filter(l => l.status === 'cancelled') : []
   if (maxActive != null && maxActive > 0) active = active.slice(0, maxActive)
 
   if (!active.length && !deactivated.length) {
