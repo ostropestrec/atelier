@@ -2437,12 +2437,47 @@ function isSameDay(a, b) {
 }
 
 // ── Moje lekce (lektor / admin) ───────────────────────────────
+let _staffLessonsScope = 'moje'
+
+function _staffLessonsIsAdmin() {
+  return (window.__userRole ?? window.AppState?.role) === 'admin'
+}
+
+function _staffScopeSwitchHtml() {
+  if (!_staffLessonsIsAdmin()) return ''
+  const active = _staffLessonsScope === 'vsechny' ? 'vsechny' : 'moje'
+  const btn = isActive => [
+    'padding:8px 14px',
+    'border-radius:999px',
+    `border:1px solid ${isActive ? 'var(--primary)' : 'var(--section-heading-accent)'}`,
+    `background:${isActive ? 'var(--primary)' : '#fff'}`,
+    `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
+    'font-size:11px',
+    'font-weight:700',
+    'letter-spacing:.08em',
+    'cursor:pointer',
+  ].join(';')
+  return `
+    <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
+      <button type="button" style="${btn(active === 'moje')}" onclick="window.setStaffLessonsScope?.('moje')">MOJE</button>
+      <button type="button" style="${btn(active === 'vsechny')}" onclick="window.setStaffLessonsScope?.('vsechny')">VŠECHNY</button>
+    </div>`
+}
+
+window.setStaffLessonsScope = (scope) => {
+  const next = scope === 'vsechny' && _staffLessonsIsAdmin() ? 'vsechny' : 'moje'
+  if (_staffLessonsScope === next) return
+  _staffLessonsScope = next
+  void window.renderMojeLekce?.()
+}
+
 export async function buildStaffLessonsSectionHtml({
-  sectionTitle = 'Moje lekce',
+  sectionTitle = 'Lekce',
   sectionClass = 'section-h',
   sectionStyle = '',
   includeDeactivated = true,
   maxActive = null,
+  scope = 'moje',
 } = {}) {
   const titleHtml = sectionTitle
     ? `<div class="${sectionClass}"${sectionStyle ? ` style="${sectionStyle}"` : ''}>${sectionTitle}</div>`
@@ -2452,13 +2487,15 @@ export async function buildStaffLessonsSectionHtml({
     return titleHtml + `<div class="empty">${_escHtml(_tp('shop.signInPrompt'))}</div>`
   }
 
-  const { data: myCourses } = await sb.from('courses')
+  const showAllStaffLessons = scope === 'vsechny' && _staffLessonsIsAdmin()
+  let coursesQuery = sb.from('courses')
     .select('id, title, color_code, is_workshop, description_short, images')
-    .eq('owner_id', currentUser.id)
     .eq('is_active', true)
+  if (!showAllStaffLessons) coursesQuery = coursesQuery.eq('owner_id', currentUser.id)
+  const { data: myCourses } = await coursesQuery
 
   if (!myCourses?.length) {
-    return titleHtml + `<div class="empty">Zatím nemáte přiřazeny žádné kurzy ani workshopy.</div>`
+    return titleHtml + `<div class="empty">Zatím nejsou přiřazeny žádné kurzy ani workshopy.</div>`
   }
 
   const courseMap = Object.fromEntries(myCourses.map(c => [c.id, normalizeCourseRecord(c)]))
@@ -2602,11 +2639,13 @@ export async function buildStaffLessonsSectionHtml({
 }
 
 export async function buildMojeLekceMarkup() {
-  return buildStaffLessonsSectionHtml({
-    sectionTitle: 'Moje lekce',
+  const body = await buildStaffLessonsSectionHtml({
+    sectionTitle: '',
     sectionClass: 'sec-title',
     includeDeactivated: true,
+    scope: _staffLessonsScope,
   })
+  return `<div class="sec-title">Lekce</div>${_staffScopeSwitchHtml()}${body}`
 }
 
 
@@ -2615,14 +2654,14 @@ async function renderMojeLekce() {
   if (!el) return
 
   if (!currentUser) {
-    el.innerHTML = `<div class="sec-title">Moje lekce</div><div class="empty">Přihlaste se.</div>`
+    el.innerHTML = `<div class="sec-title">Lekce</div><div class="empty">Přihlaste se.</div>`
     return
   }
 
   window._renderMojeLekceSeq = (window._renderMojeLekceSeq ?? 0) + 1
   const seq = window._renderMojeLekceSeq
 
-  el.innerHTML = `<div class="sec-title">Moje lekce</div><div class="empty" style="padding:40px;">Načítám…</div>`
+  el.innerHTML = `<div class="sec-title">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty" style="padding:40px;">Načítám…</div>`
 
   const canApply = () => {
     if ((window._renderMojeLekceSeq ?? 0) !== seq) return false
@@ -2641,7 +2680,7 @@ async function renderMojeLekce() {
   } catch (e) {
     console.error('[renderMojeLekce] chyba — plný objekt:')
     console.dir(e, { depth: null })
-    applyHtml(`<div class="sec-title">Moje lekce</div><div class="empty">Chyba při načítání (detail v konzoli).</div>`)
+    applyHtml(`<div class="sec-title">Lekce</div>${_staffScopeSwitchHtml()}<div class="empty">Chyba při načítání (detail v konzoli).</div>`)
   }
 }
 

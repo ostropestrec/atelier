@@ -140,6 +140,35 @@ function _ensureQuillLoaded() {
 }
 
 let _adminDashboardView = 'vsechny'
+let _adminCoursesScope = 'vsechny'
+
+function _adminScopeSwitchHtml(active, setterName) {
+  const current = active === 'moje' ? 'moje' : 'vsechny'
+  const btn = isActive => [
+    'padding:8px 14px',
+    'border-radius:999px',
+    `border:1px solid ${isActive ? 'var(--primary)' : 'var(--section-heading-accent)'}`,
+    `background:${isActive ? 'var(--primary)' : '#fff'}`,
+    `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
+    'font-size:11px',
+    'font-weight:700',
+    'letter-spacing:.08em',
+    'cursor:pointer',
+  ].join(';')
+  return `
+    <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:22px;">
+      <button type="button" style="${btn(current === 'moje')}" onclick="window.${setterName}?.('moje')">MOJE</button>
+      <button type="button" style="${btn(current === 'vsechny')}" onclick="window.${setterName}?.('vsechny')">VŠECHNY</button>
+    </div>`
+}
+
+window.adminSetCoursesScope = (scope) => {
+  const next = scope === 'moje' ? 'moje' : 'vsechny'
+  if (_adminCoursesScope === next) return
+  _adminCoursesScope = next
+  void renderAdminKurzy()
+}
+
 window.adminSetDashboardView = (view) => {
   const next = view === 'moje' || view === 'ucet' ? view : 'vsechny'
   if (_adminDashboardView === next) return
@@ -405,7 +434,6 @@ function _adminAccountSectionHtml() {
   const passesHtml = (userPasses ?? []).map(_adminAccountPassCard).join('')
   const bookingsHtml = (myBookings ?? []).map(_adminAccountBookingCard).join('')
   return `
-    <div style="font-size:18px;font-weight:700;color:var(--text);margin:var(--overview-section-gap) 0 18px;">${esc(_adminAccountHeading())}</div>
     <div class="section-h" style="margin-top:0;">${esc(t(_adminLocale(), 'dashboard.sectionPasses'))}</div>
     ${passesHtml ? `<div class="nastenka-cards-2col">${passesHtml}</div>` : `<div class="empty">${esc(t(_adminLocale(), 'dashboard.emptyPasses'))}</div>`}
     ${passesHtml ? `
@@ -878,12 +906,16 @@ export async function renderAdminKurzy() {
   }
   try {
     await adminRace((async () => {
-    const baseQuery = sb.from('courses')
+    let baseQuery = sb.from('courses')
       .select('id, title, color_code, is_active, is_workshop, capacity_default, price_single, cancellation_hours, owner:users!owner_id(id,name)')
       .order('title->cs')
+    if (_isStaffAdmin() && _adminCoursesScope === 'moje' && currentUser?.id) {
+      baseQuery = baseQuery.eq('owner_id', currentUser.id)
+    }
     const { data: courses, error } = await _scopeOwnerQuery(baseQuery)
     if (error) throw error
     const pageTitle = _isStaffLektor() ? _adm('kurzy.pageMine') : _adm('kurzy.pageAll')
+    const scopeSwitchHtml = _isStaffAdmin() ? _adminScopeSwitchHtml(_adminCoursesScope, 'adminSetCoursesScope') : ''
     const activeCourses = (courses ?? []).filter(c => c.is_active)
     const inactiveCourses = (courses ?? []).filter(c => !c.is_active)
     let listBody = ''
@@ -908,6 +940,7 @@ export async function renderAdminKurzy() {
           <button class="btn-small" onclick="window.adminNewCourse?.()">${esc(_adm('btn.newCourse'))}</button>
         </div>
       </div>
+      ${scopeSwitchHtml}
       ${listBody}
     `
     })(), 'admin-kurzy')
