@@ -7,6 +7,10 @@ import { currentUser, userPasses, myBookings, canUserCancelBooking } from './ate
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 import { normalizeCourseRecord, courseImageUrls } from './atelier-data.js'
 import { t } from './translations.js'
+import {
+  BLOCKING_PARTICIPATION_STATUSES,
+  PARTICIPATION_STATUS,
+} from './atelier-booking-status.js'
 
 function _adminLocale() {
   return window.__uiLang === 'en' ? 'en' : 'cs'
@@ -535,16 +539,24 @@ function _sortTs(iso) {
 
 function _adminBookingStatusLabel(status) {
   const k = String(status || '')
-  const known = ['booked', 'attended', 'cancelled', 'missed']
+  const known = [
+    PARTICIPATION_STATUS.PENDING_PAYMENT,
+    PARTICIPATION_STATUS.CONFIRMED,
+    PARTICIPATION_STATUS.CANCELLED,
+    PARTICIPATION_STATUS.PAYMENT_EXPIRED,
+    PARTICIPATION_STATUS.ATTENDED,
+    PARTICIPATION_STATUS.MISSED,
+  ]
   if (known.includes(k)) return _adm('bookingLessonStatus.' + k)
   return status || _adm('misc.dash')
 }
 
 function _adminLessonHistoryStatusColors(status) {
   const s = String(status || '')
-  if (s === 'booked' || s === 'attended') return { bg: '#E1F5EE', c: '#085041' }
-  if (s === 'cancelled') return { bg: '#FCEBEB', c: '#791F1F' }
-  if (s === 'missed') return { bg: '#FFF4E0', c: '#8B5C00' }
+  if (s === PARTICIPATION_STATUS.CONFIRMED || s === PARTICIPATION_STATUS.ATTENDED) return { bg: '#E1F5EE', c: '#085041' }
+  if (s === PARTICIPATION_STATUS.PENDING_PAYMENT) return { bg: '#FFF4E0', c: '#8B5C00' }
+  if (s === PARTICIPATION_STATUS.CANCELLED || s === PARTICIPATION_STATUS.PAYMENT_EXPIRED) return { bg: '#FCEBEB', c: '#791F1F' }
+  if (s === PARTICIPATION_STATUS.MISSED) return { bg: '#FFF4E0', c: '#8B5C00' }
   return { bg: '#F3F4F6', c: '#6b6b6b' }
 }
 
@@ -1859,13 +1871,27 @@ function _platbaRow(p) {
       : paidAmount
     return Number.isFinite(base) ? String(base).replace(/\.00$/, '') : ''
   })()
-  const statusPreset = ['active','expired','depleted','booked','cancelled','attended','missed']
+  const statusPreset = [
+    'active',
+    'expired',
+    'depleted',
+    PARTICIPATION_STATUS.PENDING_PAYMENT,
+    PARTICIPATION_STATUS.CONFIRMED,
+    PARTICIPATION_STATUS.CANCELLED,
+    PARTICIPATION_STATUS.PAYMENT_EXPIRED,
+    PARTICIPATION_STATUS.ATTENDED,
+    PARTICIPATION_STATUS.MISSED,
+  ]
   const stKey = statusPreset.includes(String(p.status)) ? String(p.status) : null
   const statusMap = {
     active:{l:_adm('paymentRowStatus.active'),bg:'#E1F5EE',c:'#085041'}, expired:{l:_adm('paymentRowStatus.expired'),bg:'#F3F4F6',c:'#6b6b6b'},
-    depleted:{l:_adm('paymentRowStatus.depleted'),bg:'#F3F4F6',c:'#6b6b6b'}, booked:{l:_adm('paymentRowStatus.booked'),bg:'#E1F5EE',c:'#085041'},
-    cancelled:{l:_adm('paymentRowStatus.cancelled'),bg:'#FCEBEB',c:'#791F1F'}, attended:{l:_adm('paymentRowStatus.attended'),bg:'#E1F5EE',c:'#085041'},
-    missed:{l:_adm('paymentRowStatus.missed'),bg:'#FFF4E0',c:'#8B5C00'},
+    depleted:{l:_adm('paymentRowStatus.depleted'),bg:'#F3F4F6',c:'#6b6b6b'},
+    [PARTICIPATION_STATUS.PENDING_PAYMENT]:{l:_adm('paymentRowStatus.pending_payment'),bg:'#FFF4E0',c:'#8B5C00'},
+    [PARTICIPATION_STATUS.CONFIRMED]:{l:_adm('paymentRowStatus.booked'),bg:'#E1F5EE',c:'#085041'},
+    [PARTICIPATION_STATUS.CANCELLED]:{l:_adm('paymentRowStatus.cancelled'),bg:'#FCEBEB',c:'#791F1F'},
+    [PARTICIPATION_STATUS.PAYMENT_EXPIRED]:{l:_adm('paymentRowStatus.payment_expired'),bg:'#FCEBEB',c:'#791F1F'},
+    [PARTICIPATION_STATUS.ATTENDED]:{l:_adm('paymentRowStatus.attended'),bg:'#E1F5EE',c:'#085041'},
+    [PARTICIPATION_STATUS.MISSED]:{l:_adm('paymentRowStatus.missed'),bg:'#FFF4E0',c:'#8B5C00'},
   }
   const st = stKey ? statusMap[stKey] : { l: String(p.status ?? ''), bg: '#F3F4F6', c: '#6b6b6b' }
   const refundBadge = refundPending
@@ -3388,7 +3414,7 @@ async function _syncFutureCourseLessons(courseId, days, timeFrom, timeTo, capaci
     const { data: bookings, error: bookingErr } = await sb.from('bookings')
       .select('lesson_id')
       .in('lesson_id', lessonIds)
-      .eq('status', 'booked')
+      .in('status', BLOCKING_PARTICIPATION_STATUSES)
     if (bookingErr) throw bookingErr
     for (const b of (bookings ?? [])) {
       bookedCountByLessonId[b.lesson_id] = (bookedCountByLessonId[b.lesson_id] ?? 0) + 1
@@ -3534,9 +3560,9 @@ window.closeLessonAttendeesModal = () => {
 
 async function _adminCancelCustomerBookingFallback(bookingId, paymentType, userPassId, refundPass) {
   const { error: bookingErr } = await sb.from('bookings').update({
-    status: 'cancelled',
+    status: PARTICIPATION_STATUS.CANCELLED,
     cancelled_at: new Date().toISOString(),
-  }).eq('id', bookingId).eq('status', 'booked')
+  }).eq('id', bookingId).in('status', BLOCKING_PARTICIPATION_STATUSES)
   if (bookingErr) throw bookingErr
 
   if (paymentType === 'pass' && userPassId && refundPass === false) {
@@ -3635,9 +3661,9 @@ window.adminOpenLessonDetail = async (lessonId) => {
     await adminRace((async () => {
     const { data: bookings, error: bookingErr } = await sb
       .from('bookings')
-      .select('id, payment_type, user_id, created_at, user_pass_id')
+      .select('id, payment_type, user_id, created_at, user_pass_id, status')
       .eq('lesson_id', lessonId)
-      .eq('status', 'booked')
+      .in('status', BLOCKING_PARTICIPATION_STATUSES)
       .order('created_at', { ascending: true })
 
     if (bookingErr) throw bookingErr
@@ -3702,6 +3728,8 @@ window.adminOpenLessonDetail = async (lessonId) => {
             const payCell = b.payment_type === 'pass'
               ? `${esc(_adm('lessonDetail.paymentPassLabel'))}${passLabel ? ': ' + passLabel : ''}`
               : esc(_adm('payType.single'))
+            const stColors = _adminLessonHistoryStatusColors(b.status)
+            const statusBadge = `<span style="display:inline-block;margin-top:4px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:${stColors.bg};color:${stColors.c};">${esc(_adminBookingStatusLabel(b.status))}</span>`
             const passIdAttr = b.user_pass_id ? esc(b.user_pass_id) : ''
             const lessonIdArg = esc(String(lessonId))
             const bookingIdArg = esc(String(b.id))
@@ -3709,7 +3737,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
             return `<tr style="border-top:1px solid var(--border);">
               <td style="padding:10px 8px 10px 0;vertical-align:top;font-weight:500;line-height:1.45;">${esc(u?.name || _adm('misc.dash'))}</td>
               <td style="padding:10px 4px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;">${esc(u?.email || _adm('misc.dash'))}</td>
-              <td style="padding:10px 0 10px 8px;vertical-align:top;line-height:1.45;">${payCell}</td>
+              <td style="padding:10px 0 10px 8px;vertical-align:top;line-height:1.45;">${payCell}<br>${statusBadge}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;">
                 <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
                   onclick="window.adminCancelCustomerBooking?.('${bookingIdArg}','${lessonIdArg}','${paymentTypeArg}','${passIdAttr}')"
@@ -3761,7 +3789,7 @@ window.adminDeactivateLesson = async (lessonId) => {
         || rpcErr.message?.includes('admin_cancel_lesson')
       if (missFn) {
         const [{ error: bErr }, { error: lErr }] = await Promise.all([
-          sb.from('bookings').update({ status: 'cancelled' }).eq('lesson_id', lessonId).eq('status', 'booked'),
+          sb.from('bookings').update({ status: PARTICIPATION_STATUS.CANCELLED }).eq('lesson_id', lessonId).in('status', BLOCKING_PARTICIPATION_STATUSES),
           sb.from('lessons').update({ status: 'cancelled' }).eq('id', lessonId),
         ])
         if (lErr) throw lErr
@@ -3797,7 +3825,7 @@ window.adminDeleteLesson = async (lessonId) => {
     const { count, error: countErr } = await sb.from('bookings')
       .select('*', { count: 'exact', head: true })
       .eq('lesson_id', lessonId)
-      .eq('status', 'booked')
+      .in('status', BLOCKING_PARTICIPATION_STATUSES)
     if (countErr) throw countErr
     if ((count ?? 0) > 0) {
       throw new Error(_adm('lessonActions.errDeleteActiveBookings'))
@@ -3843,7 +3871,7 @@ window.adminDeleteCourse = async (courseId) => {
     if (lessonIds.length) {
       const { count, error: bookErr } = await sb.from('bookings')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'booked')
+        .in('status', BLOCKING_PARTICIPATION_STATUSES)
         .in('lesson_id', lessonIds)
       if (bookErr) throw bookErr
       if ((count ?? 0) > 0) {

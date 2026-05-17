@@ -19,6 +19,10 @@ import {
 } from './atelier_auth.js'
 import { t, UI_LANG_STORAGE_KEY } from './translations.js'
 import { EVENTS, emit } from './atelier-events.js'
+import {
+  BLOCKING_PARTICIPATION_STATUSES,
+  PARTICIPATION_STATUS,
+} from './atelier-booking-status.js'
 
 // ── Jazyk ─────────────────────────────────────────────────────
 export let lang = 'cs'
@@ -989,7 +993,7 @@ window.cancelBookingFromPopup = async () => {
       `)
       .eq('user_id', currentUser.id)
       .eq('lesson_id', lid)
-      .eq('status', 'booked')
+      .eq('status', PARTICIPATION_STATUS.CONFIRMED)
       .maybeSingle()
     if (error) throw error
     if (!data?.id) {
@@ -2062,7 +2066,7 @@ window.confirmBooking = async () => {
           lesson_id,
           payment_type: 'pass',
           price_paid:   0,
-          status:       'booked',
+          status:       PARTICIPATION_STATUS.CONFIRMED,
           user_pass_id: userPassId,
         })
         if (error) throw error
@@ -2074,7 +2078,7 @@ window.confirmBooking = async () => {
         lesson_id,
         payment_type: 'single',
         price_paid:   pricePaid,
-        status:       'booked',
+        status:       PARTICIPATION_STATUS.CONFIRMED,
       })
       if (error) throw error
     }
@@ -2640,7 +2644,7 @@ export async function buildStaffLessonsSectionHtml({
         const { data: bookingRows, error: bookingErr } = await sb.from('bookings')
           .select('lesson_id')
           .in('lesson_id', missingLessonIds)
-          .eq('status', 'booked')
+          .in('status', BLOCKING_PARTICIPATION_STATUSES)
         if (bookingErr) {
           console.warn('[Moje lekce] Obsazenost workshopů se nepodařilo načíst:', bookingErr)
         } else {

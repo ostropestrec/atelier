@@ -18,6 +18,10 @@ import { EVENTS, on, emit } from './atelier-events.js'
 
 const w = /** @type {any} */ (typeof window !== 'undefined' ? window : {})
 
+/**
+ * @param {string} name
+ * @returns {(...args: unknown[]) => unknown}
+ */
 function lazy(name) {
   return (...args) => {
     const fn = w[name]
@@ -50,6 +54,10 @@ const events = Object.freeze({
 })
 
 const i18n = Object.freeze({
+  /**
+   * @param {string} path
+   * @param {Record<string, string | number>} [params]
+   */
   t:       (path, params) => translate(readLang(), path, params),
   getLang: readLang
 })

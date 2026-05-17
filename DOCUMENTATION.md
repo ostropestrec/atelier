@@ -143,46 +143,53 @@ Tím se přiznává technický dluh Vanilla části, ale i **plán** jeho říze
 
 ---
 
-## 5. Navrhovaný stavový automat rezervací (State Machine Roadmap)
+## 5. Stavový model potvrzené účasti
 
 ### 5.1 Současný stav (implementace v CHECK)
 
-V `atelier_schema.sql` je sloupec `bookings.status` omezen např. na:
+V aplikaci pojem „rezervace“ znamená prakticky **potvrzenou účast**. Nejde o nezávaznou rezervaci, ale o závazek zákazníka dorazit. Aplikace zároveň **neověřuje docházku**, proto stavy typu „dorazil“ / „nedorazil“ nejsou součást cílového flow.
 
-`booked` | `cancelled` | `missed` | `attended`
+`bookings.status` používá tyto významové stavy:
 
-Tento model je dostatečný pro manuální a poloautomatické procesy; **neobsahuje** explicitní fázi „čeká se na platbu“.
+- `pending_payment` — čeká se na platbu; místo je dočasně blokované,
+- `booked` — historický DB název pro **potvrzenou účast**,
+- `cancelled` — účast byla zrušena,
+- `payment_expired` — čekání na platbu vypršelo; místo je uvolněné.
 
-### 5.2 Cílový model: Postgres ENUM a přechody
+Legacy hodnoty `attended` a `missed` mohou zůstat v CHECK constraintu kvůli zpětné kompatibilitě historických dat, ale aplikace je dál aktivně nepoužívá.
 
-**Návrh:** zavést doménový typ a sloupec s jednoznačnými přechody (definice názvů ilustrativní — finální názvy sjednotit v migraci).
+### 5.2 Přechody
 
 ```sql
--- Konceptuální návrh (migrace v budoucím sprintu)
-CREATE TYPE booking_lifecycle AS ENUM (
-  'pending_payment',   -- záznam nebo intent vytvořen, platba ještě nepotvrzena webhookem
-  'booked',             -- aktivní rezervace
-  'attended',           -- dokončená docházka
-  'no_show',            -- nedorazil / neúčast (ekvivalent dnešního missed)
-  'cancelled'           -- storno; refundace řešena samostatnými sloupci / tabulkou
-);
+check (status in (
+  'pending_payment',
+  'booked',
+  'cancelled',
+  'payment_expired',
+  'missed',    -- legacy
+  'attended'   -- legacy
+))
 ```
 
-**Navrhované přechody (zjednodušeně):**
+**Přechody (zjednodušeně):**
 
 | Z | Událost | Do |
 |---|---------|-----|
 | `pending_payment` | Webhook / manuální potvrzení platby | `booked` |
-| `pending_payment` | Vypršení / zrušení session | `cancelled` nebo smazání intentu |
-| `booked` | Uzavření lekce pozitivně | `attended` |
-| `booked` | Evidence neúčasti | `no_show` |
+| `pending_payment` | Vypršení platby | `payment_expired` |
+| `pending_payment` | Zrušení zákazníkem / administrátorem | `cancelled` |
 | `booked` | Storno v souladu s pravidly | `cancelled` |
 
-**Storno a refundace:** sloupce `refund_status`, `refund_amount`, `cancellation_type` zůstávají ortogonální k hlavnímu životnímu cyklu — stav `cancelled` významově sdružuje **procesní ukončení** rezervace; ekonomický dopis řeší refundace (včetně stavu `pending`/`completed` u refund polí).
+**Storno a refundace:** sloupce `refund_status`, `refund_amount`, `cancellation_type` zůstávají ortogonální k hlavnímu životnímu cyklu — stav `cancelled` významově ukončuje účast; ekonomický dopad řeší refundace (včetně stavu `pending`/`completed` u refund polí).
 
-### 5.3 Ochrana proti dvojí rezervaci
+### 5.3 Ochrana proti dvojí účasti a obsazenost
 
-V schématu je **unikátní omezení** na úrovni rezervace uživatele a lekce (`unique_active_booking` na `(user_id, lesson_id)` v aktuální definici) — při rozšíření o `pending_payment` bude nutné **sjednotit pravidlo**: buď částečně unikátní index s podmínkou (PostgreSQL partial unique index), nebo vyhrazená tabulka intentů; toto je předmět migrace společně s ENUM.
+Aktivně blokující jsou pouze:
+
+- `pending_payment`,
+- `booked`.
+
+Proto unikátní index i `lesson_availability` počítají právě tyto dva stavy. `cancelled` a `payment_expired` místo uvolňují.
 
 ---
 

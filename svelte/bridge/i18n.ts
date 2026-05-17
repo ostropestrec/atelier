@@ -10,4 +10,7 @@ export const lang: Readable<Locale> = createBridgeStore<Locale>(
 
 export const tt: Readable<
   (path: string, params?: Record<string, string | number>) => string
-> = derived(lang, () => (path, params) => window.AtelierAPI.i18n.t(path, params))
+> = derived(lang, () => (
+  path: string,
+  params?: Record<string, string | number>
+) => window.AtelierAPI.i18n.t(path, params))

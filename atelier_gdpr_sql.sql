@@ -63,7 +63,7 @@ begin
   from   public.lessons l
   where  b.lesson_id = l.id
     and  b.user_id   = p_user_id
-    and  b.status    = 'booked'
+    and  b.status in ('pending_payment', 'booked')
     and  l.start_time > v_now;
 
   get diagnostics v_future_bookings_count = row_count;
@@ -125,7 +125,7 @@ create or replace view public.gdpr_data_summary as
     u.id,
     u.role,
     u.created_at,
-    count(distinct b.id)  filter (where b.status = 'booked')    as active_bookings,
+    count(distinct b.id)  filter (where b.status in ('pending_payment', 'booked')) as active_bookings,
     count(distinct b.id)  filter (where b.status = 'cancelled')  as cancelled_bookings,
     count(distinct up.id) filter (where up.status = 'active')    as active_passes,
     count(distinct up.id)                                         as total_passes

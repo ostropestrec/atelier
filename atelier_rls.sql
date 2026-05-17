@@ -389,8 +389,8 @@ create policy "bookings: vytvořit vlastní"
   to authenticated
   with check (user_id = public.current_user_id());
 
--- Zákazník smí jen stornat (status booked → cancelled).
--- Vše ostatní (attended, missed) mění lektor nebo backend.
+-- Zákazník smí jen stornat potvrzenou účast z permanentky (booked → cancelled).
+-- Aplikace dál aktivně nepoužívá docházkové stavy attended/missed.
 create policy "bookings: zákazník storní vlastní"
   on public.bookings for update
   to authenticated
@@ -407,7 +407,8 @@ create policy "bookings: zákazník storní vlastní"
     and public.can_self_cancel_booking(public.bookings.lesson_id, public.bookings.user_pass_id)
   );
 
--- Lektor označuje docházku (attended / missed)
+-- Lektor smí upravovat související účasti na svých lekcích.
+-- Docházkové stavy attended/missed ponecháváme jen jako legacy hodnoty.
 create policy "bookings: lektor edituje na svých lekcích"
   on public.bookings for update
   to authenticated

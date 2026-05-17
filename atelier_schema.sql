@@ -122,9 +122,10 @@ create table public.bookings (
   payment_type      text not null check (payment_type in ('pass','single')),
   price_paid        numeric(10,2),
   status            text not null default 'booked'
-                      check (status in ('booked','cancelled','missed','attended')),
+                      check (status in ('pending_payment','booked','cancelled','payment_expired','missed','attended')),
   cancelled_at      timestamptz,
   cancellation_type text check (cancellation_type in ('early','late')),
+  payment_expires_at timestamptz,
   stripe_payment_id text,
   refund_status     text not null default 'not_required'
                       check (refund_status in ('not_required','pending','completed')),
@@ -133,13 +134,15 @@ create table public.bookings (
   refund_amount     numeric(10,2),
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
-  constraint unique_active_booking unique (user_id, lesson_id)
 );
 
 create index idx_bookings_user_id          on public.bookings(user_id);
 create index idx_bookings_lesson_id        on public.bookings(lesson_id);
 create index idx_bookings_status           on public.bookings(status);
 create index idx_bookings_stripe_payment   on public.bookings(stripe_payment_id);
+create unique index bookings_unique_user_lesson_blocking
+  on public.bookings(user_id, lesson_id)
+  where status in ('pending_payment','booked');
 
 -- ── GDPR DELETION LOG ────────────────────────────────────────
 create table public.gdpr_deletion_log (
@@ -161,8 +164,8 @@ create view public.lesson_availability as
     l.capacity,
     l.price_single,
     l.status,
-    count(b.id) filter (where b.status = 'booked') as booked_count,
-    l.capacity - count(b.id) filter (where b.status = 'booked') as available_spots
+    count(b.id) filter (where b.status in ('pending_payment','booked')) as booked_count,
+    l.capacity - count(b.id) filter (where b.status in ('pending_payment','booked')) as available_spots
   from public.lessons l
   left join public.bookings b on b.lesson_id = l.id
   group by l.id;
@@ -215,9 +218,9 @@ create or replace function public.check_lesson_capacity()
 returns trigger language plpgsql as $$
 declare booked_count int; max_capacity int;
 begin
-  if new.status = 'booked' then
+  if new.status in ('pending_payment','booked') then
     select count(*) into booked_count
-    from public.bookings where lesson_id = new.lesson_id and status = 'booked';
+    from public.bookings where lesson_id = new.lesson_id and status in ('pending_payment','booked');
     select capacity into max_capacity
     from public.lessons where id = new.lesson_id;
     if booked_count >= max_capacity then
@@ -437,7 +440,7 @@ begin
   from public.lessons l
   where b.lesson_id = l.id
     and b.user_id   = p_user_id
-    and b.status    = 'booked'
+    and b.status in ('pending_payment','booked')
     and l.start_time > v_now;
   get diagnostics v_cancelled = row_count;
 

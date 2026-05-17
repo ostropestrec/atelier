@@ -6,6 +6,10 @@
 
 import { sb } from './atelier-supabase.js'
 import { t } from './translations.js'
+import {
+  PARTICIPATION_STATUS,
+  VISIBLE_USER_PARTICIPATION_STATUSES,
+} from './atelier-booking-status.js'
 
 // ── Globální stav aplikace (single source of truth; merge kvůli pořadí skriptů v index.html) ──
 window.AppState ??= {}
@@ -484,7 +488,7 @@ export async function loadUserBookings(userId) {
     .from('bookings')
     .select('lesson_id')
     .eq('user_id', userId)
-    .eq('status', 'booked')
+    .in('status', VISIBLE_USER_PARTICIPATION_STATUSES)
 
   if (error) { console.error('loadUserBookings:', error); return }
   userBookings = new Set(data.map(b => b.lesson_id))
@@ -537,7 +541,7 @@ export async function loadMyBookings(userId) {
       )
     `)
     .eq('user_id', userId)
-    .eq('status', 'booked')
+    .in('status', VISIBLE_USER_PARTICIPATION_STATUSES)
     .order('created_at', { ascending: false })
 
   if (error) { console.error('loadMyBookings:', error); myBookings = []; return }
@@ -1492,6 +1496,9 @@ export function buildUserOverviewHtml(user) {
     const title = locJson(course?.title)
     const owner = course?.owner?.name ?? '—'
     const when = lesson?.start_time ? fmtBookingWhen(lesson.start_time) : ''
+    const statusKey = b.status === PARTICIPATION_STATUS.PENDING_PAYMENT
+      ? 'dashboard.bookingPendingPayment'
+      : 'dashboard.bookingConfirmed'
     return `
       <div class="booking-item" style="border:1px solid ${color};">
         <div class="bk-left">
@@ -1507,7 +1514,7 @@ export function buildUserOverviewHtml(user) {
           </div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <span class="pill ok">${escapeHtml(t(locale, 'common.enrolled'))}</span>
+          <span class="pill ok">${escapeHtml(t(locale, statusKey))}</span>
           ${canUserCancelBooking(b)
             ? `<button class="btn-small danger" onclick="window.cancelMyBooking?.('${b.id}')">${escapeHtml(t(locale, 'dashboard.unenroll'))}</button>`
             : ''}

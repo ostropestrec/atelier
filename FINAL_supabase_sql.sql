@@ -134,8 +134,16 @@ create table if not exists public.bookings (
   price_paid        numeric(10,2)
                       check (price_paid is null or price_paid >= 0),
   status            text not null default 'booked'
-                      check (status in ('booked', 'cancelled', 'missed', 'attended')),
+                      check (status in (
+                        'pending_payment',
+                        'booked',
+                        'cancelled',
+                        'payment_expired',
+                        'missed',
+                        'attended'
+                      )),
   cancelled_at      timestamptz,
+  payment_expires_at timestamptz,
   stripe_payment_id text,
   refund_status     text not null default 'not_required'
                       check (refund_status in ('not_required', 'pending', 'completed')),
@@ -202,9 +210,9 @@ create unique index if not exists idx_payments_stripe_unique
   on public.payments(stripe_payment_id)
   where stripe_payment_id is not null;
 
-create unique index if not exists bookings_unique_user_lesson_booked
+create unique index if not exists bookings_unique_user_lesson_blocking
   on public.bookings(user_id, lesson_id)
-  where status = 'booked';
+  where status in ('pending_payment', 'booked');
 
 -- ============================================================
 -- 3. VIEW — live capacity (frontend reads this, never bookings count)
@@ -219,8 +227,8 @@ select
   l.capacity,
   l.price_single,
   l.status,
-  count(b.id) filter (where b.status = 'booked')::int as booked_count,
-  greatest(l.capacity - count(b.id) filter (where b.status = 'booked'), 0)::int as available_spots
+  count(b.id) filter (where b.status in ('pending_payment', 'booked'))::int as booked_count,
+  greatest(l.capacity - count(b.id) filter (where b.status in ('pending_payment', 'booked')), 0)::int as available_spots
 from public.lessons l
 left join public.bookings b on b.lesson_id = l.id
 group by l.id;
@@ -490,6 +498,26 @@ as $$
      and expires_at < now();
 $$;
 
+-- Mark pending paid entries as expired (used by scheduled job or manual maintenance).
+create or replace function public.expire_pending_payment_bookings()
+returns integer
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  update public.bookings
+     set status = 'payment_expired',
+         updated_at = now()
+   where status = 'pending_payment'
+     and payment_expires_at is not null
+     and payment_expires_at < now();
+
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
 -- ============================================================
 -- 7. GRANTS
 -- ============================================================
@@ -516,11 +544,13 @@ revoke all on function public.check_admin()                   from public;
 revoke all on function public.cancel_my_pass_booking(uuid)    from public;
 revoke all on function public.reconcile_my_pass_balances()    from public;
 revoke all on function public.expire_passes()                 from public;
+revoke all on function public.expire_pending_payment_bookings() from public;
 
 grant execute on function public.check_admin()                to authenticated;
 grant execute on function public.cancel_my_pass_booking(uuid) to authenticated;
 grant execute on function public.reconcile_my_pass_balances() to authenticated;
 grant execute on function public.expire_passes()              to service_role;
+grant execute on function public.expire_pending_payment_bookings() to service_role;
 
 -- ============================================================
 -- 8. RLS POLICIES
