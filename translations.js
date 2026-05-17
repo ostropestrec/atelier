@@ -549,6 +549,21 @@ export const UI_TRANSLATIONS = {
         emptyBookings: 'Žádné aktivní přihlášky.',
         footerTotal: 'Celkem přihlášených: {{n}}',
         loadListFail: 'Nepodařilo se načíst seznam.',
+        messageToggle: 'Poslat zprávu účastníkům',
+        messageSubjectLabel: 'Předmět',
+        messageSubjectPh: 'Např. Změna místa konání lekce',
+        messageBodyLabel: 'Zpráva',
+        messageBodyPh: 'Napište zprávu, kterou chcete poslat účastníkům této lekce.',
+        messageSend: 'Odeslat účastníkům',
+        messageConfirm:
+          'Odeslat zprávu všem aktivním účastníkům této lekce?',
+        messageMissingSubject: 'Vyplňte předmět zprávy.',
+        messageMissingBody: 'Vyplňte text zprávy.',
+        messageNotAuthenticated: 'Pro odeslání zprávy se prosím přihlaste.',
+        messageForbidden: 'Zprávu účastníkům této lekce může poslat pouze její lektor nebo admin.',
+        messageQueued: 'Zpráva byla zařazena k odeslání pro {{n}} účastníků.',
+        messageQueuedNone: 'Zpráva nebyla zařazena — lekce nemá žádné aktivní účastníky s e-mailem.',
+        messageQueueFail: 'Zprávu se nepodařilo zařadit k odeslání: {{msg}}',
       },
       lessonActions: {
         confirmDeactivate:
@@ -1122,6 +1137,21 @@ export const UI_TRANSLATIONS = {
         emptyBookings: 'No active bookings.',
         footerTotal: 'Total booked: {{n}}',
         loadListFail: 'Could not load the list.',
+        messageToggle: 'Send message to attendees',
+        messageSubjectLabel: 'Subject',
+        messageSubjectPh: 'E.g. Change of lesson location',
+        messageBodyLabel: 'Message',
+        messageBodyPh: 'Write the message you want to send to this lesson’s attendees.',
+        messageSend: 'Send to attendees',
+        messageConfirm:
+          'Send this message to all active attendees of this lesson?',
+        messageMissingSubject: 'Enter a message subject.',
+        messageMissingBody: 'Enter the message text.',
+        messageNotAuthenticated: 'Please sign in to send the message.',
+        messageForbidden: 'Only this lesson’s instructor or an admin can message its attendees.',
+        messageQueued: 'Message queued for {{n}} attendees.',
+        messageQueuedNone: 'No message was queued — this lesson has no active attendees with an email address.',
+        messageQueueFail: 'Could not queue the message: {{msg}}',
       },
       lessonActions: {
         confirmDeactivate:

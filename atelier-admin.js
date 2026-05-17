@@ -3558,6 +3558,88 @@ window.closeLessonAttendeesModal = () => {
   if (m) m.style.display = 'none'
 }
 
+window.adminToggleLessonParticipantMessage = () => {
+  const panel = document.getElementById('mla-message-panel')
+  if (!panel) return
+  const willOpen = panel.hidden
+  panel.hidden = !willOpen
+  panel.style.display = willOpen ? 'grid' : 'none'
+  if (willOpen) {
+    setTimeout(() => document.getElementById('mla-message-subject')?.focus(), 0)
+  }
+}
+
+function _adminLessonMessageErrorLabel(code) {
+  const map = {
+    not_authenticated: _adm('lessonDetail.messageNotAuthenticated'),
+    missing_lesson: _adm('lessonActions.errLessonNotFound'),
+    invalid_subject: _adm('lessonDetail.messageMissingSubject'),
+    invalid_body: _adm('lessonDetail.messageMissingBody'),
+    lesson_not_found: _adm('lessonActions.errLessonNotFound'),
+    forbidden: _adm('lessonDetail.messageForbidden'),
+  }
+  return map[code] || code || _adm('lessonDetail.errOperationFailed')
+}
+
+window.adminSendLessonParticipantMessage = async (lessonId) => {
+  if (!lessonId) return
+  const subjectEl = document.getElementById('mla-message-subject')
+  const bodyEl = document.getElementById('mla-message-body')
+  const sendBtn = document.getElementById('mla-message-send')
+  const subject = String(subjectEl?.value || '').trim()
+  const body = String(bodyEl?.value || '').trim()
+
+  if (!subject) {
+    window.showToast?.(_adm('lessonDetail.messageMissingSubject'), 'error')
+    subjectEl?.focus()
+    return
+  }
+  if (!body) {
+    window.showToast?.(_adm('lessonDetail.messageMissingBody'), 'error')
+    bodyEl?.focus()
+    return
+  }
+  if (!confirm(_adm('lessonDetail.messageConfirm'))) return
+
+  if (sendBtn) sendBtn.disabled = true
+  try {
+    const { data, error } = await sb.rpc('enqueue_lesson_participant_message', {
+      p_lesson_id: lessonId,
+      p_subject: subject,
+      p_body_plain: body,
+    })
+    if (error) throw error
+    if (data && data.ok === false) {
+      throw new Error(_adminLessonMessageErrorLabel(data.error))
+    }
+
+    const queued = Number(data?.queued ?? data?.recipients ?? 0)
+    if (queued > 0) {
+      window.showToast?.(_adm('lessonDetail.messageQueued', { n: queued }), 'ok')
+      subjectEl.value = ''
+      bodyEl.value = ''
+      const panel = document.getElementById('mla-message-panel')
+      if (panel) {
+        panel.hidden = true
+        panel.style.display = 'none'
+      }
+      try {
+        const { error: invokeErr } = await sb.functions.invoke('process-email-queue')
+        if (invokeErr) console.warn('[Admin] process-email-queue invoke failed:', invokeErr)
+      } catch (invokeErr) {
+        console.warn('[Admin] process-email-queue invoke failed:', invokeErr)
+      }
+    } else {
+      window.showToast?.(_adm('lessonDetail.messageQueuedNone'), 'info')
+    }
+  } catch (err) {
+    console.error('[Admin] adminSendLessonParticipantMessage:', err)
+    window.showToast?.(_adm('lessonDetail.messageQueueFail', { msg: err.message ?? err }), 'error')
+  } finally {
+    if (sendBtn) sendBtn.disabled = false
+  }
+}
+
 async function _adminCancelCustomerBookingFallback(bookingId, paymentType, userPassId, refundPass) {
   const { error: bookingErr } = await sb.from('bookings').update({
     status: PARTICIPATION_STATUS.CANCELLED,
@@ -3704,6 +3786,26 @@ window.adminOpenLessonDetail = async (lessonId) => {
     }
 
     listEl.innerHTML = `
+      <div style="border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:14px;background:#faf8f5;">
+        <button type="button" class="btn-small" style="width:100%;justify-content:center;"
+          onclick="window.adminToggleLessonParticipantMessage?.()">${esc(_adm('lessonDetail.messageToggle'))}</button>
+        <div id="mla-message-panel" hidden style="margin-top:12px;display:none;gap:10px;">
+          <label style="display:grid;gap:5px;font-size:12px;color:#6b6b6b;font-weight:600;">
+            ${esc(_adm('lessonDetail.messageSubjectLabel'))}
+            <input id="mla-message-subject" type="text" maxlength="160"
+              placeholder="${esc(_adm('lessonDetail.messageSubjectPh'))}"
+              style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font:inherit;color:#2f2a24;background:white;">
+          </label>
+          <label style="display:grid;gap:5px;font-size:12px;color:#6b6b6b;font-weight:600;">
+            ${esc(_adm('lessonDetail.messageBodyLabel'))}
+            <textarea id="mla-message-body" maxlength="5000" rows="6"
+              placeholder="${esc(_adm('lessonDetail.messageBodyPh'))}"
+              style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font:inherit;color:#2f2a24;background:white;resize:vertical;"></textarea>
+          </label>
+          <button id="mla-message-send" type="button" class="btn-small primary" style="justify-content:center;"
+            onclick="window.adminSendLessonParticipantMessage?.('${esc(String(lessonId))}')">${esc(_adm('lessonDetail.messageSend'))}</button>
+        </div>
+      </div>
       <div style="overflow-x:auto;">
       <table style="width:100%;min-width:700px;border-collapse:collapse;font-size:13px;table-layout:fixed;">
         <colgroup>
