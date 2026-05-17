@@ -200,10 +200,10 @@ export const UI_TRANSLATIONS = {
     payment: {
       externalTitle: 'Způsob platby',
       externalLead:
-        'Platba proběhne pouze na zabezpečených stránkách Stripe (mimo tuto aplikaci). Aplikace nezpracovává kartové údaje ani platby.',
+        'Platba proběhne na zabezpečených stránkách Stripe.',
       externalMissingUrl:
         'Pro tuto položku není nastaven odkaz Stripe. V index.html doplňte window.__externalStripePayments (passDefault / singleLessonDefault / byPassId / byCourseId).',
-      payStripe: 'Zaplatit přes Stripe',
+      payStripe: 'Přejít k platební bráně',
       stripeMissingToast: 'Chybí odkaz na Stripe.',
       stripeOpenedToast:
         'Otevřeli jsme Stripe v nové záložce. Rezervaci nebo permanentku zaktivníme po přijetí platby.',
@@ -215,9 +215,9 @@ export const UI_TRANSLATIONS = {
       validUntil: 'Platí do {{date}}',
     },
     purchase: {
-      confirmComplete: 'Přejete si tento nákup skutečně uskutečnit?',
+      confirmComplete: 'Přejete si přejít k platbě?',
       duplicatePass:
-        'Už máte aktivní permanentku stejného typu. Opravdu chcete koupit znovu? (může jít o duplicitní nákup.)',
+        'Už máte aktivní permanentku stejného typu. Opravdu chcete zakoupit znovu?',
       passPurchased: '✓ Permanentka zakoupena.',
       passPurchaseErrorPrefix: 'Chyba při nákupu: ',
     },
@@ -532,7 +532,7 @@ export const UI_TRANSLATIONS = {
         titleWithWhen: '{{course}} · {{when}}',
         titleAttendeesOnly: 'Účastníci — {{course}}',
         cancelBooking: 'Zrušit rezervaci',
-        confirmCancelBooking: 'Opravdu zrušit rezervaci tohoto zákazníka na této lekci?',
+        confirmCancelBooking: 'Opravdu zrušit rezervaci zákazníka na této lekci?',
         confirmRefundPass:
           'Vrátit vstup na permanentku? (ANO = vrátit vstup, NE = zrušit bez vrácení — vstup zůstane odečtený)',
         confirmRefundPassBlocks:
@@ -552,7 +552,7 @@ export const UI_TRANSLATIONS = {
       },
       lessonActions: {
         confirmDeactivate:
-          'Opravdu deaktivovat lekci? Rezervace budou stornovány a účastníkům se může odeslat e‑mail.',
+          'Opravdu deaktivovat lekci? Rezervace budou stornovány a účastníkům se odešle upozornění na jejich e‑mail.',
         toastDeactivateNoRpc:
           'Lekce deaktivována (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).',
         toastDeactivated: 'Lekce byla deaktivována.',
@@ -770,10 +770,10 @@ export const UI_TRANSLATIONS = {
     payment: {
       externalTitle: 'Payment method',
       externalLead:
-        'Payment is taken only on Stripe’s secure checkout (outside this app). This app does not process card data or payments.',
+        'Payment will take place on Stripe’s secure checkout.',
       externalMissingUrl:
         'No Stripe link is set for this item. In index.html, set window.__externalStripePayments (passDefault / singleLessonDefault / byPassId / byCourseId).',
-      payStripe: 'Pay with Stripe',
+      payStripe: 'Go to payment gateway',
       stripeMissingToast: 'Stripe link is missing.',
       stripeOpenedToast:
         'We opened Stripe in a new tab. We’ll activate your booking or pass once payment is received.',
@@ -785,9 +785,9 @@ export const UI_TRANSLATIONS = {
       validUntil: 'Valid until {{date}}',
     },
     purchase: {
-      confirmComplete: 'Do you want to complete this purchase?',
+      confirmComplete: 'Do you want to proceed to payment?',
       duplicatePass:
-        'You already have an active pass of this type. Buy again anyway? This may be a duplicate purchase.',
+        'You already have an active pass of this type. Do you really want to buy it again?',
       passPurchased: '✓ Pass purchased.',
       passPurchaseErrorPrefix: 'Purchase error: ',
     },
@@ -1104,7 +1104,7 @@ export const UI_TRANSLATIONS = {
         titleAttendeesOnly: 'Attendees — {{course}}',
         cancelBooking: 'Cancel booking',
         confirmCancelBooking:
-          'Really cancel this customer’s booking for this lesson?',
+          'Really cancel the customer’s booking for this lesson?',
         confirmRefundPass:
           'Return an entry to the pass? (OK = return entry; Cancel = cancel without refund — entry stays used)',
         confirmRefundPassBlocks:
@@ -1125,7 +1125,7 @@ export const UI_TRANSLATIONS = {
       },
       lessonActions: {
         confirmDeactivate:
-          'Really deactivate this lesson? Bookings will be cancelled and customers may be emailed.',
+          'Really deactivate this lesson? Bookings will be cancelled and participants will receive an email notification.',
         toastDeactivateNoRpc:
           'Lesson deactivated (without RPC — you won’t get queue emails until SQL is deployed).',
         toastDeactivated: 'Lesson deactivated.',
