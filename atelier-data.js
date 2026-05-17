@@ -917,6 +917,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const courseOwnerId = Array.isArray(course?.owner) ? course.owner[0]?.id : course?.owner?.id
   const canManageLesson = role === 'admin'
     || (role === 'lektor' && String(course?.owner_id ?? courseOwnerId ?? '') === String(currentUser?.id ?? ''))
+  const canBookLesson = start.getTime() > Date.now()
 
   const enrBadge = document.getElementById('kal-enrolled')
   const bEnr     = document.getElementById('kal-btns-enr')
@@ -931,7 +932,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const cKalCancel = document.getElementById('kal-cancel-booking-btn')
   if (cKalCancel) cKalCancel.textContent = _tp('kal.cancelBooking')
   if (bEnr)     bEnr.style.display     = enrolled && canCancelEnrolledBooking ? 'block' : 'none'
-  if (bFree)    bFree.style.display    = enrolled || staffUser ? 'none'  : 'grid'
+  if (bFree)    bFree.style.display    = enrolled || staffUser || !canBookLesson ? 'none'  : 'grid'
   if (bStaff)   bStaff.style.display   = staffUser ? 'grid' : 'none'
   if (staffUser) {
     const detailBtn = document.getElementById('kal-detail-btn')
@@ -957,6 +958,7 @@ function openKalendarPopup(lesson, course, enrolled) {
     }
   }
   if (rezBtn) {
+    rezBtn.style.display = canBookLesson ? '' : 'none'
     rezBtn.style.background = color
     rezBtn.textContent = _tp('booking.btn.book')
     rezBtn.onclick = () => {
@@ -1110,7 +1112,7 @@ export function renderKurzy() {
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
               ${buildTermPills(upcoming, color, c.id, false)}
             </div>
-            ${buildCourseReserveButton(c, color)}
+            ${buildCourseReserveButton(c, color, upcoming)}
           </div>
         </div>
       </div>`
@@ -1166,8 +1168,9 @@ function buildTermPills(upcoming, color, courseId, interactive = true) {
   }).join('')
 }
 
-function buildCourseReserveButton(c, color) {
+function buildCourseReserveButton(c, color, upcoming = []) {
   if (_isStaffUser()) return ''
+  if (!upcoming.length) return ''
   return `
     <button type="button" class="btn-res" id="res-btn-${c.id}" style="background:${color};margin-top:4px;"
       onclick="window.reserveFromCard('${c.id}')">
@@ -2350,12 +2353,12 @@ async function renderCourseDetail(courseId) {
           <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId, false)}</div>
         </div>` : ''}
 
-      ${!_isStaffUser() && upcoming.some(l => l.available_spots > 0)
+      ${!_isStaffUser() && upcoming.length && upcoming.some(l => l.available_spots > 0)
         ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
              onclick="window.openBookingPopup?.('${courseId}')">
              ${_tp('booking.btn.continueToBooking')}
            </button>`
-        : (!_isStaffUser() ? `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
+        : (!_isStaffUser() && upcoming.length ? `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
              ${_tp('courses.allSessionsFull')}
            </div>` : '')}
     </div>`
@@ -2471,6 +2474,13 @@ window.reserveFromCard = async (courseId) => {
 
   const btn = document.getElementById(`res-btn-${courseId}`)
   if (btn?.disabled) return  // Prevence duplicitního kliknutí
+
+  const hasScheduledFutureLessons = _courseLessonsForBooking(courseId).length > 0
+  if (!hasScheduledFutureLessons) {
+    window.showToast?.(_tp('courses.noDates'), 'error')
+    renderKurzy()
+    return
+  }
 
   const state         = window._cardState?.[courseId] ?? {}
   const paymentType = state.paymentType ?? 'single'
