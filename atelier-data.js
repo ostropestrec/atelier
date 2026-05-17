@@ -1476,6 +1476,23 @@ function _userOwnsActivePassTemplate(templatePassId) {
   })
 }
 
+async function _userOwnsActivePassTemplateFresh(templatePassId) {
+  if (!currentUser?.id || templatePassId == null || templatePassId === '') return false
+  if (_userOwnsActivePassTemplate(templatePassId)) return true
+  const { data, error } = await sb
+    .from('user_passes')
+    .select('id')
+    .eq('user_id', currentUser.id)
+    .eq('pass_id', templatePassId)
+    .eq('status', 'active')
+    .limit(1)
+  if (error) {
+    console.warn('[buyPass] duplicate pass check failed:', error)
+    return _userOwnsActivePassTemplate(templatePassId)
+  }
+  return (data ?? []).length > 0
+}
+
 /** Obecné potvrzení, že uživatel chce nákup dokončit. */
 function _confirmUserWantsToCompletePurchase() {
   return window.confirm(_tp('purchase.confirmComplete'))
@@ -1492,12 +1509,12 @@ window.buyPass = async (
 ) => {
   if (!currentUser) { window.openAuthPopup?.(); return }
 
-  if (!_confirmUserWantsToCompletePurchase()) return
-
-  if (_userOwnsActivePassTemplate(passId)) {
+  if (await _userOwnsActivePassTemplateFresh(passId)) {
     const ok = window.confirm(_tp('purchase.duplicatePass'))
     if (!ok) return
   }
+
+  if (!_confirmUserWantsToCompletePurchase()) return
 
   const priceNum = Number(price) || 0
   const originalBtnText = btn?.textContent ?? ''
@@ -2926,6 +2943,10 @@ async function renderPermanentkyShop() {
   container.innerHTML = `<div class="empty" style="padding:28px;">${_escHtml(_tp('common.loading'))}</div>`
 
   try {
+    if (currentUser?.id) {
+      await loadUserPasses(currentUser.id)
+    }
+
     const { data: passes, error } = await sb
       .from('passes')
       .select('id, name, entries_total, price, validity_weeks, allowed_course_ids, color_code')
