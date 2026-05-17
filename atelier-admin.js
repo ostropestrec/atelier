@@ -1664,6 +1664,71 @@ window.adminDeleteCustomerUserPass = async (triggerEl) => {
 }
 
 // ── Admin Platby ─────────────────────────────────────────────
+// State pro month picker: pamatuje si vybraný měsíc napříč re-rendery (např. po refundu).
+// `null` = "aktuální měsíc" — defaultní stav po načtení obrazovky. Reset by se hodil
+// při odhlášení/role-switchi, ale prozatím držíme jednoduchost.
+/** @type {string | null}  formát 'YYYY-MM' */
+let _adminPlatbyMonth = null
+/** @type {Set<string> | null}  lazy-init při prvním otevření pickeru */
+let _adminPlatbyExpandedYears = null
+
+const _PLATBY_FETCH_LIMIT = 5000  // strop pro all-time fetch; reálně tisícinásobek typického objemu
+
+function _platbyCurrentMonthKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+function _platbyMonthKeyOf(date) {
+  const d = new Date(date)
+  if (Number.isNaN(d.getTime())) return null
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+function _platbyActiveMonth() {
+  return _adminPlatbyMonth ?? _platbyCurrentMonthKey()
+}
+function _platbyShiftMonth(key, delta) {
+  const [y, m] = key.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+function _platbyMonthLabel(key) {
+  // 'Květen 2026' / 'May 2026' — capitalize kvůli češtině (toLocaleDateString vrací 'květen 2026')
+  const [y, m] = key.split('-').map(Number)
+  const d = new Date(y, m - 1, 1)
+  const raw = d.toLocaleDateString(_adminFmtLocaleTag(), { month: 'long', year: 'numeric' })
+  return raw.charAt(0).toUpperCase() + raw.slice(1)
+}
+function _platbyMonthShort(monthNum) {
+  // monthNum: 1..12 → 'Led' / 'Jan' (capitalize)
+  const d = new Date(2000, monthNum - 1, 1)
+  const raw = d.toLocaleDateString(_adminFmtLocaleTag(), { month: 'short' })
+  return raw.charAt(0).toUpperCase() + raw.slice(1).replace(/\.$/, '')
+}
+
+/**
+ * Seskupí normalizované platby podle 'YYYY-MM' a vrátí mapu se souhrny.
+ * Refundy patří do měsíce **originální platby** (varianta a).
+ */
+function _platbyGroupByMonth(payments) {
+  const byMonth = new Map()
+  for (const p of payments) {
+    const key = _platbyMonthKeyOf(p.date)
+    if (!key) continue
+    if (!byMonth.has(key)) byMonth.set(key, { gross: 0, refunds: 0, net: 0, items: [] })
+    const entry = byMonth.get(key)
+    entry.items.push(p)
+    entry.gross += _paymentAmount(p)
+    if (_effectiveRefundStatus(p) === 'completed') {
+      entry.refunds += _paymentRefundAmount(p)
+    }
+  }
+  for (const entry of byMonth.values()) {
+    entry.net = entry.gross - entry.refunds
+    entry.items.sort((a, b) => new Date(b.date) - new Date(a.date))
+  }
+  return byMonth
+}
+
 export async function renderAdminPlatby() {
   // Platby jsou admin-only — lektor nemá přístup k souhrnu plateb napříč ateliérem.
   if (!_isStaffAdmin()) return
@@ -1674,28 +1739,24 @@ export async function renderAdminPlatby() {
   const stable = _adminHadStableContent(prevHtml, loadNeedle)
   if (stable) console.log('[Debug] Admin platby: obnovuji na pozadí')
   else el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
-  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0)
   try {
     await adminRace((async () => {
-    const [recentPassesRes, recentSinglesRes, monthPassesRes, monthSinglesRes] = await Promise.all([
+    const [allPassesRes, allSinglesRes] = await Promise.all([
       sb.from('user_passes').select('id,price_paid,created_at,status,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),pass:passes(name)')
-        .order('created_at',{ascending:false}).limit(40),
+        .order('created_at',{ascending:false}).limit(_PLATBY_FETCH_LIMIT),
       sb.from('bookings').select('id,price_paid,status,created_at,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
-        .eq('payment_type','single').order('created_at',{ascending:false}).limit(40),
-      sb.from('user_passes').select('price_paid, refund_status, refund_amount').gte('created_at', monthStart.toISOString()),
-      sb.from('bookings').select('price_paid, status, payment_type, refund_status, refund_amount')
-        .eq('payment_type','single').gte('created_at', monthStart.toISOString()),
+        .eq('payment_type','single').order('created_at',{ascending:false}).limit(_PLATBY_FETCH_LIMIT),
     ])
 
-    let recentPasses = recentPassesRes.data ?? []
-    if (recentPassesRes.error) {
-      if (!_looksLikeMissingRefundColumns(recentPassesRes.error)) throw recentPassesRes.error
+    let allPasses = allPassesRes.data ?? []
+    if (allPassesRes.error) {
+      if (!_looksLikeMissingRefundColumns(allPassesRes.error)) throw allPassesRes.error
       const fallbackPassesRes = await sb.from('user_passes')
         .select('id,price_paid,created_at,status,user:users(name,email),pass:passes(name)')
         .order('created_at',{ascending:false})
-        .limit(40)
+        .limit(_PLATBY_FETCH_LIMIT)
       if (fallbackPassesRes.error) throw fallbackPassesRes.error
-      recentPasses = (fallbackPassesRes.data ?? []).map(row => ({
+      allPasses = (fallbackPassesRes.data ?? []).map(row => ({
         ...row,
         refund_status: 'not_required',
         refund_note: null,
@@ -1704,16 +1765,16 @@ export async function renderAdminPlatby() {
       }))
     }
 
-    let recentSingles = recentSinglesRes.data ?? []
-    if (recentSinglesRes.error) {
-      if (!_looksLikeMissingRefundColumns(recentSinglesRes.error)) throw recentSinglesRes.error
+    let allSingles = allSinglesRes.data ?? []
+    if (allSinglesRes.error) {
+      if (!_looksLikeMissingRefundColumns(allSinglesRes.error)) throw allSinglesRes.error
       const fallbackSinglesRes = await sb.from('bookings')
         .select('id,price_paid,status,created_at,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
         .eq('payment_type','single')
         .order('created_at',{ascending:false})
-        .limit(40)
+        .limit(_PLATBY_FETCH_LIMIT)
       if (fallbackSinglesRes.error) throw fallbackSinglesRes.error
-      recentSingles = (fallbackSinglesRes.data ?? []).map(row => ({
+      allSingles = (fallbackSinglesRes.data ?? []).map(row => ({
         ...row,
         refund_status: null,
         refund_note: null,
@@ -1722,64 +1783,51 @@ export async function renderAdminPlatby() {
       }))
     }
 
-    let monthPasses = monthPassesRes.data ?? []
-    if (monthPassesRes.error) {
-      if (!_looksLikeMissingRefundColumns(monthPassesRes.error)) throw monthPassesRes.error
-      const fallbackMonthPassesRes = await sb.from('user_passes')
-        .select('price_paid')
-        .gte('created_at', monthStart.toISOString())
-      if (fallbackMonthPassesRes.error) throw fallbackMonthPassesRes.error
-      monthPasses = (fallbackMonthPassesRes.data ?? []).map(row => ({
-        ...row,
-        type: 'pass',
-        refund_status: 'not_required',
-        refund_amount: null,
-      }))
-    } else {
-      monthPasses = monthPasses.map(row => ({ ...row, type: 'pass' }))
-    }
+    const allPayments = [
+      ...(allPasses ?? []).map(p => ({
+        type: 'pass', id: p.id, amount: p.price_paid, date: p.created_at, status: p.status,
+        userName: p.user?.name || p.user?.email || _adm('misc.dash'),
+        description: loc(p.pass?.name) || _adm('misc.pass'),
+        refundStatus: p.refund_status ?? 'not_required',
+        refundNote: p.refund_note ?? '',
+        refundedAt: p.refunded_at ?? null,
+        refundAmount: p.refund_amount ?? null,
+      })),
+      ...(allSingles ?? []).map(b => ({
+        type: 'single', id: b.id, amount: b.price_paid, date: b.created_at, status: b.status,
+        userName: b.user?.name || b.user?.email || _adm('misc.dash'),
+        description: loc(b.lesson?.course?.title) || _adm('misc.lessonFallback'),
+        refundStatus: b.refund_status ?? null,
+        refundNote: b.refund_note ?? '',
+        refundedAt: b.refunded_at ?? null,
+        refundAmount: b.refund_amount ?? null,
+      })),
+    ]
 
-    let monthSingles = monthSinglesRes.data ?? []
-    if (monthSinglesRes.error) {
-      if (!_looksLikeMissingRefundColumns(monthSinglesRes.error)) throw monthSinglesRes.error
-      const fallbackMonthSinglesRes = await sb.from('bookings')
-        .select('price_paid, status, payment_type')
-        .eq('payment_type','single')
-        .gte('created_at', monthStart.toISOString())
-      if (fallbackMonthSinglesRes.error) throw fallbackMonthSinglesRes.error
-      monthSingles = (fallbackMonthSinglesRes.data ?? []).map(row => ({
-        ...row,
-        type: 'single',
-        refund_status: null,
-        refund_amount: null,
-      }))
-    } else {
-      monthSingles = monthSingles.map(row => ({ ...row, type: 'single' }))
-    }
+    const byMonth = _platbyGroupByMonth(allPayments)
+    const activeKey = _platbyActiveMonth()
+    const activeEntry = byMonth.get(activeKey) ?? { gross: 0, refunds: 0, net: 0, items: [] }
 
-    const monthGrossRev = _sumGrossRevenue([...monthPasses, ...monthSingles])
-    const monthRefunds = _sumCompletedRefunds([...monthPasses, ...monthSingles])
-    const monthNetRev = monthGrossRev - monthRefunds
-    const all = [
-      ...(recentPasses ?? []).map(p=>({type:'pass',id:p.id,amount:p.price_paid,date:p.created_at,status:p.status,
-        userName:p.user?.name||p.user?.email||_adm('misc.dash'),description:loc(p.pass?.name)||_adm('misc.pass'),
-        refundStatus:p.refund_status ?? 'not_required', refundNote:p.refund_note ?? '', refundedAt:p.refunded_at ?? null,
-        refundAmount:p.refund_amount ?? null})),
-      ...(recentSingles ?? []).map(b=>({type:'single',id:b.id,amount:b.price_paid,date:b.created_at,status:b.status,
-        userName:b.user?.name||b.user?.email||_adm('misc.dash'),description:loc(b.lesson?.course?.title)||_adm('misc.lessonFallback'),
-        refundStatus:b.refund_status ?? null, refundNote:b.refund_note ?? '', refundedAt:b.refunded_at ?? null,
-        refundAmount:b.refund_amount ?? null})),
-    ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,60)
+    // Granice pro prev/next: min existující měsíc dat, max = aktuální měsíc (do budoucna nepouštíme)
+    const sortedKeys = [...byMonth.keys()].sort()
+    const minKey = sortedKeys[0] ?? activeKey
+    const maxKey = _platbyCurrentMonthKey()
+    const canPrev = activeKey > minKey
+    const canNext = activeKey < maxKey
+
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:16px;">${esc(_adm('platby.pageTitle'))}</div>
+      ${_platbyHeaderHtml(activeKey, canPrev, canNext)}
       <div class="admin-stat-grid">
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthGrossRev)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthRefunds)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(monthNetRev)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statNet'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(activeEntry.gross)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(activeEntry.refunds)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(activeEntry.net)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statNet'))}</div></div>
       </div>
-      <div class="admin-section-title">${esc(_adm('platby.sectionAll'))}</div>
-      ${all.length ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${all.map(_platbaRow).join('')}</div>`
-        : `<div class="empty">${esc(_adm('platby.empty'))}</div>`}
+      <div class="admin-section-title">${esc(_adm('platby.sectionMonth', { month: _platbyMonthLabel(activeKey) }))}</div>
+      ${activeEntry.items.length
+        ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${activeEntry.items.map(_platbaRow).join('')}</div>`
+        : `<div class="empty">${esc(_adm('platby.emptyInMonth'))}</div>`}
+      ${_monthPickerModalHtml(byMonth, activeKey)}
     `
     })(), 'admin-platby')
   } catch (err) {
@@ -1880,6 +1928,248 @@ function _platbaRow(p) {
       </div>
       ${refundControls}
     </div>`
+}
+
+// ── Platby header (prev/next + clickable month pill) ─────────
+function _platbyHeaderHtml(activeKey, canPrev, canNext) {
+  const label = _platbyMonthLabel(activeKey)
+  const prevAria = esc(_adm('platby.prevMonthAria'))
+  const nextAria = esc(_adm('platby.nextMonthAria'))
+  const pickAria = esc(_adm('platby.pickMonth'))
+  return `
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 16px;flex-wrap:wrap;">
+      <button type="button"
+        aria-label="${prevAria}"
+        title="${prevAria}"
+        ${canPrev ? '' : 'disabled'}
+        onclick="window.adminPlatbyPrevMonth?.()"
+        style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:18px;line-height:1;cursor:${canPrev ? 'pointer' : 'not-allowed'};opacity:${canPrev ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
+        ‹
+      </button>
+      <button type="button"
+        aria-label="${pickAria}"
+        title="${pickAria}"
+        onclick="window.adminPlatbyOpenMonthPicker?.()"
+        style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;min-width:180px;justify-content:center;">
+        <span aria-hidden="true">📅</span>
+        <span>${esc(label)}</span>
+      </button>
+      <button type="button"
+        aria-label="${nextAria}"
+        title="${nextAria}"
+        ${canNext ? '' : 'disabled'}
+        onclick="window.adminPlatbyNextMonth?.()"
+        style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:18px;line-height:1;cursor:${canNext ? 'pointer' : 'not-allowed'};opacity:${canNext ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
+        ›
+      </button>
+    </div>
+  `
+}
+
+// ── Platby month-picker modal ────────────────────────────────
+// Adaptivní year-grouping:
+//  – 1 rok  → ploché zobrazení 12 dlaždic (žádné year headery)
+//  – 2+ let → každý rok je collapsible sekce; defaultně expandnuté roky:
+//             aktuální rok + rok obsahující vybraný měsíc
+function _monthPickerModalHtml(byMonth, activeKey) {
+  // Years se daty (jen tam, kde alespoň jeden měsíc obsahuje platby)
+  const yearsWithData = [...new Set([...byMonth.keys()].map(k => k.slice(0, 4)))].sort()
+  if (yearsWithData.length === 0) {
+    // Žádná data → modal je v podstatě jen "zavřít", ale rendrovat ho stejně,
+    // aby uživatel viděl konzistentní stav.
+    return `
+      <div id="admin-platby-picker" class="pop-overlay" onclick="if(event.target===this) window.adminPlatbyCloseMonthPicker?.()">
+        <div class="pop-sheet" style="max-width:560px;">
+          <div class="pop-bar"></div>
+          <div class="pop-body" style="padding:20px;">
+            <div style="font-size:16px;font-weight:600;margin-bottom:12px;">${esc(_adm('platby.pickerTitle'))}</div>
+            <div class="empty" style="padding:24px 8px;">${esc(_adm('platby.empty'))}</div>
+            <button type="button" class="pop-close" onclick="window.adminPlatbyCloseMonthPicker?.()">${esc(_adm('platby.pickerClose'))}</button>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  // Lazy init Set expandnutých roků: dnes + rok vybraného měsíce
+  if (_adminPlatbyExpandedYears === null) {
+    _adminPlatbyExpandedYears = new Set([
+      String(new Date().getFullYear()),
+      activeKey.slice(0, 4),
+    ])
+  }
+
+  const flat = yearsWithData.length === 1
+  const currentMonthKey = _platbyCurrentMonthKey()
+
+  // Roční souhrny (gross − refunds = net) — zobrazujeme net jako "tržbu za rok"
+  const yearTotals = new Map()
+  for (const [key, entry] of byMonth) {
+    const y = key.slice(0, 4)
+    yearTotals.set(y, (yearTotals.get(y) ?? 0) + entry.net)
+  }
+
+  const renderYear = (year) => {
+    const expanded = flat || _adminPlatbyExpandedYears.has(year)
+    const yearNet = yearTotals.get(year) ?? 0
+    const header = flat ? '' : `
+      <button type="button"
+        onclick="window.adminPlatbyToggleYear?.('${esc(year)}')"
+        style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:0;background:transparent;cursor:pointer;border-top:1px solid var(--border);font-size:14px;font-weight:600;text-align:left;">
+        <span style="display:inline-flex;align-items:center;gap:8px;">
+          <span aria-hidden="true" style="display:inline-block;width:12px;transition:transform .15s;transform:rotate(${expanded ? '90deg' : '0'});">▸</span>
+          ${esc(year)}
+        </span>
+        <span style="font-size:12px;color:var(--muted);font-weight:500;">${esc(_adm('platby.pickerYearTotal', { amount: fmtPrice(yearNet) }))}</span>
+      </button>
+    `
+    const monthsGrid = expanded ? `
+      <div class="platby-picker-grid">
+        ${Array.from({ length: 12 }, (_, i) => {
+          const m = i + 1
+          const key = `${year}-${String(m).padStart(2, '0')}`
+          const entry = byMonth.get(key)
+          const isFuture = key > currentMonthKey
+          const isActive = key === activeKey
+          const hasData = !!entry && entry.items.length > 0
+          const monthName = _platbyMonthShort(m)
+          const sumLine = hasData
+            ? fmtPrice(entry.net)
+            : esc(_adm('platby.pickerNoData'))
+          const stateClass = isActive
+            ? 'platby-picker-tile platby-picker-tile-active'
+            : isFuture
+              ? 'platby-picker-tile platby-picker-tile-future'
+              : hasData
+                ? 'platby-picker-tile platby-picker-tile-data'
+                : 'platby-picker-tile platby-picker-tile-empty'
+          const onClick = isFuture
+            ? ''
+            : ` onclick="window.adminPlatbySelectMonth?.('${esc(key)}')"`
+          const disabled = isFuture ? ' disabled' : ''
+          return `
+            <button type="button" class="${stateClass}"${onClick}${disabled}>
+              <span class="platby-picker-tile-month">${esc(monthName)}</span>
+              <span class="platby-picker-tile-sum">${sumLine}</span>
+            </button>
+          `
+        }).join('')}
+      </div>
+    ` : ''
+    return header + monthsGrid
+  }
+
+  // Pro flat zobrazení (1 rok) přidáme i jednoduchý header roku jen jako titulek
+  const flatYearTitle = flat ? `
+    <div style="padding:8px 16px 0;font-size:16px;font-weight:600;">${esc(yearsWithData[0])}</div>
+  ` : ''
+
+  return `
+    <style>
+      .platby-picker-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        padding: 12px 16px 16px;
+      }
+      .platby-picker-tile {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 4px;
+        padding: 12px 6px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        cursor: pointer;
+        font: inherit;
+        min-height: 64px;
+      }
+      .platby-picker-tile:hover:not(:disabled) {
+        background: #f7f7f7;
+      }
+      .platby-picker-tile-month {
+        font-size: 13px; font-weight: 600;
+      }
+      .platby-picker-tile-sum {
+        font-size: 11px; color: var(--muted);
+      }
+      .platby-picker-tile-active {
+        background: rgba(40,84,185,.08);
+        border-color: var(--primary);
+      }
+      .platby-picker-tile-active .platby-picker-tile-sum {
+        color: var(--primary);
+        font-weight: 600;
+      }
+      .platby-picker-tile-empty,
+      .platby-picker-tile-future {
+        opacity: .45;
+        cursor: not-allowed;
+      }
+      .platby-picker-tile-future {
+        background: #fafafa;
+      }
+    </style>
+    <div id="admin-platby-picker" class="pop-overlay" onclick="if(event.target===this) window.adminPlatbyCloseMonthPicker?.()">
+      <div class="pop-sheet" style="max-width:560px;">
+        <div class="pop-bar"></div>
+        <div class="pop-body" style="padding:16px 0 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px 12px;">
+            <div style="font-size:16px;font-weight:600;">${esc(_adm('platby.pickerTitle'))}</div>
+            <button type="button"
+              onclick="window.adminPlatbyJumpToCurrent?.()"
+              style="font-size:12px;padding:6px 12px;border:1px solid var(--border);background:#fff;border-radius:20px;cursor:pointer;">
+              ${esc(_adm('platby.pickerJumpToCurrent'))}
+            </button>
+          </div>
+          ${flatYearTitle}
+          ${yearsWithData.slice().reverse().map(renderYear).join('')}
+          <div style="padding:8px 16px 0;">
+            <button type="button" class="pop-close" onclick="window.adminPlatbyCloseMonthPicker?.()">${esc(_adm('platby.pickerClose'))}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+// ── Platby month-picker window handlers ──────────────────────
+// Re-renderujeme přes celé renderAdminPlatby() — drobný refetch, zato vždy konzistentní stav.
+// Pokud se objeví performance problém na dlouhých historiích, doplníme cache vrstvu odděleně.
+window.adminPlatbyOpenMonthPicker = () => {
+  const el = document.getElementById('admin-platby-picker')
+  if (el) el.style.display = 'flex'
+}
+window.adminPlatbyCloseMonthPicker = () => {
+  const el = document.getElementById('admin-platby-picker')
+  if (el) el.style.display = 'none'
+}
+window.adminPlatbySelectMonth = (key) => {
+  if (typeof key !== 'string' || !/^\d{4}-\d{2}$/.test(key)) return
+  // Vybraný měsíc nikdy nesmí být v budoucnosti (UI ho schovává/disabluje, ale brán paths existuje)
+  if (key > _platbyCurrentMonthKey()) return
+  _adminPlatbyMonth = key
+  void renderAdminPlatby()
+}
+window.adminPlatbyPrevMonth = () => {
+  _adminPlatbyMonth = _platbyShiftMonth(_platbyActiveMonth(), -1)
+  void renderAdminPlatby()
+}
+window.adminPlatbyNextMonth = () => {
+  const next = _platbyShiftMonth(_platbyActiveMonth(), +1)
+  if (next > _platbyCurrentMonthKey()) return
+  _adminPlatbyMonth = next
+  void renderAdminPlatby()
+}
+window.adminPlatbyToggleYear = (year) => {
+  if (typeof year !== 'string') return
+  if (_adminPlatbyExpandedYears === null) _adminPlatbyExpandedYears = new Set()
+  if (_adminPlatbyExpandedYears.has(year)) _adminPlatbyExpandedYears.delete(year)
+  else _adminPlatbyExpandedYears.add(year)
+  void renderAdminPlatby()
+}
+window.adminPlatbyJumpToCurrent = () => {
+  _adminPlatbyMonth = null
+  void renderAdminPlatby()
 }
 
 async function _updatePaymentRefundState(type, paymentId, nextStatus, btnEl = null) {
