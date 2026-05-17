@@ -288,7 +288,7 @@ function _syncCardPrimaryButton(courseId) {
 function _bkSelectedLessonForPopupSingleSelect() {
   const lid = document.getElementById('bk-lesson-select')?.value?.trim?.()
   if (!lid) return null
-  return window.AppState.upcomingLessons.find(l => String(l.lesson_id ?? l.id) === String(lid)) ?? null
+  return _findFutureBookableLessonById(lid)
 }
 
 /** Po změně termínu v dropdownu přepíše text hlavního tlačítka rezervace (buy-pass vs jednoráz). */
@@ -1652,9 +1652,21 @@ window._bkUpdateMultiBtnLabel = () => {
 
 function _courseLessonsForBooking(courseId) {
   return window.AppState.upcomingLessons
-    .filter(l => l.course_id === courseId)
+    .filter(l => l.course_id === courseId && _isFutureBookableLesson(l))
     .slice()
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+}
+
+function _isFutureBookableLesson(lesson) {
+  const startTs = lesson?.start_time ? new Date(lesson.start_time).getTime() : NaN
+  return Number.isFinite(startTs) && startTs > Date.now()
+}
+
+function _findFutureBookableLessonById(lessonId) {
+  return window.AppState.upcomingLessons.find(l => {
+    const lid = String(l.lesson_id ?? l.id)
+    return lid === String(lessonId) && _isFutureBookableLesson(l)
+  }) ?? null
 }
 
 function _fmtBkLessonLine(l) {
@@ -1755,6 +1767,14 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
   if (!course) return
   const color = courseThemeHex(course.color_code)
 
+  if (preselectedLessonId && !_findFutureBookableLessonById(preselectedLessonId)) {
+    window.showToast?.(_tp('booking.toast.sessionNoLongerAvailable'), 'error')
+    await fetchUpcomingLessons()
+    renderKurzy()
+    renderKalendar()
+    return
+  }
+
   const popup = document.getElementById('pop-booking')
   if (!popup) return
 
@@ -1789,8 +1809,6 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
       if (!selectable.length && !preselectedLessonId) {
         lessonSel.innerHTML = `<option value="">${_escHtml(_tp('booking.empty.noFreeSlotsOption'))}</option>` + lessonSel.innerHTML
       }
-    } else if (preselectedLessonId) {
-      lessonSel.innerHTML = `<option value="${preselectedLessonId}">${_escHtml(_tp('booking.empty.selectedLessonPlaceholder'))}</option>`
     } else {
       lessonSel.innerHTML = `<option value="">${_escHtml(_tp('booking.empty.noSlotsToBook'))}</option>`
     }
@@ -2017,11 +2035,21 @@ window.confirmBooking = async () => {
     lessonIds = [lessonId]
   }
 
+  const selectedLessons = lessonIds.map(lid => _findFutureBookableLessonById(lid))
+  if (selectedLessons.some(l => !l)) {
+    window.showToast?.(_tp('booking.toast.sessionNoLongerAvailable'), 'error')
+    await Promise.all([fetchUpcomingLessons(), fetchLessons()])
+    _syncBkLessonPicker(course, _courseLessonsForBooking(courseId), null)
+    renderKurzy()
+    renderKalendar()
+    return
+  }
+
   const priceNum = Number(pricePaid) || 0
   if (!isPass && !isBuyPass && priceNum > 0) {
     const lesson_id = lessonIds[0]
     const courseTitle = loc(course?.title) || ''
-    const lesRow = window.AppState.upcomingLessons.find(l => String(l.lesson_id ?? l.id) === String(lesson_id))
+    const lesRow = selectedLessons[0]
     const lessonWhen = lesRow?.start_time ? fmtLessonPill(lesRow.start_time) : ''
     if (!_confirmUserWantsToCompletePurchase()) return
     window.openExternalStripePaymentModal?.({
@@ -2048,7 +2076,7 @@ window.confirmBooking = async () => {
       }
       const allowed = passRow.pass?.allowed_course_ids
       for (const lid of lessonIds) {
-        const les = window.AppState.upcomingLessons.find(l => String(l.lesson_id ?? l.id) === String(lid))
+        const les = _findFutureBookableLessonById(lid)
         if (!les || les.available_spots <= 0 || isEnrolled(lid)) {
           window.showToast?.(_tp('booking.toast.sessionNoLongerAvailable'), 'error')
           resetBtn()
