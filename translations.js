@@ -91,6 +91,8 @@ export const UI_TRANSLATIONS = {
       lessonCancelledLi3: 'Pokud se e-mail zpozdí, rozhodující je stav lekce přímo v aplikaci.',
       lessonCancelledLi4:
         'Místo zakoupené jednorázovou platbou bude refundováno a peníze budou vráceny na účet.',
+      lessonCancelledLi5:
+        'Pokud jste použili vstup z permanentky, automaticky se vrátí zpět na permanentku.',
       accountTitle: 'Účet a bezpečnost',
       accountText:
         'V Nastavení upravíte osobní údaje, heslo, barvu avatara a e-mailové připomínky.',
@@ -856,6 +858,8 @@ export const UI_TRANSLATIONS = {
       lessonCancelledLi3: 'If the email is delayed, the lesson status in the app is the source of truth.',
       lessonCancelledLi4:
         'A spot purchased with a single-entry payment will be refunded and the money will be returned to the account.',
+      lessonCancelledLi5:
+        'If you used an entry from a pass, it will automatically be returned to the pass.',
       accountTitle: 'Account and safety',
       accountText:
         'Settings lets you update personal details, password, avatar colour, and email reminders.',
