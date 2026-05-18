@@ -2679,6 +2679,15 @@ export async function buildStaffLessonsSectionHtml({
     console.warn('[Moje lekce] Uplynulé lekce se nepodařilo načíst:', pastLessonsErr)
   }
 
+  const { count: pastDeactivatedLessonsCount, error: pastDeactivatedErr } = await sb.from('lessons')
+    .select('id', { count: 'exact', head: true })
+    .in('course_id', courseIds)
+    .lt('start_time', nowIso)
+    .eq('status', 'cancelled')
+  if (pastDeactivatedErr) {
+    console.warn('[Moje lekce] Počet uplynulých deaktivovaných lekcí se nepodařilo načíst:', pastDeactivatedErr)
+  }
+
   let allTerms = terms ?? []
   if (workshopCourseIds.length) {
     const seenLessonIds = new Set(allTerms.map(l => String(l.lesson_id ?? l.id)))
@@ -2748,7 +2757,7 @@ export async function buildStaffLessonsSectionHtml({
     const imgUrl = courseImageUrls(course)[0] ?? null
     const desc    = loc(course?.description_short)
     const isOff   = l.status === 'cancelled'
-    const actions = window.adminLessonActionButtons?.(lid, l.status ?? 'active') ?? ''
+    const actions = window.adminLessonActionButtons?.(lid, l.status ?? 'active', l.start_time) ?? ''
     return `
           <div class="staff-term-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff;${isOff ? 'opacity:.75;' : ''}">
             <div style="display:flex;cursor:pointer;" onclick="window.toggleML('${lid}')">
@@ -2869,8 +2878,14 @@ export async function buildStaffLessonsSectionHtml({
   } else if (!deactivated.length) {
     sections.push(`<div class="empty">Žádné nadcházející termíny.</div>`)
   }
+  const pastBulkDeleteHtml = Number(pastDeactivatedLessonsCount ?? 0) > 0
+    ? `<div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+          onclick="window.adminDeleteAllPastDeactivatedLessons?.('${_escHtml(_staffLessonsScope)}')">${_escHtml(_tp('admin.lessonActions.deleteAllPastDeactivated'))}</button>
+      </div>`
+    : ''
   const pastBodyHtml = (pastLessons ?? []).length
-    ? `<div>${(pastLessons ?? []).map(renderPastLessonRow).join('')}</div>${renderPastPagination(pastLessonsCount ?? 0)}`
+    ? `${pastBulkDeleteHtml}<div>${(pastLessons ?? []).map(renderPastLessonRow).join('')}</div>${renderPastPagination(pastLessonsCount ?? 0)}`
     : `<div class="empty">${_escHtml(_tp('admin.lessonActions.emptyPast'))}</div>`
   sections.push(renderArchiveAccordion(
     'past',
@@ -2880,7 +2895,7 @@ export async function buildStaffLessonsSectionHtml({
   ))
   if (deactivated.length) {
     const deactivatedBodyHtml = `
-      <div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${deactivated.length} termínů — lze trvale smazat</div>
+      <div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_escHtml(_tp('admin.lessonActions.futureDeactivatedHint', { n: deactivated.length }))}</div>
       <div class="nastenka-cards-2col">${deactivated.map(renderTermCard).join('')}</div>`
     sections.push(renderArchiveAccordion('deactivated', _tp('admin.lessonActions.sectionDeactivated'), deactivated.length, deactivatedBodyHtml))
   }

@@ -979,13 +979,16 @@ export async function renderLektorDashboard() {
 
 window.renderLektorDashboard = renderLektorDashboard
 
-window.adminLessonActionButtons = (lessonId, status = 'active') => {
+window.adminLessonActionButtons = (lessonId, status = 'active', startTime = null) => {
   const lid = String(lessonId ?? '').replace(/'/g, "\'")
+  const isPast = startTime ? new Date(startTime).getTime() < Date.now() : true
   if (status === 'cancelled') {
+    const deleteBtn = isPast
+      ? `<button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+          onclick="event.stopPropagation();window.adminDeleteLesson?.('${lid}')">${esc(_adm('btn.delete'))}</button>`
+      : ''
     return `<button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
-      onclick="event.stopPropagation();window.adminActivateLesson?.('${lid}')">${esc(_adm('btn.activate'))}</button>
-    <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
-      onclick="event.stopPropagation();window.adminDeleteLesson?.('${lid}')">${esc(_adm('btn.delete'))}</button>`
+      onclick="event.stopPropagation();window.adminActivateLesson?.('${lid}')">${esc(_adm('btn.activate'))}</button>${deleteBtn}`
   }
   return `<button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
       onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">${esc(_adm('btn.attendees'))}</button>
@@ -1008,7 +1011,7 @@ function _lessonRow(lesson, showDate = false) {
   const workshopBadge = course.is_workshop
     ? ` <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">${esc(_adm('kurzy.workshopBadge'))}</span>`
     : ''
-  const actions = window.adminLessonActionButtons?.(lid, status) ?? ''
+  const actions = window.adminLessonActionButtons?.(lid, status, lesson.start_time) ?? ''
   const courseId  = esc(String(lesson.course_id ?? course.id ?? ''))
   const rowOpacity = status === 'cancelled' ? 'opacity:.75;' : ''
   return `
@@ -1059,10 +1062,32 @@ export async function renderAdminKurzy() {
     }
     const { data: courses, error } = await _scopeOwnerQuery(baseQuery)
     if (error) throw error
+    const courseRows = courses ?? []
+    const courseIds = courseRows.map(c => c.id).filter(Boolean)
+    let lessonsByCourse = {}
+    if (courseIds.length) {
+      const { data: lessons, error: lessonsErr } = await sb.from('lessons')
+        .select('id, course_id, start_time, end_time, status')
+        .in('course_id', courseIds)
+        .in('status', ['active', 'cancelled'])
+        .order('start_time', { ascending: true })
+      if (lessonsErr) throw lessonsErr
+      lessonsByCourse = (lessons ?? []).reduce((acc, lesson) => {
+        const cid = lesson.course_id
+        if (!cid) return acc
+        if (!acc[cid]) acc[cid] = []
+        acc[cid].push(lesson)
+        return acc
+      }, {})
+    }
+    const coursesWithLessons = courseRows.map(course => ({
+      ...course,
+      _adminLessons: lessonsByCourse[course.id] ?? [],
+    }))
     const pageTitle = _isStaffLektor() ? _adm('kurzy.pageMine') : _adm('kurzy.pageAll')
     const scopeSwitchHtml = _isStaffAdmin() ? _adminScopeSwitchHtml(_adminCoursesScope, 'adminSetCoursesScope') : ''
-    const activeCourses = (courses ?? []).filter(c => c.is_active)
-    const inactiveCourses = (courses ?? []).filter(c => !c.is_active)
+    const activeCourses = coursesWithLessons.filter(c => c.is_active)
+    const inactiveCourses = coursesWithLessons.filter(c => !c.is_active)
     let listBody = ''
     if (!activeCourses.length && !inactiveCourses.length) {
       listBody = `<div class="empty">${esc(_adm('kurzy.empty'))}</div>`
@@ -1072,7 +1097,11 @@ export async function renderAdminKurzy() {
         listBody += `<div class="nastenka-cards-2col">${activeCourses.map(_courseCard).join('')}</div>`
       }
       if (inactiveCourses.length) {
-        listBody += `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;margin:20px 0 10px;">${esc(_adm('kurzy.sectionInactive'))}</div>`
+        listBody += `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:20px 0 10px;">
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;">${esc(_adm('kurzy.sectionInactive'))}</div>
+          <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+            onclick="window.adminDeleteAllInactiveCourses?.()">${esc(_adm('courseActions.deleteAll'))}</button>
+        </div>`
         listBody += `<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nInactiveDelete', { n: inactiveCourses.length })}</div>`
         listBody += `<div class="nastenka-cards-2col">${inactiveCourses.map(_courseCard).join('')}</div>`
       }
@@ -1101,7 +1130,24 @@ export async function renderAdminKurzy() {
 }
 
 function _adminCourseScheduleHtml(course) {
-  if (course.is_workshop) return ''
+  const infoBox = (label, value, sub = '') => `
+    <div style="margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#faf8f5;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9b6f5f;margin-bottom:3px;">
+        ${esc(label)}
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#2f2a24;">${esc(value)}</div>
+      ${sub ? `<div style="font-size:11px;color:#6b6b6b;margin-top:3px;">${esc(sub)}</div>` : ''}
+    </div>`
+
+  const lessons = Array.isArray(course._adminLessons) ? course._adminLessons : []
+  if (course.is_workshop) {
+    const lesson = lessons[0]
+    const when = lesson?.start_time
+      ? `${fmtDateTime(lesson.start_time)}${lesson.end_time ? `–${fmtTimeOnly(lesson.end_time)}` : ''}`
+      : _adm('kurzy.workshopDateMissing')
+    return infoBox(_adm('kurzy.workshopDateTime'), when)
+  }
+
   const dayLabels = _adminLocale() === 'en'
     ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     : ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
@@ -1115,13 +1161,22 @@ function _adminCourseScheduleHtml(course) {
   const scheduleText = days.length && timeFrom && timeTo
     ? `${days.join(', ')} · ${timeFrom}–${timeTo}`
     : _adm('kurzy.scheduleMissing')
+  const nowMs = Date.now()
+  const upcomingActiveLessons = lessons.filter(lesson =>
+    lesson.status === 'active'
+    && lesson.start_time
+    && new Date(lesson.start_time).getTime() >= nowMs
+  )
+  const nextLesson = upcomingActiveLessons[0]
+  const lessonsText = _adm('kurzy.listedLessonsCount', { n: upcomingActiveLessons.length })
+  const nextText = nextLesson?.start_time
+    ? _adm('kurzy.nextLesson', {
+      when: `${fmtDateTime(nextLesson.start_time)}${nextLesson.end_time ? `–${fmtTimeOnly(nextLesson.end_time)}` : ''}`,
+    })
+    : _adm('kurzy.noUpcomingLessons')
   return `
-    <div style="margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#faf8f5;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9b6f5f;margin-bottom:3px;">
-        ${esc(_adm('kurzy.schedule'))}
-      </div>
-      <div style="font-size:12px;font-weight:600;color:#2f2a24;">${esc(scheduleText)}</div>
-    </div>`
+    ${infoBox(_adm('kurzy.schedule'), scheduleText)}
+    ${infoBox(_adm('kurzy.listedLessons'), lessonsText, nextText)}`
 }
 
 function _courseCard(course) {
@@ -4041,13 +4096,16 @@ window.adminDeleteLesson = async (lessonId) => {
   if (!lessonId || !confirm(_adm('lessonActions.confirmDelete'))) return
   try {
     const { data: lesson, error: loadErr } = await sb.from('lessons')
-      .select('id, status')
+      .select('id, status, start_time')
       .eq('id', lessonId)
       .maybeSingle()
     if (loadErr) throw loadErr
     if (!lesson) throw new Error(_adm('lessonActions.errLessonNotFound'))
     if (lesson.status !== 'cancelled') {
       throw new Error(_adm('lessonActions.errDeleteOnlyDeactivated'))
+    }
+    if (lesson.start_time && new Date(lesson.start_time).getTime() >= Date.now()) {
+      throw new Error(_adm('lessonActions.errDeleteOnlyPast'))
     }
     const { count, error: countErr } = await sb.from('bookings')
       .select('*', { count: 'exact', head: true })
@@ -4064,6 +4122,63 @@ window.adminDeleteLesson = async (lessonId) => {
   } catch (err) {
     console.error('[Admin] adminDeleteLesson:', err)
     window.showToast?.(_adm('toast.lessonDeleteFail', { msg: err.message ?? err }), 'error')
+  }
+}
+
+window.adminDeleteAllPastDeactivatedLessons = async (scope = 'moje') => {
+  if (!confirm(_adm('lessonActions.confirmDeleteAllPastDeactivated'))) return
+  try {
+    let courseQuery = sb.from('courses').select('id')
+    if (_isStaffAdmin() && scope !== 'vsechny' && currentUser?.id) {
+      courseQuery = courseQuery.eq('owner_id', currentUser.id)
+    }
+    const { data: courses, error: courseErr } = await _scopeOwnerQuery(courseQuery)
+    if (courseErr) throw courseErr
+
+    const courseIds = (courses ?? []).map(c => c.id).filter(Boolean)
+    if (!courseIds.length) {
+      window.showToast?.(_adm('lessonActions.toastDeleteAllResult', { deleted: 0, skipped: 0 }), 'ok')
+      return
+    }
+
+    const { data: lessons, error: lessonErr } = await sb.from('lessons')
+      .select('id')
+      .in('course_id', courseIds)
+      .lt('start_time', new Date().toISOString())
+      .eq('status', 'cancelled')
+    if (lessonErr) throw lessonErr
+
+    const lessonIds = (lessons ?? []).map(l => l.id).filter(Boolean)
+    if (!lessonIds.length) {
+      window.showToast?.(_adm('lessonActions.toastDeleteAllResult', { deleted: 0, skipped: 0 }), 'ok')
+      return
+    }
+
+    const { data: bookings, error: bookingErr } = await sb.from('bookings')
+      .select('lesson_id')
+      .in('lesson_id', lessonIds)
+      .in('status', BLOCKING_PARTICIPATION_STATUSES)
+    if (bookingErr) throw bookingErr
+
+    const blockedLessonIds = new Set((bookings ?? []).map(b => b.lesson_id))
+    const safeIds = lessonIds.filter(id => !blockedLessonIds.has(id))
+    if (safeIds.length) {
+      const { error: deleteErr } = await sb.from('lessons')
+        .delete()
+        .lt('start_time', new Date().toISOString())
+        .eq('status', 'cancelled')
+        .in('id', safeIds)
+      if (deleteErr) throw deleteErr
+    }
+
+    window.showToast?.(_adm('lessonActions.toastDeleteAllResult', {
+      deleted: safeIds.length,
+      skipped: lessonIds.length - safeIds.length,
+    }), 'ok')
+    _refreshAfterLessonChange()
+  } catch (err) {
+    console.error('[Admin] adminDeleteAllPastDeactivatedLessons:', err)
+    window.showToast?.(_adm('lessonActions.toastDeleteAllFail', { msg: err.message ?? err }), 'error')
   }
 }
 
@@ -4132,6 +4247,76 @@ window.adminTopUpCourseLessons = async (courseId) => {
   } catch (err) {
     console.error('[Admin] adminTopUpCourseLessons:', err)
     window.showToast?.(_adm('courseActions.toastTopUpFail', { msg: err.message ?? err }), 'error')
+  }
+}
+
+window.adminDeleteAllInactiveCourses = async () => {
+  if (!confirm(_adm('courseActions.confirmDeleteAll'))) return
+  try {
+    let courseQuery = sb.from('courses')
+      .select('id')
+      .eq('is_active', false)
+    if (_isStaffAdmin() && _adminCoursesScope === 'moje' && currentUser?.id) {
+      courseQuery = courseQuery.eq('owner_id', currentUser.id)
+    }
+    const { data: courses, error: courseErr } = await _scopeOwnerQuery(courseQuery)
+    if (courseErr) throw courseErr
+
+    const courseIds = (courses ?? []).map(c => c.id).filter(Boolean)
+    if (!courseIds.length) {
+      window.showToast?.(_adm('courseActions.toastDeleteAllResult', { deleted: 0, skipped: 0 }), 'ok')
+      return
+    }
+
+    const { data: lessons, error: lessonErr } = await sb.from('lessons')
+      .select('id, course_id, start_time')
+      .in('course_id', courseIds)
+    if (lessonErr) throw lessonErr
+
+    const nowMs = Date.now()
+    const lessonToCourse = {}
+    const futureCourseIds = new Set()
+    for (const lesson of (lessons ?? [])) {
+      lessonToCourse[lesson.id] = lesson.course_id
+      if (lesson.start_time && new Date(lesson.start_time).getTime() >= nowMs) {
+        futureCourseIds.add(lesson.course_id)
+      }
+    }
+
+    const lessonIds = (lessons ?? []).map(l => l.id).filter(Boolean)
+    const blockingCourseIds = new Set()
+    if (lessonIds.length) {
+      const { data: bookings, error: bookingErr } = await sb.from('bookings')
+        .select('lesson_id')
+        .in('lesson_id', lessonIds)
+        .in('status', BLOCKING_PARTICIPATION_STATUSES)
+      if (bookingErr) throw bookingErr
+      for (const booking of (bookings ?? [])) {
+        const cid = lessonToCourse[booking.lesson_id]
+        if (cid) blockingCourseIds.add(cid)
+      }
+    }
+
+    const safeIds = courseIds.filter(id => !futureCourseIds.has(id) && !blockingCourseIds.has(id))
+    if (safeIds.length) {
+      let deleteQuery = sb.from('courses')
+        .delete()
+        .eq('is_active', false)
+        .in('id', safeIds)
+      deleteQuery = _scopeOwnerQuery(deleteQuery)
+      const { error: deleteErr } = await deleteQuery
+      if (deleteErr) throw deleteErr
+    }
+
+    window.showToast?.(_adm('courseActions.toastDeleteAllResult', {
+      deleted: safeIds.length,
+      skipped: courseIds.length - safeIds.length,
+    }), 'ok')
+    renderAdminKurzy()
+    void window.refreshPublicData?.()
+  } catch (err) {
+    console.error('[Admin] adminDeleteAllInactiveCourses:', err)
+    window.showToast?.(_adm('courseActions.toastDeleteAllFail', { msg: err.message ?? err }), 'error')
   }
 }
 

@@ -386,6 +386,12 @@ export const UI_TRANSLATIONS = {
         hoursShort: 'h',
         schedule: 'Rozvrh',
         scheduleMissing: 'Rozvrh není nastavený',
+        listedLessons: 'Vypsané lekce',
+        listedLessonsCount: '{{n}} nadcházejících termínů',
+        nextLesson: 'Nejbližší: {{when}}',
+        noUpcomingLessons: 'Žádný nadcházející termín.',
+        workshopDateTime: 'Datum a čas',
+        workshopDateMissing: 'Termín workshopu není nastavený',
         workshopBadge: 'WORKSHOP',
       },
       customers: {
@@ -577,6 +583,7 @@ export const UI_TRANSLATIONS = {
         confirmActivate:
           'Aktivovat lekci znovu jako čistou? Původní přihlášky se neobnoví.',
         errDeleteOnlyDeactivated: 'Smazat lze jen deaktivovanou lekci — nejprve ji deaktivujte.',
+        errDeleteOnlyPast: 'Smazat lze jen uplynulý termín. Budoucí termíny nemažeme hromadně ani trvale.',
         toastDeleted: 'Lekce byla smazána.',
         toastActivated: 'Lekce byla aktivována jako čistá.',
         errLessonNotFound: 'Lekce nenalezena.',
@@ -586,6 +593,12 @@ export const UI_TRANSLATIONS = {
         sectionPast: 'Uplynulé lekce',
         emptyPast: 'Žádné uplynulé lekce.',
         sectionDeactivated: 'Deaktivované termíny',
+        futureDeactivatedHint: '{{n}} budoucích deaktivovaných termínů — lze je znovu aktivovat, mazání je dostupné jen u uplynulých termínů.',
+        deleteAllPastDeactivated: 'Smazat vše',
+        confirmDeleteAllPastDeactivated:
+          'Opravdu trvale smazat všechny uplynulé deaktivované termíny, které lze smazat? Budoucí termíny zůstanou zachované.',
+        toastDeleteAllResult: 'Smazáno: {{deleted}}. Přeskočeno: {{skipped}}.',
+        toastDeleteAllFail: 'Hromadné mazání lekcí se nepodařilo: {{msg}}',
       },
       courseActions: {
         confirmToggleOn: 'Aktivovat kurz?',
@@ -598,6 +611,11 @@ export const UI_TRANSLATIONS = {
         toastDeleted: 'Kurz byl smazán.',
         errCourseNotFound: 'Kurz nenalezen.',
         errDeleteHasBookings: 'Kurz má stále aktivní rezervace — nelze smazat.',
+        deleteAll: 'Smazat vše',
+        confirmDeleteAll:
+          'Opravdu trvale smazat všechny deaktivované kurzy, které lze bezpečně smazat? Kurzy s budoucími termíny nebo aktivními přihláškami se přeskočí.',
+        toastDeleteAllResult: 'Smazáno kurzů: {{deleted}}. Přeskočeno: {{skipped}}.',
+        toastDeleteAllFail: 'Hromadné mazání kurzů se nepodařilo: {{msg}}',
         topUpLessons: 'Doplnit další termíny',
         confirmTopUpLessons: 'Doplnit další termíny podle rozvrhu kurzu?',
         toastTopUpLessons: 'Doplněno {{n}} nových termínů.',
@@ -983,6 +1001,12 @@ export const UI_TRANSLATIONS = {
         hoursShort: 'h',
         schedule: 'Schedule',
         scheduleMissing: 'No schedule set',
+        listedLessons: 'Scheduled sessions',
+        listedLessonsCount: '{{n}} upcoming sessions',
+        nextLesson: 'Next: {{when}}',
+        noUpcomingLessons: 'No upcoming session.',
+        workshopDateTime: 'Date and time',
+        workshopDateMissing: 'Workshop date is not set',
         workshopBadge: 'WORKSHOP',
       },
       customers: {
@@ -1178,6 +1202,8 @@ export const UI_TRANSLATIONS = {
           'Activate this lesson again as clean? Previous bookings will not be restored.',
         errDeleteOnlyDeactivated:
           'Only deactivated lessons can be deleted — deactivate first.',
+        errDeleteOnlyPast:
+          'Only past sessions can be deleted. Future sessions are not bulk-deleted or permanently deleted.',
         toastDeleted: 'Lesson deleted.',
         toastActivated: 'Lesson activated as clean.',
         errLessonNotFound: 'Lesson not found.',
@@ -1187,6 +1213,13 @@ export const UI_TRANSLATIONS = {
         sectionPast: 'Past lessons',
         emptyPast: 'No past lessons.',
         sectionDeactivated: 'Deactivated sessions',
+        futureDeactivatedHint:
+          '{{n}} future deactivated sessions — they can be activated again; deletion is available only for past sessions.',
+        deleteAllPastDeactivated: 'Delete all',
+        confirmDeleteAllPastDeactivated:
+          'Really permanently delete all past deactivated sessions that can be deleted? Future sessions will be kept.',
+        toastDeleteAllResult: 'Deleted: {{deleted}}. Skipped: {{skipped}}.',
+        toastDeleteAllFail: 'Could not bulk-delete lessons: {{msg}}',
       },
       courseActions: {
         confirmToggleOn: 'Activate course?',
@@ -1200,6 +1233,11 @@ export const UI_TRANSLATIONS = {
         toastDeleted: 'Course deleted.',
         errCourseNotFound: 'Course not found.',
         errDeleteHasBookings: 'This course still has active bookings — it cannot be deleted.',
+        deleteAll: 'Delete all',
+        confirmDeleteAll:
+          'Really permanently delete all deactivated courses that can be safely deleted? Courses with future sessions or active bookings will be skipped.',
+        toastDeleteAllResult: 'Deleted courses: {{deleted}}. Skipped: {{skipped}}.',
+        toastDeleteAllFail: 'Could not bulk-delete courses: {{msg}}',
         topUpLessons: 'Add more sessions',
         confirmTopUpLessons: 'Add more sessions using this course schedule?',
         toastTopUpLessons: 'Added {{n}} new sessions.',
