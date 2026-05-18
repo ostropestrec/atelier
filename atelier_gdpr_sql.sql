@@ -4,10 +4,14 @@
 -- (nikoli přímo z klienta — service_role obchází RLS).
 -- ============================================================
 
+begin;
+
+create extension if not exists pgcrypto;
+
 -- ─── Audit log ───────────────────────────────────────────────
 -- Uchováváme jen fakt, že ke smazání došlo — bez PII.
 create table if not exists public.gdpr_deletion_log (
-  id           uuid primary key default uuid_generate_v4(),
+  id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null,          -- zachováno pro auditní stopu
   requested_at timestamptz not null default now(),
   completed_at timestamptz,
@@ -15,12 +19,27 @@ create table if not exists public.gdpr_deletion_log (
   ip_hash      text                    -- hash IP pro anti-abuse, nikoli IP samotná
 );
 
+alter table public.gdpr_deletion_log
+  add column if not exists id uuid default gen_random_uuid(),
+  add column if not exists user_id uuid,
+  add column if not exists requested_at timestamptz default now(),
+  add column if not exists completed_at timestamptz,
+  add column if not exists reason text,
+  add column if not exists ip_hash text;
+
+alter table public.gdpr_deletion_log
+  alter column id set default gen_random_uuid(),
+  alter column requested_at set default now();
+
 -- Pouze service_role (backend) smí do logu zapisovat
 alter table public.gdpr_deletion_log enable row level security;
 
+drop policy if exists "gdpr_log: jen service_role" on public.gdpr_deletion_log;
 create policy "gdpr_log: jen service_role"
   on public.gdpr_deletion_log
-  using (false);   -- nikdo přes klienta nečte ani nepíše
+  for all
+  using (false)
+  with check (false);   -- nikdo přes klienta nečte ani nepíše
 
 -- ─── Hlavní anonymizační funkce ──────────────────────────────
 create or replace function public.anonymize_user_account(
@@ -117,6 +136,7 @@ $$;
 
 -- Pouze service_role smí funkci volat
 revoke execute on function public.anonymize_user_account from public, anon, authenticated;
+grant execute on function public.anonymize_user_account(uuid, text, text) to service_role;
 
 -- ─── Helper view: přehled dat k anonymizaci (pro DPO) ────────
 -- Data Protection Officer může zobrazit rozsah dat bez PII.
@@ -135,3 +155,7 @@ create or replace view public.gdpr_data_summary as
   group by u.id, u.role, u.created_at;
 
 -- View je pouze pro service_role (žádný public grant)
+revoke all on public.gdpr_data_summary from public, anon, authenticated;
+grant select on public.gdpr_data_summary to service_role;
+
+commit;

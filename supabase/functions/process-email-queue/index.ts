@@ -1,3 +1,4 @@
+// @ts-nocheck -- Supabase Edge Function bezi v Deno runtime mimo Vite/TS projekt.
 /**
  * Odesílá frontu public.email_notification_queue přes Resend.
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck -- Referencni Supabase Edge Function pro Deno runtime.
 // supabase/functions/delete-account/index.ts
 // Edge Function — volaná z frontendu přes sb.functions.invoke()
 // Běží se service_role klíčem → může volat auth.admin API.
@@ -6,7 +7,7 @@
 import { serve }        from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 serve(async (req: Request) => {
@@ -19,12 +20,12 @@ serve(async (req: Request) => {
     // ─── Ověření JWT volajícího uživatele ─────────────────
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return err(401, 'Chybí Authorization header.')
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    if (!token) return err(401, 'Chybí přihlašovací token.')
 
-    // Klientský Supabase — ověří JWT token
-    const sbClient = createClient(SUPABASE_URL, DENO_PUBLIC_ANON_KEY(), {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const { data: { user }, error: userErr } = await sbClient.auth.getUser()
+    // Service-role klient overi JWT token a nasledne provede privilegovane kroky.
+    const sbAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const { data: { user }, error: userErr } = await sbAdmin.auth.getUser(token)
     if (userErr || !user) return err(401, 'Neplatný token.')
 
     // ─── Tělo požadavku ────────────────────────────────────
@@ -34,9 +35,6 @@ serve(async (req: Request) => {
     // Hashování IP pro audit log (SHA-256, ne uložení raw IP)
     const ip     = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? ''
     const ipHash = ip ? await sha256(ip) : null
-
-    // ─── Service-role klient (obchází RLS) ────────────────
-    const sbAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
     // ─── 1. Anonymizace dat v DB (SQL funkce) ──────────────
     const { data: result, error: rpcErr } = await sbAdmin.rpc(
@@ -84,11 +82,6 @@ function corsHeaders() {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   }
-}
-
-// Anon key nepotřebuje být tajný — je veřejný v JS bundlu
-function DENO_PUBLIC_ANON_KEY() {
-  return Deno.env.get('SUPABASE_ANON_KEY')!
 }
 
 async function sha256(text: string): Promise<string> {
