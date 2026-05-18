@@ -1326,6 +1326,7 @@ const _SIDEBAR_CFG = {
     { id: 'admin-permanentky',  key: 'nav.passes' },
     { id: 'admin-zakaznici',    key: 'nav.customers' },
     { id: 'admin-platby',       key: 'nav.payments' },
+    { id: 'admin-manual',       key: 'nav.adminManual' },
   ],
 }
 

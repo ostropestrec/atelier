@@ -44,6 +44,7 @@ export const UI_TRANSLATIONS = {
       courses: 'Kurzy',
       passes: 'Permanentky',
       manual: 'Návod',
+      adminManual: 'Admin manuál',
       myLessons: 'Lekce',
       settings: 'Nastavení',
       customers: 'Zákazníci',
@@ -62,10 +63,10 @@ export const UI_TRANSLATIONS = {
       flow2Title: 'Zvolte způsob platby',
       flow2Text:
         'Můžete využít aktivní permanentku, nebo zaplatit jednorázový vstup přes Stripe.',
-      flow3Title: 'Dokončete přihlášení',
+      flow3Title: 'Přehled',
       flow3Text:
         'Po potvrzení se termín objeví v Přehledu. U platby kartou se účast potvrdí po přijetí platby.',
-      flow4Title: 'Přijďte na lekci',
+      flow4Title: 'Upozornění',
       flow4Text:
         'V Nastavení si můžete zapnout připomínku e-mailem, aby vám termín neunikl.',
       passesTitle: 'Permanentky',
@@ -74,6 +75,18 @@ export const UI_TRANSLATIONS = {
       passesLi1: 'V Přehledu vidíte, kolik vstupů vám zbývá.',
       passesLi2: 'Některé permanentky mohou platit jen na vybrané kurzy.',
       passesLi3: 'Při nákupu stejné aktivní permanentky vás aplikace upozorní.',
+      bookingTermsTitle: 'Rezervace a storno',
+      bookingTermsText:
+        'Rezervace místa je závazná. Po potvrzení s vámi ateliér počítá a místo je blokované pro vás.',
+      bookingTermsLi1: 'Storno je možné jen v čase povoleném u konkrétního kurzu nebo lekce.',
+      bookingTermsLi2: 'Pokud už storno lhůta uplynula, aplikace zrušení rezervace nepovolí.',
+      bookingTermsLi3: 'U jednorázových plateb se podmínky storna řídí nastavením dané lekce.',
+      lessonCancelledTitle: 'Když lektor zruší lekci',
+      lessonCancelledText:
+        'Pokud lektor nebo admin lekci zruší, vaše rezervace se stornuje a místo už se nepočítá jako obsazené.',
+      lessonCancelledLi1: 'Účastníkům lekce se automaticky zařadí e-mailové upozornění.',
+      lessonCancelledLi2: 'E-mail se odešle na adresu uvedenou ve vašem účtu.',
+      lessonCancelledLi3: 'Pokud se e-mail zpozdí, rozhodující je stav lekce přímo v aplikaci.',
       accountTitle: 'Účet a bezpečnost',
       accountText:
         'V Nastavení upravíte osobní údaje, heslo, barvu avatara a e-mailové připomínky.',
@@ -82,6 +95,50 @@ export const UI_TRANSLATIONS = {
       accountLi3: 'Pokud řešíte platbu nebo refundaci, kontaktujte ateliér před smazáním účtu.',
       note:
         'Tip: Pokud si nejste jistí, začněte v Kurzech. Vyberte kurz, otevřete detail a aplikace vás provede rezervací krok za krokem.',
+    },
+    adminManual: {
+      kicker: 'Admin manuál',
+      title: 'Jak spravovat ateliér',
+      lead:
+        'Rychlá orientace pro administrátora: kde sledovat provoz, spravovat kurzy, komunikovat s účastníky a kontrolovat platby.',
+      flow1Title: 'Zkontrolujte přehled',
+      flow1Text:
+        'Na úvodní admin stránce sledujete dnešní lekce, nejbližší termíny a základní provozní čísla.',
+      flow2Title: 'Spravujte kurzy',
+      flow2Text:
+        'Vytvářejte kurzy a workshopy, upravujte rozvrh, doplňujte další termíny a deaktivujte neaktuální položky.',
+      flow3Title: 'Pečujte o lekce',
+      flow3Text:
+        'U lekcí kontrolujete účastníky, posíláte hromadné zprávy a při zrušení lekce se účastníkům zařadí e-mail.',
+      flow4Title: 'Kontrolujte platby',
+      flow4Text:
+        'V Platbách sledujete měsíční tržby, jednorázové vstupy, permanentky a refundace.',
+      coursesTitle: 'Kurzy, workshopy a termíny',
+      coursesText:
+        'Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí.',
+      coursesLi1: 'Běžné kurzy mají rozvrh a tlačítko pro doplnění dalších termínů.',
+      coursesLi2: 'Workshop má jeden konkrétní datum a čas.',
+      coursesLi3: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
+      lessonsTitle: 'Lekce a účastníci',
+      lessonsText:
+        'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
+      lessonsLi1: 'Detail účastníků ukazuje potvrzené účasti i čekání na platbu.',
+      lessonsLi2: 'Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.',
+      lessonsLi3: 'Zrušení lekce stornuje aktivní přihlášky a zařadí notifikace do e-mailové fronty.',
+      paymentsTitle: 'Platby a zákazníci',
+      paymentsText:
+        'Platby jsou rozdělené po měsících a zákaznická sekce pomáhá dohledat historii uživatele.',
+      paymentsLi1: 'Měsíční přehled ukazuje čistý příjem, hrubý příjem a refundace.',
+      paymentsLi2: 'Refundace se počítají k původnímu měsíci transakce.',
+      paymentsLi3: 'U zákazníka lze dohledat rezervace, permanentky a platební historii.',
+      safetyTitle: 'Bezpečnost a úklid',
+      safetyText:
+        'Destruktivní akce jsou oddělené potvrzením a některé položky se raději přeskočí, pokud by smazání nebylo bezpečné.',
+      safetyLi1: 'Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.',
+      safetyLi2: 'Deaktivovanou lekci lze znovu aktivovat jako čistou, bez původních přihlášek.',
+      safetyLi3: 'Smazání účtu uživatele anonymizuje osobní data a ruší budoucí rezervace.',
+      note:
+        'Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. U rušení lekcí počítejte s tím, že e-maily odchází přes frontu.',
     },
     pages: {
       signIn: 'Přihlásit se',
@@ -693,6 +750,7 @@ export const UI_TRANSLATIONS = {
       courses: 'Courses',
       passes: 'Passes',
       manual: 'Guide',
+      adminManual: 'Admin guide',
       myLessons: 'Lessons',
       settings: 'Settings',
       customers: 'Customers',
@@ -711,10 +769,10 @@ export const UI_TRANSLATIONS = {
       flow2Title: 'Choose payment',
       flow2Text:
         'Use an active pass, or pay for a single entry through Stripe.',
-      flow3Title: 'Complete booking',
+      flow3Title: 'Overview',
       flow3Text:
         'After confirmation, the session appears in Overview. Card payments confirm participation once the payment is received.',
-      flow4Title: 'Attend the lesson',
+      flow4Title: 'Notifications',
       flow4Text:
         'In Settings, you can turn on email reminders so you do not miss the session.',
       passesTitle: 'Passes',
@@ -723,6 +781,18 @@ export const UI_TRANSLATIONS = {
       passesLi1: 'Overview shows how many entries you have left.',
       passesLi2: 'Some passes may apply only to selected courses.',
       passesLi3: 'The app warns you before buying the same active pass again.',
+      bookingTermsTitle: 'Booking and cancellation',
+      bookingTermsText:
+        'Booking a spot is binding. Once confirmed, the atelier counts on you and the spot is held for you.',
+      bookingTermsLi1: 'Cancellation is possible only within the time allowed for the specific course or lesson.',
+      bookingTermsLi2: 'If the cancellation window has passed, the app will not allow the booking to be cancelled.',
+      bookingTermsLi3: 'For single-entry payments, cancellation terms follow the settings of that lesson.',
+      lessonCancelledTitle: 'When an instructor cancels a lesson',
+      lessonCancelledText:
+        'If an instructor or admin cancels a lesson, your booking is cancelled and the spot no longer counts as occupied.',
+      lessonCancelledLi1: 'Participants are automatically queued for an email notification.',
+      lessonCancelledLi2: 'The email is sent to the address in your account.',
+      lessonCancelledLi3: 'If the email is delayed, the lesson status in the app is the source of truth.',
       accountTitle: 'Account and safety',
       accountText:
         'Settings lets you update personal details, password, avatar colour, and email reminders.',
@@ -731,6 +801,50 @@ export const UI_TRANSLATIONS = {
       accountLi3: 'If you need help with a payment or refund, contact the atelier before deleting your account.',
       note:
         'Tip: If you are unsure where to start, open Courses. Choose a course, open its detail, and the app will guide you through booking step by step.',
+    },
+    adminManual: {
+      kicker: 'Admin guide',
+      title: 'How to manage the atelier',
+      lead:
+        'A quick guide for administrators: where to monitor operations, manage courses, message participants, and check payments.',
+      flow1Title: 'Check overview',
+      flow1Text:
+        'The admin overview shows today’s lessons, upcoming sessions, and key operating numbers.',
+      flow2Title: 'Manage courses',
+      flow2Text:
+        'Create courses and workshops, edit schedules, add more sessions, and deactivate outdated items.',
+      flow3Title: 'Care for lessons',
+      flow3Text:
+        'For lessons, check attendees, send bulk messages, and queue email notifications when a lesson is cancelled.',
+      flow4Title: 'Check payments',
+      flow4Text:
+        'Payments show monthly revenue, single entries, passes, and refunds.',
+      coursesTitle: 'Courses, workshops, and sessions',
+      coursesText:
+        'Course management is the main place for public offer content and long-term lesson planning.',
+      coursesLi1: 'Standard courses have a schedule and a button for adding more sessions.',
+      coursesLi2: 'A workshop has one specific date and time.',
+      coursesLi3: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
+      lessonsTitle: 'Lessons and attendees',
+      lessonsText:
+        'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
+      lessonsLi1: 'Attendee detail shows confirmed participation and waiting for payment.',
+      lessonsLi2: 'You can send a custom bulk email to attendees of one specific lesson.',
+      lessonsLi3: 'Cancelling a lesson cancels active bookings and queues email notifications.',
+      paymentsTitle: 'Payments and customers',
+      paymentsText:
+        'Payments are grouped by month, and customer management helps trace a user’s history.',
+      paymentsLi1: 'The monthly overview shows net revenue, gross revenue, and refunds.',
+      paymentsLi2: 'Refunds are attributed to the original transaction month.',
+      paymentsLi3: 'Customer detail helps trace bookings, passes, and payment history.',
+      safetyTitle: 'Safety and cleanup',
+      safetyText:
+        'Destructive actions require confirmation, and some items are skipped when deletion would not be safe.',
+      safetyLi1: 'Future deactivated lessons are not bulk-deleted, so they do not disappear by accident.',
+      safetyLi2: 'A deactivated lesson can be activated again as clean, without previous bookings.',
+      safetyLi3: 'Deleting a user account anonymises personal data and cancels future bookings.',
+      note:
+        'Recommendation: before a larger change, first check whether the course or lesson has active bookings. For lesson cancellations, remember that emails are sent through the queue.',
     },
     pages: {
       signIn: 'Sign in',
