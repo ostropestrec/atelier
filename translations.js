@@ -360,6 +360,8 @@ export const UI_TRANSLATIONS = {
     },
     purchase: {
       confirmComplete: 'Přejete si přejít k platbě?',
+      confirmPilotComplete:
+        'Potvrdit testovací připsání bez platební brány? Platba se teď nebude účtovat.',
       duplicatePass:
         'Už máte aktivní permanentku stejného typu. Opravdu chcete zakoupit znovu?',
       passPurchased: '✓ Permanentka zakoupena.',
@@ -1125,6 +1127,8 @@ export const UI_TRANSLATIONS = {
     },
     purchase: {
       confirmComplete: 'Do you want to proceed to payment?',
+      confirmPilotComplete:
+        'Confirm test assignment without the payment gateway? No payment will be charged now.',
       duplicatePass:
         'You already have an active pass of this type. Do you really want to buy it again?',
       passPurchased: '✓ Pass purchased.',

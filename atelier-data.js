@@ -24,6 +24,9 @@ import {
   PARTICIPATION_STATUS,
 } from './atelier-booking-status.js'
 
+// Dočasný pilotní režim: placené akce se připíšou bez Stripe a bez reálné tržby.
+const PILOT_FREE_CHECKOUT = true
+
 // ── Jazyk ─────────────────────────────────────────────────────
 export let lang = 'cs'
 try {
@@ -1494,8 +1497,8 @@ async function _userOwnsActivePassTemplateFresh(templatePassId) {
 }
 
 /** Obecné potvrzení, že uživatel chce nákup dokončit. */
-function _confirmUserWantsToCompletePurchase() {
-  return window.confirm(_tp('purchase.confirmComplete'))
+function _confirmUserWantsToCompletePurchase({ pilot = false } = {}) {
+  return window.confirm(_tp(pilot ? 'purchase.confirmPilotComplete' : 'purchase.confirmComplete'))
 }
 
 window.buyPass = async (
@@ -1514,9 +1517,9 @@ window.buyPass = async (
     if (!ok) return
   }
 
-  if (!_confirmUserWantsToCompletePurchase()) return
-
   const priceNum = Number(price) || 0
+  if (!_confirmUserWantsToCompletePurchase({ pilot: PILOT_FREE_CHECKOUT && priceNum > 0 })) return
+
   const originalBtnText = btn?.textContent ?? ''
   const passTitle = (extra.passTitle && String(extra.passTitle).trim()) || _tp('common.pass')
   const reopenBooking = !!extra.reopenBooking
@@ -1526,7 +1529,7 @@ window.buyPass = async (
     : null
   const lessonWhen = les?.start_time ? fmtLessonPill(les.start_time) : ''
 
-  if (priceNum > 0) {
+  if (priceNum > 0 && !PILOT_FREE_CHECKOUT) {
     if (btn) btn.disabled = true
     try {
       window.openExternalStripePaymentModal?.({
@@ -1559,7 +1562,7 @@ window.buyPass = async (
       pass_id:           passId,
       entries_total:     entriesTotal,
       entries_remaining: entriesTotal,
-      price_paid:        price,
+      price_paid:        PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : price,
       expires_at:        expiresAt.toISOString(),
       status:            'active',
     })
@@ -2067,20 +2070,21 @@ window.confirmBooking = async () => {
 
   const priceNum = Number(pricePaid) || 0
   if (!isPass && !isBuyPass && priceNum > 0) {
-    const lesson_id = lessonIds[0]
-    const courseTitle = loc(course?.title) || ''
-    const lesRow = selectedLessons[0]
-    const lessonWhen = lesRow?.start_time ? fmtLessonPill(lesRow.start_time) : ''
-    if (!_confirmUserWantsToCompletePurchase()) return
-    window.openExternalStripePaymentModal?.({
-      kind: 'lesson-single',
-      courseId,
-      courseTitle,
-      price: priceNum,
-      lessonWhen,
-      reopenBookingPopup: true,
-    })
-    return
+    if (!_confirmUserWantsToCompletePurchase({ pilot: PILOT_FREE_CHECKOUT })) return
+    if (!PILOT_FREE_CHECKOUT) {
+      const courseTitle = loc(course?.title) || ''
+      const lesRow = selectedLessons[0]
+      const lessonWhen = lesRow?.start_time ? fmtLessonPill(lesRow.start_time) : ''
+      window.openExternalStripePaymentModal?.({
+        kind: 'lesson-single',
+        courseId,
+        courseTitle,
+        price: priceNum,
+        lessonWhen,
+        reopenBookingPopup: true,
+      })
+      return
+    }
   }
 
   console.log('[Booking] Popup reserve start', { lessonIds, payVal, courseId })
@@ -2125,7 +2129,7 @@ window.confirmBooking = async () => {
         user_id:      currentUser.id,
         lesson_id,
         payment_type: 'single',
-        price_paid:   pricePaid,
+        price_paid:   PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : pricePaid,
         status:       PARTICIPATION_STATUS.CONFIRMED,
       })
       if (error) throw error
