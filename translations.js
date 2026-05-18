@@ -80,7 +80,9 @@ export const UI_TRANSLATIONS = {
         'Rezervace místa je závazná. Po potvrzení s vámi počítáme a místo je blokované pro vás.',
       bookingTermsLi1: 'Storno je možné jen v čase povoleném u konkrétního kurzu nebo lekce.',
       bookingTermsLi2: 'Pokud už storno lhůta uplynula, aplikace zrušení rezervace nepovolí.',
-      bookingTermsLi3: 'U jednorázových plateb se podmínky storna řídí nastavením dané lekce.',
+      bookingTermsLi3: 'U permanentky do 5 vstupů máte nárok na 1 včasné storno s vrácením vstupu.',
+      bookingTermsLi4: 'U permanentky od 6 vstupů máte nárok na 2 včasná storna s vrácením vstupu.',
+      bookingTermsLi5: 'U jednorázových plateb se podmínky storna řídí nastavením dané lekce.',
       lessonCancelledTitle: 'Když lektor zruší lekci',
       lessonCancelledText:
         'Pokud lektor lekci zruší, vaše rezervace se stornuje a místo už se nepočítá jako obsazené.',
@@ -832,7 +834,9 @@ export const UI_TRANSLATIONS = {
         'Booking a spot is binding. Once confirmed, we count on you and the spot is held for you.',
       bookingTermsLi1: 'Cancellation is possible only within the time allowed for the specific course or lesson.',
       bookingTermsLi2: 'If the cancellation window has passed, the app will not allow the booking to be cancelled.',
-      bookingTermsLi3: 'For single-entry payments, cancellation terms follow the settings of that lesson.',
+      bookingTermsLi3: 'For passes with up to 5 entries, you have 1 timely cancellation with the entry returned.',
+      bookingTermsLi4: 'For passes with 6 or more entries, you have 2 timely cancellations with entries returned.',
+      bookingTermsLi5: 'For single-entry payments, cancellation terms follow the settings of that lesson.',
       lessonCancelledTitle: 'When an instructor cancels a lesson',
       lessonCancelledText:
         'If an instructor cancels a lesson, your booking is cancelled and the spot no longer counts as occupied.',
