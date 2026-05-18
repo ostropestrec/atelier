@@ -1294,6 +1294,15 @@ function _navT(path) {
   return t(_uiLocale(), path)
 }
 
+function _sidebarActiveId(screenId, role) {
+  if (screenId === 'detail-kurzu') {
+    return role === 'admin' || role === 'lektor' ? 'admin-kurzy' : 'kurzy'
+  }
+  if (screenId === 'sprava') return 'admin-dashboard'
+  if (screenId === 'nastenka' && role === 'admin') return 'admin-dashboard'
+  return screenId
+}
+
 const _SIDEBAR_CFG = {
   guest: [
     { id: 'kalendar',  key: 'nav.calendar' },
@@ -1360,9 +1369,10 @@ export function renderNavigation(user) {
   document.documentElement.dataset.userRole = role
 
   const rawActiveId = document.querySelector('.screen.active')?.id?.replace('screen-', '')
-  const activeId = (!user && rawActiveId === 'nastenka')
+  const activeScreenId = (!user && rawActiveId === 'nastenka')
     ? 'kalendar'
     : (rawActiveId ?? (user ? 'nastenka' : 'kalendar'))
+  const activeId = _sidebarActiveId(activeScreenId, role)
 
   // Sidebar
   const sidebar = document.getElementById('sidebar')
@@ -1376,7 +1386,7 @@ export function renderNavigation(user) {
         return `<div class="side-section-label${sepCls}">${_navT(item.section)}</div>`
       }
       hasNavLinksAbove = true
-      return `<button class="side-link${activeId === item.id ? ' active' : ''}" onclick="nav('${item.id}', this)">${_navT(item.key)}</button>`
+      return `<button class="side-link${activeId === item.id ? ' active' : ''}" data-nav-id="${item.id}" onclick="nav('${item.id}', this)">${_navT(item.key)}</button>`
     }).join('')
   }
 
@@ -1385,7 +1395,7 @@ export function renderNavigation(user) {
   if (bnav) {
     const items = _BOTTOM_NAV[role] ?? _BOTTOM_NAV.uzivatel
     bnav.innerHTML = items.map(item =>
-      `<button${activeId === item.id ? ' class="active"' : ''} onclick="nav('${item.id}', this)">
+      `<button${activeId === item.id ? ' class="active"' : ''} data-nav-id="${item.id}" onclick="nav('${item.id}', this)">
         ${item.icon}
         ${_navT(item.key)}
       </button>`

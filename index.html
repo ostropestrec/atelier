@@ -1844,6 +1844,15 @@
 <!-- ── Navigace a utility JS ── -->
 <script>
   // Aktivní screen
+  function sidebarActiveIdForScreen(id, role) {
+    if (id === 'detail-kurzu') {
+      return role === 'admin' || role === 'lektor' ? 'admin-kurzy' : 'kurzy'
+    }
+    if (id === 'sprava') return 'admin-dashboard'
+    if (id === 'nastenka' && role === 'admin') return 'admin-dashboard'
+    return id
+  }
+
   function nav(id, el) {
     console.log('[Debug] nav()', id, '— jen přepnutí screenu + hooky, NE volá init()')
     // Sekce přístupné jen adminovi (lektor jejich tlačítka v sidebaru ani nevidí, ale nav() je extra ochrana)
@@ -1880,7 +1889,12 @@
 
     const screen = document.getElementById('screen-' + id)
     if (screen) screen.classList.add('active')
-    if (el) el.classList.add('active')
+
+    const activeNavId = sidebarActiveIdForScreen(id, role)
+    const activeEl = el
+      ?? document.querySelector(`.side-link[data-nav-id="${activeNavId}"]`)
+      ?? document.querySelector(`.nav button[data-nav-id="${activeNavId}"]`)
+    if (activeEl) activeEl.classList.add('active')
 
     window.closeSidebar?.()
 
