@@ -936,6 +936,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const cKalCancel = document.getElementById('kal-cancel-booking-btn')
   if (cKalCancel) cKalCancel.textContent = _tp('kal.cancelBooking')
   if (publicDetailBtn) {
+    publicDetailBtn.style.display = staffUser ? 'none' : ''
     publicDetailBtn.textContent = _tp('admin.btn.courseDetail')
     publicDetailBtn.onclick = () => {
       const pop = document.getElementById('pop-kal')
