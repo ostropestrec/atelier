@@ -56,13 +56,13 @@ export const UI_TRANSLATIONS = {
       kicker: 'Uživatelský manuál',
       title: 'Jak aplikace funguje',
       lead:
-        'Stručný návod pro běžného uživatele: jak najít lekci, přihlásit se, zaplatit a spravovat svoje termíny.',
+        'Stručný návod pro uživatele: jak najít lekci, přihlásit se, zaplatit a spravovat svoje termíny.',
       flow1Title: 'Vyberte kurz nebo lekci',
       flow1Text:
         'V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času.',
       flow2Title: 'Zvolte způsob platby',
       flow2Text:
-        'Můžete využít aktivní permanentku, nebo zaplatit jednorázový vstup přes Stripe.',
+        'Můžete zvolit jednorázový vstup, nebo si zakoupit permanentku.',
       flow3Title: 'Přehled',
       flow3Text:
         'Po potvrzení se termín objeví v Přehledu. U platby kartou se účast potvrdí po přijetí platby.',
@@ -73,8 +73,9 @@ export const UI_TRANSLATIONS = {
       passesText:
         'Permanentka obsahuje předplacené vstupy. Při rezervaci si můžete vybrat termíny, na které ji použijete.',
       passesLi1: 'V Přehledu vidíte, kolik vstupů vám zbývá.',
-      passesLi2: 'Některé permanentky mohou platit jen na vybrané kurzy.',
-      passesLi3: 'Při nákupu stejné aktivní permanentky vás aplikace upozorní.',
+      passesLi2: 'Permanentky můžete zakoupit v sekci Permanentky anebo přímo při rezervaci lekce.',
+      passesLi3: 'Některé permanentky mohou platit jen na vybrané kurzy.',
+      passesLi4: 'Při nákupu stejné aktivní permanentky vás aplikace upozorní.',
       bookingTermsTitle: 'Rezervace a storno',
       bookingTermsText:
         'Rezervace místa je závazná. Po potvrzení s vámi počítáme a místo je blokované pro vás.',
@@ -825,13 +826,13 @@ export const UI_TRANSLATIONS = {
       kicker: 'User guide',
       title: 'How the app works',
       lead:
-        'A short guide for regular users: how to find a lesson, book it, pay, and manage your sessions.',
+        'A short guide for users: how to find a lesson, book it, pay, and manage your sessions.',
       flow1Title: 'Choose a course or lesson',
       flow1Text:
         'Courses show the description, instructor, and scheduled dates. Calendar shows lessons by time.',
       flow2Title: 'Choose payment',
       flow2Text:
-        'Use an active pass, or pay for a single entry through Stripe.',
+        'You can choose a single entry, or buy a pass.',
       flow3Title: 'Overview',
       flow3Text:
         'After confirmation, the session appears in Overview. Card payments confirm participation once the payment is received.',
@@ -842,8 +843,9 @@ export const UI_TRANSLATIONS = {
       passesText:
         'A pass contains prepaid entries. When booking, you can choose which sessions to use it for.',
       passesLi1: 'Overview shows how many entries you have left.',
-      passesLi2: 'Some passes may apply only to selected courses.',
-      passesLi3: 'The app warns you before buying the same active pass again.',
+      passesLi2: 'You can buy passes in the Passes section or directly while booking a lesson.',
+      passesLi3: 'Some passes may apply only to selected courses.',
+      passesLi4: 'The app warns you before buying the same active pass again.',
       bookingTermsTitle: 'Booking and cancellation',
       bookingTermsText:
         'Booking a spot is binding. Once confirmed, we count on you and the spot is held for you.',
