@@ -1107,11 +1107,16 @@ function _courseCard(course) {
   const editFn     = isWorkshop ? 'adminEditWorkshop' : 'adminEditCourse'
   const workshopLbl = _adm('kurzy.workshopBadge')
   const deactBadge = _adm('state.deactivatedBadge')
+  const topUpBtn = active && !isWorkshop
+    ? `<button class="btn-small" onclick="window.adminTopUpCourseLessons?.('${esc(course.id)}')">${esc(_adm('courseActions.topUpLessons'))}</button>`
+    : ''
   return `
     <div class="admin-course-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
       <div style="width:5px;background:${color};flex-shrink:0;"></div>
       <div style="flex:1;padding:14px 16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div role="button" tabindex="0" onclick="window.openDetail?.('${esc(course.id)}')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.openDetail?.('${esc(course.id)}')}"
+          style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;">
           <div>
             <div style="font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;">
               ${esc(title)}
@@ -1132,11 +1137,11 @@ function _courseCard(course) {
             </span>
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn-small" onclick="window.openDetail?.('${esc(course.id)}')">${esc(_adm('btn.detail'))}</button>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
           <button class="btn-small" onclick="window.${editFn}?.('${esc(course.id)}')">${esc(_adm('btn.edit'))}</button>
           ${active
-            ? `<button class="btn-small danger" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">${esc(_adm('btn.deactivate'))}</button>`
+            ? `${topUpBtn}
+               <button class="btn-small danger" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">${esc(_adm('btn.deactivate'))}</button>`
             : `<button class="btn-small" onclick="window.adminToggleCourse?.('${esc(course.id)}',true)">${esc(_adm('btn.activate'))}</button>
                <button class="btn-small danger" onclick="window.adminDeleteCourse?.('${esc(course.id)}')">${esc(_adm('btn.delete'))}</button>`}
         </div>
@@ -3520,6 +3525,49 @@ function _generateLessonsUntilCount(courseId, days, timeFrom, timeTo, capacity, 
   return _generateLessons(courseId, days, timeFrom, timeTo, capacity, price, weeks, includeTodayIfFuture).slice(0, minCount)
 }
 
+function _generateLessonsAfterDate(courseId, days, timeFrom, timeTo, capacity, price, afterDate, numWeeks = 4) {
+  const after = afterDate ? new Date(afterDate) : new Date()
+  const base = Number.isFinite(after.getTime()) ? after : new Date()
+  const [fH, fM] = timeFrom.split(':').map(Number)
+  const [tH, tM] = timeTo.split(':').map(Number)
+  const lessons = []
+  const uniqueDays = [...new Set((days ?? []).map(Number))]
+    .filter(d => Number.isInteger(d) && d >= 0 && d <= 6)
+    .sort((a, b) => a - b)
+
+  for (const dayIdx of uniqueDays) {
+    const baseDay = new Date(base)
+    baseDay.setHours(0, 0, 0, 0)
+    const baseDow = (baseDay.getDay() + 6) % 7
+    let daysUntil = (dayIdx - baseDow + 7) % 7
+    const firstStart = new Date(baseDay)
+    firstStart.setDate(baseDay.getDate() + daysUntil)
+    firstStart.setHours(fH, fM, 0, 0)
+    if (firstStart <= base) {
+      daysUntil += 7
+    }
+
+    for (let w = 0; w < numWeeks; w++) {
+      const start = new Date(baseDay)
+      start.setDate(baseDay.getDate() + daysUntil + w * 7)
+      start.setHours(fH, fM, 0, 0)
+
+      const end = new Date(start)
+      end.setHours(tH, tM, 0, 0)
+
+      lessons.push({
+        course_id: courseId,
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        capacity,
+        price_single: price,
+        status: 'active',
+      })
+    }
+  }
+  return lessons.sort((a, b) => a.start_time.localeCompare(b.start_time))
+}
+
 // ── Modal: účastníci lekce (admin) ───────────────────────────
 function buildLessonAttendeesModal() {
   if (document.getElementById('modal-lesson-attendees')) return
@@ -3962,6 +4010,61 @@ window.adminToggleCourse = async (courseId, activate) => {
   } catch (err) {
     console.error('[Admin] adminToggleCourse:', err)
     window.showToast?.(_adm('toast.errorWithMsg', { msg: err.message ?? err }), 'error')
+  }
+}
+
+window.adminTopUpCourseLessons = async (courseId) => {
+  if (!courseId) return
+  if (!confirm(_adm('courseActions.confirmTopUpLessons'))) return
+
+  try {
+    const { data: course, error: courseErr } = await _scopeOwnerQuery(
+      sb.from('courses')
+        .select('id, schedule_days, schedule_time_start, schedule_time_end, capacity_default, price_single')
+        .eq('id', courseId)
+        .maybeSingle()
+    )
+    if (courseErr) throw courseErr
+    if (!course) throw new Error(_adm('courseActions.errCourseNotFound'))
+
+    const days = Array.isArray(course.schedule_days) ? course.schedule_days : []
+    const timeFrom = course.schedule_time_start
+    const timeTo = course.schedule_time_end
+    if (!days.length || !timeFrom || !timeTo) {
+      throw new Error(_adm('courseActions.errTopUpNoSchedule'))
+    }
+
+    const { data: lastLessons, error: lessonErr } = await sb.from('lessons')
+      .select('start_time')
+      .eq('course_id', courseId)
+      .eq('status', 'active')
+      .order('start_time', { ascending: false })
+      .limit(1)
+    if (lessonErr) throw lessonErr
+
+    const lastStart = lastLessons?.[0]?.start_time || new Date().toISOString()
+    const lessons = _generateLessonsAfterDate(
+      courseId,
+      days,
+      timeFrom,
+      timeTo,
+      Number(course.capacity_default),
+      Number(course.price_single),
+      lastStart,
+      4,
+    )
+
+    if (!lessons.length) throw new Error(_adm('courseActions.errTopUpNoLessons'))
+
+    const { error: insertErr } = await sb.from('lessons').insert(lessons)
+    if (insertErr) throw insertErr
+
+    window.showToast?.(_adm('courseActions.toastTopUpLessons', { n: lessons.length }), 'ok')
+    renderAdminKurzy()
+    await window.refreshPublicData?.()
+  } catch (err) {
+    console.error('[Admin] adminTopUpCourseLessons:', err)
+    window.showToast?.(_adm('courseActions.toastTopUpFail', { msg: err.message ?? err }), 'error')
   }
 }
 
