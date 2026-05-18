@@ -1326,7 +1326,6 @@ const _SIDEBAR_CFG = {
     { id: 'admin-permanentky',  key: 'nav.passes' },
     { id: 'admin-zakaznici',    key: 'nav.customers' },
     { id: 'admin-platby',       key: 'nav.payments' },
-    { id: 'admin-manual',       key: 'nav.adminManual' },
   ],
 }
 
@@ -1358,6 +1357,7 @@ const _BOTTOM_NAV = {
 export function renderNavigation(user) {
   const role = user ? (user.role ?? 'uzivatel') : 'guest'
   window.__userRole = role
+  document.documentElement.dataset.userRole = role
 
   const rawActiveId = document.querySelector('.screen.active')?.id?.replace('screen-', '')
   const activeId = (!user && rawActiveId === 'nastenka')

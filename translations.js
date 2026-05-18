@@ -96,6 +96,51 @@ export const UI_TRANSLATIONS = {
       note:
         'Tip: Pokud si nejste jistí, začněte v Kurzech. Vyberte kurz, otevřete detail a aplikace vás provede rezervací krok za krokem.',
     },
+    lektorManual: {
+      kicker: 'Lektorský manuál',
+      title: 'Jak spravovat vlastní lekce',
+      lead:
+        'Rychlá orientace pro lektora: kde sledovat svoje termíny, spravovat kurzy, komunikovat s účastníky a rušit lekce.',
+      flow1Title: 'Sledujte svoje lekce',
+      flow1Text:
+        'V Přehledu a v sekci Lekce vidíte nejbližší termíny, obsazenost a stav jednotlivých lekcí.',
+      flow2Title: 'Spravujte kurzy',
+      flow2Text:
+        'U svých kurzů můžete upravovat obsah, rozvrh, cenu, kapacitu a doplňovat další termíny.',
+      flow3Title: 'Pečujte o účastníky',
+      flow3Text:
+        'U lekcí kontrolujete účastníky, můžete posílat hromadné zprávy a při zrušení lekce se účastníkům automaticky rozešle upozornění na e-mail.',
+      flow4Title: 'Udržujte nabídku aktuální',
+      flow4Text:
+        'Deaktivujte neaktuální termíny, aktivujte lekce znovu jako čisté a doplňujte nové termíny včas.',
+      coursesTitle: 'Moje kurzy, workshopy a termíny',
+      coursesText:
+        'Lektor spravuje svoje vlastní kurzy a workshopy. Běžný kurz pracuje s týdenním rozvrhem, workshop má jeden konkrétní termín.',
+      coursesLi1: 'Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.',
+      coursesLi2: 'Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.',
+      coursesLi3: 'Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.',
+      coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
+      lessonsTitle: 'Lekce a účastníci',
+      lessonsText:
+        'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
+      lessonsLi1: 'Detail účastníků ukazuje potvrzené účasti a umožňuje účastníky z lekce manuálně odhlašovat.',
+      lessonsLi2: 'Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.',
+      lessonsLi3: 'Zrušení lekce stornuje aktivní přihlášky a rozešle všem účastníkům upozornění o změně na e-mail.',
+      passesTitle: 'Permanentky',
+      passesText:
+        'V sekci Permanentky spravujete permanentky navázané na svoje kurzy a jejich základní parametry.',
+      passesLi1: 'Permanentka může platit na všechny vaše kurzy nebo jen na vybrané kurzy.',
+      passesLi2: 'U permanentky nastavujete počet vstupů, cenu, platnost a barevné označení.',
+      passesLi3: 'Uživatelé vidí svoje zbývající vstupy v Přehledu.',
+      safetyTitle: 'Bezpečnost a úklid',
+      safetyText:
+        'U změn, které ovlivní účastníky, postupujte opatrně. Aplikace některé rizikové kroky chrání potvrzením.',
+      safetyLi1: 'Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.',
+      safetyLi2: 'Deaktivovanou lekci lze znovu aktivovat jako čistou, bez původních přihlášek.',
+      safetyLi3: 'Před zrušením lekce zkontrolujte účastníky a počítejte s automatickým e-mailem.',
+      note:
+        'Doporučení: průběžně sledujte obsazenost svých lekcí a doplňujte termíny dřív, než všechny vypsané lekce doběhnou.',
+    },
     adminManual: {
       kicker: 'Admin manuál',
       title: 'Jak spravovat ateliér',
@@ -802,6 +847,51 @@ export const UI_TRANSLATIONS = {
       accountLi3: 'If you need help with a payment or refund, contact the atelier before deleting your account.',
       note:
         'Tip: If you are unsure where to start, open Courses. Choose a course, open its detail, and the app will guide you through booking step by step.',
+    },
+    lektorManual: {
+      kicker: 'Instructor guide',
+      title: 'How to manage your lessons',
+      lead:
+        'A quick guide for instructors: where to monitor your sessions, manage courses, message participants, and cancel lessons.',
+      flow1Title: 'Watch your lessons',
+      flow1Text:
+        'Overview and Lessons show upcoming sessions, occupancy, and the status of individual lessons.',
+      flow2Title: 'Manage courses',
+      flow2Text:
+        'For your courses, you can edit content, schedule, price, capacity, and add more sessions.',
+      flow3Title: 'Care for participants',
+      flow3Text:
+        'For lessons, check attendees, send bulk messages, and automatically send participants an email notification when a lesson is cancelled.',
+      flow4Title: 'Keep the offer current',
+      flow4Text:
+        'Deactivate outdated sessions, activate lessons again as clean, and add new sessions in time.',
+      coursesTitle: 'My courses, workshops, and sessions',
+      coursesText:
+        'Instructors manage their own courses and workshops. A standard course uses a weekly schedule; a workshop has one specific date.',
+      coursesLi1: 'A standard course has set teaching days and times; individual lessons are created from them.',
+      coursesLi2: 'The Add more sessions button adds the next 4 weeks for all days on which the course runs.',
+      coursesLi3: 'A workshop has one specific date and time, and additional sessions are not added automatically.',
+      coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
+      lessonsTitle: 'Lessons and attendees',
+      lessonsText:
+        'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
+      lessonsLi1: 'Attendee detail shows confirmed participation and lets you manually remove attendees from a lesson.',
+      lessonsLi2: 'You can send a custom bulk email to attendees of one specific lesson.',
+      lessonsLi3: 'Cancelling a lesson cancels active bookings and sends all participants an email notification about the change.',
+      passesTitle: 'Passes',
+      passesText:
+        'In Passes, you manage passes connected to your courses and their basic settings.',
+      passesLi1: 'A pass can apply to all your courses or only selected courses.',
+      passesLi2: 'For each pass, set entry count, price, validity, and colour.',
+      passesLi3: 'Users see their remaining entries in Overview.',
+      safetyTitle: 'Safety and cleanup',
+      safetyText:
+        'Be careful with changes that affect participants. The app protects some risky actions with confirmation.',
+      safetyLi1: 'Future deactivated lessons are not bulk-deleted, so they do not disappear by accident.',
+      safetyLi2: 'A deactivated lesson can be activated again as clean, without previous bookings.',
+      safetyLi3: 'Before cancelling a lesson, check attendees and expect the automatic email notification.',
+      note:
+        'Recommendation: monitor occupancy continuously and add new sessions before all scheduled lessons run out.',
     },
     adminManual: {
       kicker: 'Admin guide',

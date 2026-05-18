@@ -142,11 +142,11 @@
     .top-actions{display:flex;align-items:center;gap:10px;}
     .lang-toggle{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;}
     .lang-pill{
-      padding: 6px 11px;border-radius: 999px;border: 1px solid #FD8D40;
-      background: transparent;color: #FD8D40;cursor:pointer;
+      padding: 6px 11px;border-radius: 999px;border: 1px solid var(--primary);
+      background: transparent;color: var(--primary);cursor:pointer;
     }
-    .lang-pill:not(.active){ color:#FD8D40 !important; }
-    .lang-pill.active{ background: #FD8D40; color:#fff; border-color: #FD8D40; }
+    .lang-pill:not(.active){ color:var(--primary) !important; }
+    .lang-pill.active{ background: var(--primary); color:#fff; border-color: var(--primary); }
     .avatar {
       width: 42px; height: 42px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
@@ -733,6 +733,20 @@
       background: #fff;
       margin-bottom: 18px;
     }
+    .manual-role--lektor,
+    .manual-role--admin {
+      display: none;
+    }
+    html[data-user-role="lektor"] #screen-manual .manual-role--user,
+    html[data-user-role="lektor"] #screen-manual .manual-role--admin,
+    html[data-user-role="admin"] #screen-manual .manual-role--user,
+    html[data-user-role="admin"] #screen-manual .manual-role--lektor {
+      display: none;
+    }
+    html[data-user-role="lektor"] #screen-manual .manual-role--lektor,
+    html[data-user-role="admin"] #screen-manual .manual-role--admin {
+      display: block;
+    }
     .manual-kicker {
       font-size: 11px;
       letter-spacing: .14em;
@@ -1306,6 +1320,7 @@
 
 <!-- ── Screen: Uživatelský manuál ── -->
 <div class="screen" id="screen-manual">
+  <div class="manual-role manual-role--user">
   <section class="manual-hero">
     <div class="manual-kicker" data-i18n="manual.kicker">Uživatelský manuál</div>
     <h1 class="manual-title" data-i18n="manual.title">Jak aplikace funguje</h1>
@@ -1381,6 +1396,167 @@
 
   <div class="manual-note" data-i18n="manual.note">
     Tip: Pokud si nejste jistí, začněte v Kurzech. Vyberte kurz, otevřete detail a aplikace vás provede rezervací krok za krokem.
+  </div>
+  </div>
+
+  <div class="manual-role manual-role--lektor">
+    <section class="manual-hero">
+      <div class="manual-kicker" data-i18n="lektorManual.kicker">Lektorský manuál</div>
+      <h1 class="manual-title" data-i18n="lektorManual.title">Jak spravovat vlastní lekce</h1>
+      <p class="manual-lead" data-i18n="lektorManual.lead">
+        Rychlá orientace pro lektora: kde sledovat svoje termíny, spravovat kurzy, komunikovat s účastníky a rušit lekce.
+      </p>
+    </section>
+
+    <div class="manual-flow" aria-label="Základní workflow lektora">
+      <div class="manual-flow-step">
+        <div class="manual-num">1</div>
+        <div class="manual-step-title" data-i18n="lektorManual.flow1Title">Sledujte svoje lekce</div>
+        <div class="manual-step-text" data-i18n="lektorManual.flow1Text">V Přehledu a v sekci Lekce vidíte nejbližší termíny, obsazenost a stav jednotlivých lekcí.</div>
+      </div>
+      <div class="manual-flow-step">
+        <div class="manual-num">2</div>
+        <div class="manual-step-title" data-i18n="lektorManual.flow2Title">Spravujte kurzy</div>
+        <div class="manual-step-text" data-i18n="lektorManual.flow2Text">U svých kurzů můžete upravovat obsah, rozvrh, cenu, kapacitu a doplňovat další termíny.</div>
+      </div>
+      <div class="manual-flow-step">
+        <div class="manual-num">3</div>
+        <div class="manual-step-title" data-i18n="lektorManual.flow3Title">Pečujte o účastníky</div>
+        <div class="manual-step-text" data-i18n="lektorManual.flow3Text">U lekcí kontrolujete účastníky, můžete posílat hromadné zprávy a při zrušení lekce se účastníkům automaticky rozešle upozornění na e-mail.</div>
+      </div>
+      <div class="manual-flow-step">
+        <div class="manual-num">4</div>
+        <div class="manual-step-title" data-i18n="lektorManual.flow4Title">Udržujte nabídku aktuální</div>
+        <div class="manual-step-text" data-i18n="lektorManual.flow4Text">Deaktivujte neaktuální termíny, aktivujte lekce znovu jako čisté a doplňujte nové termíny včas.</div>
+      </div>
+    </div>
+
+    <div class="manual-grid">
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="lektorManual.coursesTitle">Moje kurzy, workshopy a termíny</div>
+        <p class="manual-card-text" data-i18n="lektorManual.coursesText">Lektor spravuje svoje vlastní kurzy a workshopy. Běžný kurz pracuje s týdenním rozvrhem, workshop má jeden konkrétní termín.</p>
+        <ul class="manual-list">
+          <li data-i18n="lektorManual.coursesLi1">Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.</li>
+          <li data-i18n="lektorManual.coursesLi2">Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.</li>
+          <li data-i18n="lektorManual.coursesLi3">Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.</li>
+          <li data-i18n="lektorManual.coursesLi4">Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="lektorManual.lessonsTitle">Lekce a účastníci</div>
+        <p class="manual-card-text" data-i18n="lektorManual.lessonsText">Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.</p>
+        <ul class="manual-list">
+          <li data-i18n="lektorManual.lessonsLi1">Detail účastníků ukazuje potvrzené účasti a umožňuje účastníky z lekce manuálně odhlašovat.</li>
+          <li data-i18n="lektorManual.lessonsLi2">Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.</li>
+          <li data-i18n="lektorManual.lessonsLi3">Zrušení lekce stornuje aktivní přihlášky a rozešle všem účastníkům upozornění o změně na e-mail.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="lektorManual.passesTitle">Permanentky</div>
+        <p class="manual-card-text" data-i18n="lektorManual.passesText">V sekci Permanentky spravujete permanentky navázané na svoje kurzy a jejich základní parametry.</p>
+        <ul class="manual-list">
+          <li data-i18n="lektorManual.passesLi1">Permanentka může platit na všechny vaše kurzy nebo jen na vybrané kurzy.</li>
+          <li data-i18n="lektorManual.passesLi2">U permanentky nastavujete počet vstupů, cenu, platnost a barevné označení.</li>
+          <li data-i18n="lektorManual.passesLi3">Uživatelé vidí svoje zbývající vstupy v Přehledu.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="lektorManual.safetyTitle">Bezpečnost a úklid</div>
+        <p class="manual-card-text" data-i18n="lektorManual.safetyText">U změn, které ovlivní účastníky, postupujte opatrně. Aplikace některé rizikové kroky chrání potvrzením.</p>
+        <ul class="manual-list">
+          <li data-i18n="lektorManual.safetyLi1">Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.</li>
+          <li data-i18n="lektorManual.safetyLi2">Deaktivovanou lekci lze znovu aktivovat jako čistou, bez původních přihlášek.</li>
+          <li data-i18n="lektorManual.safetyLi3">Před zrušením lekce zkontrolujte účastníky a počítejte s automatickým e-mailem.</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="manual-note" data-i18n="lektorManual.note">
+      Doporučení: průběžně sledujte obsazenost svých lekcí a doplňujte termíny dřív, než všechny vypsané lekce doběhnou.
+    </div>
+  </div>
+
+  <div class="manual-role manual-role--admin">
+    <section class="manual-hero">
+      <div class="manual-kicker" data-i18n="adminManual.kicker">Admin manuál</div>
+      <h1 class="manual-title" data-i18n="adminManual.title">Jak spravovat ateliér</h1>
+      <p class="manual-lead" data-i18n="adminManual.lead">
+        Rychlá orientace pro administrátora: kde sledovat provoz, spravovat kurzy, komunikovat s účastníky a kontrolovat platby.
+      </p>
+    </section>
+
+    <div class="manual-flow" aria-label="Základní workflow administrátora">
+      <div class="manual-flow-step">
+        <div class="manual-num">1</div>
+        <div class="manual-step-title" data-i18n="adminManual.flow1Title">Zkontrolujte přehled</div>
+        <div class="manual-step-text" data-i18n="adminManual.flow1Text">Na úvodní admin stránce sledujete dnešní lekce, nejbližší termíny a základní provozní čísla.</div>
+      </div>
+      <div class="manual-flow-step">
+        <div class="manual-num">2</div>
+        <div class="manual-step-title" data-i18n="adminManual.flow2Title">Spravujte kurzy</div>
+        <div class="manual-step-text" data-i18n="adminManual.flow2Text">Vytvářejte kurzy a workshopy, upravujte rozvrh, doplňujte další termíny a deaktivujte neaktuální položky.</div>
+      </div>
+      <div class="manual-flow-step">
+        <div class="manual-num">3</div>
+        <div class="manual-step-title" data-i18n="adminManual.flow3Title">Pečujte o lekce</div>
+        <div class="manual-step-text" data-i18n="adminManual.flow3Text">U lekcí kontrolujete účastníky, můžete posílat hromadné zprávy a při zrušení lekce se účastníkům automaticky rozešle upozornění na e-mail.</div>
+      </div>
+      <div class="manual-flow-step">
+        <div class="manual-num">4</div>
+        <div class="manual-step-title" data-i18n="adminManual.flow4Title">Kontrolujte platby</div>
+        <div class="manual-step-text" data-i18n="adminManual.flow4Text">V Platbách sledujete měsíční tržby, jednorázové vstupy, permanentky a refundace.</div>
+      </div>
+    </div>
+
+    <div class="manual-grid">
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="adminManual.coursesTitle">Kurzy, workshopy a termíny</div>
+        <p class="manual-card-text" data-i18n="adminManual.coursesText">Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí. Běžný kurz pracuje s týdenním rozvrhem, workshop má jeden konkrétní termín.</p>
+        <ul class="manual-list">
+          <li data-i18n="adminManual.coursesLi1">Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.</li>
+          <li data-i18n="adminManual.coursesLi2">Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.</li>
+          <li data-i18n="adminManual.coursesLi3">Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.</li>
+          <li data-i18n="adminManual.coursesLi4">Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="adminManual.lessonsTitle">Lekce a účastníci</div>
+        <p class="manual-card-text" data-i18n="adminManual.lessonsText">Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.</p>
+        <ul class="manual-list">
+          <li data-i18n="adminManual.lessonsLi1">Detail účastníků ukazuje potvrzené účasti a umožňuje účastníky z lekce manuálně odhlašovat.</li>
+          <li data-i18n="adminManual.lessonsLi2">Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.</li>
+          <li data-i18n="adminManual.lessonsLi3">Zrušení lekce stornuje aktivní přihlášky a rozešle všem účastníkům upozornění o změně na e-mail.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="adminManual.paymentsTitle">Platby a zákazníci</div>
+        <p class="manual-card-text" data-i18n="adminManual.paymentsText">Platby jsou rozdělené po měsících a zákaznická sekce pomáhá dohledat historii uživatele.</p>
+        <ul class="manual-list">
+          <li data-i18n="adminManual.paymentsLi1">Měsíční přehled ukazuje čistý příjem, hrubý příjem a refundace.</li>
+          <li data-i18n="adminManual.paymentsLi2">Refundace se počítají k původnímu měsíci transakce.</li>
+          <li data-i18n="adminManual.paymentsLi3">U zákazníka lze dohledat rezervace, permanentky a platební historii.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="adminManual.safetyTitle">Bezpečnost a úklid</div>
+        <p class="manual-card-text" data-i18n="adminManual.safetyText">Destruktivní akce jsou oddělené potvrzením a některé položky se raději přeskočí, pokud by smazání nebylo bezpečné.</p>
+        <ul class="manual-list">
+          <li data-i18n="adminManual.safetyLi1">Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.</li>
+          <li data-i18n="adminManual.safetyLi2">Deaktivovanou lekci lze znovu aktivovat jako čistou, bez původních přihlášek.</li>
+          <li data-i18n="adminManual.safetyLi3">Smazání účtu uživatele anonymizuje osobní data a ruší budoucí rezervace.</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="manual-note" data-i18n="adminManual.note">
+      Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. U rušení lekcí počítejte s tím, že e-maily odchází přes frontu.
+    </div>
   </div>
 </div>
 
@@ -1544,87 +1720,6 @@
   <div id="admin-dash-content"></div>
 </div>
 
-<!-- ── Screen: Admin manuál ── -->
-<div class="screen" id="screen-admin-manual">
-  <section class="manual-hero">
-    <div class="manual-kicker" data-i18n="adminManual.kicker">Admin manuál</div>
-    <h1 class="manual-title" data-i18n="adminManual.title">Jak spravovat ateliér</h1>
-    <p class="manual-lead" data-i18n="adminManual.lead">
-      Rychlá orientace pro administrátora: kde sledovat provoz, spravovat kurzy, komunikovat s účastníky a kontrolovat platby.
-    </p>
-  </section>
-
-  <div class="manual-flow" aria-label="Základní workflow administrátora">
-    <div class="manual-flow-step">
-      <div class="manual-num">1</div>
-      <div class="manual-step-title" data-i18n="adminManual.flow1Title">Zkontrolujte přehled</div>
-      <div class="manual-step-text" data-i18n="adminManual.flow1Text">Na úvodní admin stránce sledujete dnešní lekce, nejbližší termíny a základní provozní čísla.</div>
-    </div>
-    <div class="manual-flow-step">
-      <div class="manual-num">2</div>
-      <div class="manual-step-title" data-i18n="adminManual.flow2Title">Spravujte kurzy</div>
-      <div class="manual-step-text" data-i18n="adminManual.flow2Text">Vytvářejte kurzy a workshopy, upravujte rozvrh, doplňujte další termíny a deaktivujte neaktuální položky.</div>
-    </div>
-    <div class="manual-flow-step">
-      <div class="manual-num">3</div>
-      <div class="manual-step-title" data-i18n="adminManual.flow3Title">Pečujte o lekce</div>
-      <div class="manual-step-text" data-i18n="adminManual.flow3Text">U lekcí kontrolujete účastníky, můžete posílat hromadné zprávy a při zrušení lekce se účastníkům automaticky rozešle upozornění na e-mail.</div>
-    </div>
-    <div class="manual-flow-step">
-      <div class="manual-num">4</div>
-      <div class="manual-step-title" data-i18n="adminManual.flow4Title">Kontrolujte platby</div>
-      <div class="manual-step-text" data-i18n="adminManual.flow4Text">V Platbách sledujete měsíční tržby, jednorázové vstupy, permanentky a refundace.</div>
-    </div>
-  </div>
-
-  <div class="manual-grid">
-    <article class="manual-card">
-      <div class="manual-card-title" data-i18n="adminManual.coursesTitle">Kurzy, workshopy a termíny</div>
-      <p class="manual-card-text" data-i18n="adminManual.coursesText">Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí. Běžný kurz pracuje s týdenním rozvrhem, workshop má jeden konkrétní termín.</p>
-      <ul class="manual-list">
-        <li data-i18n="adminManual.coursesLi1">Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.</li>
-        <li data-i18n="adminManual.coursesLi2">Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.</li>
-        <li data-i18n="adminManual.coursesLi3">Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.</li>
-        <li data-i18n="adminManual.coursesLi4">Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.</li>
-      </ul>
-    </article>
-
-    <article class="manual-card">
-      <div class="manual-card-title" data-i18n="adminManual.lessonsTitle">Lekce a účastníci</div>
-      <p class="manual-card-text" data-i18n="adminManual.lessonsText">Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.</p>
-      <ul class="manual-list">
-        <li data-i18n="adminManual.lessonsLi1">Detail účastníků ukazuje potvrzené účasti a umožňuje účastníky z lekce manuálně odhlašovat.</li>
-        <li data-i18n="adminManual.lessonsLi2">Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.</li>
-        <li data-i18n="adminManual.lessonsLi3">Zrušení lekce stornuje aktivní přihlášky a rozešle všem účastníkům upozornění o změně na e-mail.</li>
-      </ul>
-    </article>
-
-    <article class="manual-card">
-      <div class="manual-card-title" data-i18n="adminManual.paymentsTitle">Platby a zákazníci</div>
-      <p class="manual-card-text" data-i18n="adminManual.paymentsText">Platby jsou rozdělené po měsících a zákaznická sekce pomáhá dohledat historii uživatele.</p>
-      <ul class="manual-list">
-        <li data-i18n="adminManual.paymentsLi1">Měsíční přehled ukazuje čistý příjem, hrubý příjem a refundace.</li>
-        <li data-i18n="adminManual.paymentsLi2">Refundace se počítají k původnímu měsíci transakce.</li>
-        <li data-i18n="adminManual.paymentsLi3">U zákazníka lze dohledat rezervace, permanentky a platební historii.</li>
-      </ul>
-    </article>
-
-    <article class="manual-card">
-      <div class="manual-card-title" data-i18n="adminManual.safetyTitle">Bezpečnost a úklid</div>
-      <p class="manual-card-text" data-i18n="adminManual.safetyText">Destruktivní akce jsou oddělené potvrzením a některé položky se raději přeskočí, pokud by smazání nebylo bezpečné.</p>
-      <ul class="manual-list">
-        <li data-i18n="adminManual.safetyLi1">Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.</li>
-        <li data-i18n="adminManual.safetyLi2">Deaktivovanou lekci lze znovu aktivovat jako čistou, bez původních přihlášek.</li>
-        <li data-i18n="adminManual.safetyLi3">Smazání účtu uživatele anonymizuje osobní data a ruší budoucí rezervace.</li>
-      </ul>
-    </article>
-  </div>
-
-  <div class="manual-note" data-i18n="adminManual.note">
-    Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. U rušení lekcí počítejte s tím, že e-maily odchází přes frontu.
-  </div>
-</div>
-
 <!-- ── Screen: Admin Kurzy ── -->
 <div class="screen" id="screen-admin-kurzy">
   <div id="admin-kurzy-content"></div>
@@ -1750,7 +1845,7 @@
   function nav(id, el) {
     console.log('[Debug] nav()', id, '— jen přepnutí screenu + hooky, NE volá init()')
     // Sekce přístupné jen adminovi (lektor jejich tlačítka v sidebaru ani nevidí, ale nav() je extra ochrana)
-    const adminOnlySections = new Set(['sprava', 'admin-dashboard', 'admin-zakaznici', 'admin-platby', 'admin-manual'])
+    const adminOnlySections = new Set(['sprava', 'admin-dashboard', 'admin-zakaznici', 'admin-platby'])
     // Správa kurzů a permanentek — admin i lektor (RLS scopuje lektora na vlastní)
     const staffSections     = new Set(['admin-kurzy', 'admin-permanentky'])
     // Lekce, které učím — admin i lektor
