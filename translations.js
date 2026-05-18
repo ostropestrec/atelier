@@ -68,29 +68,17 @@ export const UI_TRANSLATIONS = {
       flow4Title: 'Přijďte na lekci',
       flow4Text:
         'V Nastavení si můžete zapnout připomínku e-mailem, aby vám termín neunikl.',
-      coursesTitle: 'Kurzy a kalendář',
-      coursesText:
-        'Kurzy slouží k výběru podle tématu. Kalendář je nejlepší, když hledáte konkrétní den nebo čas.',
-      coursesLi1: 'Detail kurzu ukazuje popis, lektora, cenu, kapacitu a termíny.',
-      coursesLi2: 'Tlačítko Rezervovat se zobrazí jen u budoucích termínů, které lze rezervovat.',
-      coursesLi3: 'Pokud je lekce plná, aplikace vás na to upozorní.',
       passesTitle: 'Permanentky',
       passesText:
         'Permanentka obsahuje předplacené vstupy. Při rezervaci si můžete vybrat termíny, na které ji použijete.',
       passesLi1: 'V Přehledu vidíte, kolik vstupů vám zbývá.',
       passesLi2: 'Některé permanentky mohou platit jen na vybrané kurzy.',
       passesLi3: 'Při nákupu stejné aktivní permanentky vás aplikace upozorní.',
-      overviewTitle: 'Přehled',
-      overviewText:
-        'Přehled je vaše domovská stránka po přihlášení. Najdete v něm aktivní permanentky a budoucí přihlášení na lekce.',
-      overviewLi1: 'U každé lekce vidíte datum, čas, kurz a lektora.',
-      overviewLi2: 'Stav lekce rozlišuje potvrzenou účast a čekání na platbu.',
-      overviewLi3: 'Z Přehledu můžete u vybraných lekcí provést storno.',
       accountTitle: 'Účet a bezpečnost',
       accountText:
         'V Nastavení upravíte osobní údaje, heslo, barvu avatara a e-mailové připomínky.',
       accountLi1: 'Smazání účtu je nevratné a anonymizuje osobní údaje.',
-      accountLi2: 'Budoucí přihlášení se při smazání účtu zruší.',
+      accountLi2: 'Budoucí rezervace lekcí se zruší a místa se uvolní ostatním.',
       accountLi3: 'Pokud řešíte platbu nebo refundaci, kontaktujte ateliér před smazáním účtu.',
       note:
         'Tip: Pokud si nejste jistí, začněte v Kurzech. Vyberte kurz, otevřete detail a aplikace vás provede rezervací krok za krokem.',
@@ -729,29 +717,17 @@ export const UI_TRANSLATIONS = {
       flow4Title: 'Attend the lesson',
       flow4Text:
         'In Settings, you can turn on email reminders so you do not miss the session.',
-      coursesTitle: 'Courses and calendar',
-      coursesText:
-        'Use Courses when choosing by topic. Use Calendar when looking for a specific day or time.',
-      coursesLi1: 'Course detail shows description, instructor, price, capacity, and scheduled dates.',
-      coursesLi2: 'The Book button appears only for future sessions that can be booked.',
-      coursesLi3: 'If a lesson is full, the app will tell you.',
       passesTitle: 'Passes',
       passesText:
         'A pass contains prepaid entries. When booking, you can choose which sessions to use it for.',
       passesLi1: 'Overview shows how many entries you have left.',
       passesLi2: 'Some passes may apply only to selected courses.',
       passesLi3: 'The app warns you before buying the same active pass again.',
-      overviewTitle: 'Overview',
-      overviewText:
-        'Overview is your home page after signing in. It shows active passes and upcoming lesson bookings.',
-      overviewLi1: 'Each lesson shows date, time, course, and instructor.',
-      overviewLi2: 'Lesson status distinguishes confirmed participation from waiting for payment.',
-      overviewLi3: 'For selected lessons, you can cancel directly from Overview.',
       accountTitle: 'Account and safety',
       accountText:
         'Settings lets you update personal details, password, avatar colour, and email reminders.',
       accountLi1: 'Account deletion is irreversible and anonymises personal data.',
-      accountLi2: 'Future bookings are cancelled when the account is deleted.',
+      accountLi2: 'Future lesson bookings are cancelled and the spots are released for others.',
       accountLi3: 'If you need help with a payment or refund, contact the atelier before deleting your account.',
       note:
         'Tip: If you are unsure where to start, open Courses. Choose a course, open its detail, and the app will guide you through booking step by step.',
