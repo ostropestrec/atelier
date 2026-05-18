@@ -773,8 +773,7 @@
       gap: 18px;
       margin: 16px 0 22px;
     }
-    .manual-flow-step,
-    .manual-card {
+    .manual-flow-step {
       border: 1px solid var(--border);
       border-radius: 14px;
       background: #fff;
@@ -818,17 +817,30 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
-    .manual-card { padding: 16px; }
+    .manual-card {
+      position: relative;
+      padding: 4px 0 4px 28px;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+    }
+    .manual-card::before {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 8px;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #111;
+    }
     .manual-list {
       margin: 8px 0 0;
       padding-left: 18px;
     }
     .manual-note {
       margin-top: 16px;
-      border-radius: 14px;
-      background: var(--muted-surface);
-      border: 1px solid var(--border);
-      padding: 14px 16px;
+      padding: 4px 0;
       font-size: 12px;
       color: var(--anno);
       line-height: 1.65;
@@ -1382,6 +1394,7 @@
         <li data-i18n="manual.lessonCancelledLi1">Účastníci lekce dostanou o zrušení upozornění e-mailem.</li>
         <li data-i18n="manual.lessonCancelledLi2">E-mail se odešle na adresu uvedenou ve vašem účtu.</li>
         <li data-i18n="manual.lessonCancelledLi3">Pokud se e-mail zpozdí, rozhodující je stav lekce přímo v aplikaci.</li>
+        <li data-i18n="manual.lessonCancelledLi4">Místo zakoupené jednorázovou platbou bude refundováno a peníze budou vráceny na účet.</li>
       </ul>
     </article>
 

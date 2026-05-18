@@ -89,6 +89,8 @@ export const UI_TRANSLATIONS = {
       lessonCancelledLi1: 'Účastníci lekce dostanou o zrušení upozornění e-mailem.',
       lessonCancelledLi2: 'E-mail se odešle na adresu uvedenou ve vašem účtu.',
       lessonCancelledLi3: 'Pokud se e-mail zpozdí, rozhodující je stav lekce přímo v aplikaci.',
+      lessonCancelledLi4:
+        'Místo zakoupené jednorázovou platbou bude refundováno a peníze budou vráceny na účet.',
       accountTitle: 'Účet a bezpečnost',
       accountText:
         'V Nastavení upravíte osobní údaje, heslo, barvu avatara a e-mailové připomínky.',
@@ -852,6 +854,8 @@ export const UI_TRANSLATIONS = {
       lessonCancelledLi1: 'Lesson participants receive an email notification about the cancellation.',
       lessonCancelledLi2: 'The email is sent to the address in your account.',
       lessonCancelledLi3: 'If the email is delayed, the lesson status in the app is the source of truth.',
+      lessonCancelledLi4:
+        'A spot purchased with a single-entry payment will be refunded and the money will be returned to the account.',
       accountTitle: 'Account and safety',
       accountText:
         'Settings lets you update personal details, password, avatar colour, and email reminders.',
