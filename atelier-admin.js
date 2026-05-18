@@ -1168,15 +1168,17 @@ function _adminCourseScheduleHtml(course) {
     && new Date(lesson.start_time).getTime() >= nowMs
   )
   const nextLesson = upcomingActiveLessons[0]
+  const lastLesson = upcomingActiveLessons[upcomingActiveLessons.length - 1]
   const lessonsText = _adm('kurzy.listedLessonsCount', { n: upcomingActiveLessons.length })
-  const nextText = nextLesson?.start_time
-    ? _adm('kurzy.nextLesson', {
-      when: `${fmtDateTime(nextLesson.start_time)}${nextLesson.end_time ? `–${fmtTimeOnly(nextLesson.end_time)}` : ''}`,
+  const lessonsRangeText = nextLesson?.start_time && lastLesson?.start_time
+    ? _adm('kurzy.listedLessonsRange', {
+      first: fmtDate(nextLesson.start_time),
+      last: fmtDate(lastLesson.start_time),
     })
     : _adm('kurzy.noUpcomingLessons')
   return `
     ${infoBox(_adm('kurzy.schedule'), scheduleText)}
-    ${infoBox(_adm('kurzy.listedLessons'), lessonsText, nextText)}`
+    ${infoBox(_adm('kurzy.listedLessons'), lessonsText, lessonsRangeText)}`
 }
 
 function _courseCard(course) {

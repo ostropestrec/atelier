@@ -49,7 +49,8 @@
       --radius: 14px;
       /* Pilulkové tlačítka = stejné zaoblení jako položky sidebaru */
       --btn-radius: 999px;
-      --page-bg-desktop: #e6ede3;
+      --page-bg-desktop: #f3f0e7;
+      --page-bg-desktop-image: url('./assets/atelier-pastel-ceramic-background.png');
       --shell-max: 1000px;
       --shell-radius: 24px;
       /* Mezery mezi sekcemi na Přehledu (uživatel, admin, lektor) */
@@ -66,7 +67,7 @@
       transition: background-color .35s ease, padding .35s ease;
     }
 
-    /* Obal aplikace: desktop = bílá karta na zeleném pláti, mobil = plná šířka bíle */
+    /* Obal aplikace: desktop = bílá karta na keramickém pozadí, mobil = plná šířka bíle */
     .layout-shell {
       display: flex;
       flex-direction: column;
@@ -81,7 +82,11 @@
 
     @media (min-width: 1024px) {
       body {
-        background: var(--page-bg-desktop);
+        background-color: var(--page-bg-desktop);
+        background-image: var(--page-bg-desktop-image);
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
         padding: 22px clamp(14px, 3vw, 28px);
         box-sizing: border-box;
         min-height: 100vh;
