@@ -141,7 +141,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Před zrušením lekce zkontrolujte účastníky a počítejte s automatickým e-mailem.',
       note:
-        'Doporučení: průběžně sledujte obsazenost svých lekcí a doplňujte termíny dřív, než všechny vypsané lekce doběhnou.',
+        'Doporučení: průběžně sledujte obsazenost svých lekcí a doplňujte termíny dřív, než všechny vypsané lekce doběhnou. Při zrušení lekce se účastníkům automaticky odešle e-mailové upozornění. Odeslání může mít krátké zpoždění.',
     },
     adminManual: {
       kicker: 'Admin manuál',
@@ -186,7 +186,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Smazání účtu uživatele anonymizuje osobní data a ruší budoucí rezervace.',
       note:
-        'Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. U rušení lekcí počítejte s tím, že e-maily odchází přes frontu.',
+        'Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. Při zrušení lekce se účastníkům automaticky odešle e-mailové upozornění. Odeslání může mít krátké zpoždění.',
     },
     pages: {
       signIn: 'Přihlásit se',
@@ -897,7 +897,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Before cancelling a lesson, check attendees and expect the automatic email notification.',
       note:
-        'Recommendation: monitor occupancy continuously and add new sessions before all scheduled lessons run out.',
+        'Recommendation: monitor occupancy continuously and add new sessions before all scheduled lessons run out. When a lesson is cancelled, participants automatically receive an email notification. Sending can be delayed briefly.',
     },
     adminManual: {
       kicker: 'Admin guide',
@@ -942,7 +942,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Deleting a user account anonymises personal data and cancels future bookings.',
       note:
-        'Recommendation: before a larger change, first check whether the course or lesson has active bookings. For lesson cancellations, remember that emails are sent through the queue.',
+        'Recommendation: before a larger change, first check whether the course or lesson has active bookings. When a lesson is cancelled, participants automatically receive an email notification. Sending can be delayed briefly.',
     },
     pages: {
       signIn: 'Sign in',
