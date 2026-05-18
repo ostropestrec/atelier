@@ -137,7 +137,7 @@ export const UI_TRANSLATIONS = {
       safetyTitle: 'Bezpečnost a úklid',
       safetyText:
         'U změn, které ovlivní účastníky, postupujte opatrně. Aplikace některé rizikové kroky chrání potvrzením.',
-      safetyLi1: 'Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.',
+      safetyLi1: 'Deaktivované lekce s budoucím termínem se nedají smazat.',
       safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Před zrušením lekce zkontrolujte účastníky a počítejte s automatickým e-mailem.',
       note:
@@ -182,7 +182,7 @@ export const UI_TRANSLATIONS = {
       safetyTitle: 'Bezpečnost a úklid',
       safetyText:
         'Destruktivní akce jsou oddělené potvrzením a některé položky se raději přeskočí, pokud by smazání nebylo bezpečné.',
-      safetyLi1: 'Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.',
+      safetyLi1: 'Deaktivované lekce s budoucím termínem se nedají smazat.',
       safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Smazání účtu uživatele anonymizuje osobní data a ruší budoucí rezervace.',
       note:
@@ -893,7 +893,7 @@ export const UI_TRANSLATIONS = {
       safetyTitle: 'Safety and cleanup',
       safetyText:
         'Be careful with changes that affect participants. The app protects some risky actions with confirmation.',
-      safetyLi1: 'Future deactivated lessons are not bulk-deleted, so they do not disappear by accident.',
+      safetyLi1: 'Deactivated lessons with a future date cannot be deleted.',
       safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Before cancelling a lesson, check attendees and expect the automatic email notification.',
       note:
@@ -938,7 +938,7 @@ export const UI_TRANSLATIONS = {
       safetyTitle: 'Safety and cleanup',
       safetyText:
         'Destructive actions require confirmation, and some items are skipped when deletion would not be safe.',
-      safetyLi1: 'Future deactivated lessons are not bulk-deleted, so they do not disappear by accident.',
+      safetyLi1: 'Deactivated lessons with a future date cannot be deleted.',
       safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Deleting a user account anonymises personal data and cancels future bookings.',
       note:
