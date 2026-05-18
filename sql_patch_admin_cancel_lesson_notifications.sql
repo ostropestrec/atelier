@@ -65,7 +65,7 @@ begin
     return jsonb_build_object('ok', false, 'error', 'forbidden');
   end if;
 
-  v_subject := concat('Zrušení lekce: ', v_course_title);
+  v_subject := concat('Zrušení lekce / Lesson cancelled: ', v_course_title);
   v_body := concat(
     'Dobrý den,', E'\n\n',
     'omlouváme se, lekce ', v_course_title,
@@ -76,7 +76,18 @@ begin
     end,
     ' byla zrušena.', E'\n\n',
     'Děkujeme za pochopení.', E'\n',
-    'Ateliér'
+    'Ateliér',
+    E'\n\n---\n\n',
+    'Hello,', E'\n\n',
+    'we are sorry, the lesson ', v_course_title,
+    case
+      when v_lesson_start is not null
+        then concat(' scheduled for ', to_char(v_lesson_start at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'))
+      else ''
+    end,
+    ' has been cancelled.', E'\n\n',
+    'Thank you for your understanding.', E'\n',
+    'Atelier'
   );
 
   insert into public.email_notification_queue (to_email, subject, body_plain)

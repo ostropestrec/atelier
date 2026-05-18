@@ -98,10 +98,10 @@ begin
     concat(
       v_body,
       E'\n\n---\n',
-      'Lekce: ', coalesce(v_course_title, 'Lekce'),
+      'Lekce / Lesson: ', coalesce(v_course_title, 'Lekce'),
       case
         when v_lesson_start is not null
-          then concat(E'\nTermín: ', to_char(v_lesson_start at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'))
+          then concat(E'\nTermín / Date and time: ', to_char(v_lesson_start at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'))
         else ''
       end
     )

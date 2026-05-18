@@ -90,7 +90,7 @@ begin
   where id = p_lesson_id;
 
   if v_changed then
-    v_subject := concat('Změna termínu lekce: ', v_course_title);
+    v_subject := concat('Změna termínu lekce / Lesson rescheduled: ', v_course_title);
     v_body := concat(
       'Dobrý den,', E'\n\n',
       'upozorňujeme na změnu termínu lekce ', v_course_title, '.', E'\n\n',
@@ -109,7 +109,26 @@ begin
       E'\n\n',
       'Vaše přihlášení na lekci zůstává platné.', E'\n\n',
       'Děkujeme za pochopení.', E'\n',
-      'Ateliér'
+      'Ateliér',
+      E'\n\n---\n\n',
+      'Hello,', E'\n\n',
+      'we would like to let you know that the lesson ', v_course_title, ' has been rescheduled.', E'\n\n',
+      'Original time: ',
+      coalesce(to_char(v_old_start at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'), '—'),
+      case
+        when v_old_end is not null
+          then concat('–', to_char(v_old_end at time zone 'Europe/Prague', 'HH24:MI'))
+        else ''
+      end,
+      E'\n',
+      'New time: ',
+      to_char(p_start_time at time zone 'Europe/Prague', 'DD.MM.YYYY HH24:MI'),
+      '–',
+      to_char(p_end_time at time zone 'Europe/Prague', 'HH24:MI'),
+      E'\n\n',
+      'Your lesson booking remains valid.', E'\n\n',
+      'Thank you for your understanding.', E'\n',
+      'Atelier'
     );
 
     insert into public.email_notification_queue (to_email, subject, body_plain)
