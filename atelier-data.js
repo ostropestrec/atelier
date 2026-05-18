@@ -927,6 +927,7 @@ function openKalendarPopup(lesson, course, enrolled) {
   const bFree    = document.getElementById('kal-btns-free')
   const bStaff   = document.getElementById('kal-btns-staff')
   const rezBtn   = document.getElementById('kal-rez-btn')
+  const publicDetailBtn = document.getElementById('kal-course-detail-btn')
 
   if (enrBadge) {
     enrBadge.textContent = `✓ ${_tp('common.enrolled')}`
@@ -934,6 +935,14 @@ function openKalendarPopup(lesson, course, enrolled) {
   }
   const cKalCancel = document.getElementById('kal-cancel-booking-btn')
   if (cKalCancel) cKalCancel.textContent = _tp('kal.cancelBooking')
+  if (publicDetailBtn) {
+    publicDetailBtn.textContent = _tp('admin.btn.courseDetail')
+    publicDetailBtn.onclick = () => {
+      const pop = document.getElementById('pop-kal')
+      if (pop) pop.style.display = 'none'
+      window.openDetail?.(lesson.course_id)
+    }
+  }
   if (bEnr)     bEnr.style.display     = enrolled && canCancelEnrolledBooking ? 'block' : 'none'
   if (bFree)    bFree.style.display    = enrolled || staffUser || !canBookLesson ? 'none'  : 'grid'
   if (bStaff)   bStaff.style.display   = staffUser ? 'grid' : 'none'
