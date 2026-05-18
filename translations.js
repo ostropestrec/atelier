@@ -567,9 +567,9 @@ export const UI_TRANSLATIONS = {
       },
       lessonActions: {
         confirmDeactivate:
-          'Opravdu deaktivovat lekci? Rezervace budou stornovány a účastníkům se odešle upozornění na jejich e‑mail.',
+          'Opravdu deaktivovat lekci? Aktivní přihlášky budou zrušeny a účastníkům automaticky odešleme e-mail s upozorněním.',
         toastDeactivateNoRpc:
-          'Lekce deaktivována (bez RPC — e‑maily ze fronty nedostanete, nasaďte SQL).',
+          'Lekce byla deaktivována, ale e-mailová upozornění se nezařadila automaticky. Zkontrolujte prosím nastavení notifikací.',
         toastDeactivated: 'Lekce byla deaktivována.',
         confirmDelete: 'Opravdu trvale smazat tuto deaktivovanou lekci? Akce je nevratná.',
         errDeleteOnlyDeactivated: 'Smazat lze jen deaktivovanou lekci — nejprve ji deaktivujte.',
@@ -1155,9 +1155,9 @@ export const UI_TRANSLATIONS = {
       },
       lessonActions: {
         confirmDeactivate:
-          'Really deactivate this lesson? Bookings will be cancelled and participants will receive an email notification.',
+          'Really deactivate this lesson? Active bookings will be cancelled and participants will automatically receive an email notification.',
         toastDeactivateNoRpc:
-          'Lesson deactivated (without RPC — you won’t get queue emails until SQL is deployed).',
+          'Lesson deactivated, but email notifications were not queued automatically. Please check the notification setup.',
         toastDeactivated: 'Lesson deactivated.',
         confirmDelete:
           'Really permanently delete this deactivated lesson? This cannot be undone.',
