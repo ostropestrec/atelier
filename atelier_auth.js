@@ -1319,22 +1319,22 @@ const _SIDEBAR_CFG = {
   lektor: [
     { id: 'nastenka',          key: 'nav.overview' },
     { id: 'kalendar',          key: 'nav.calendar' },
-    { id: 'manual',            key: 'nav.manual' },
     { section: 'nav.sectionManagement' },
     { id: 'moje-lekce',        key: 'nav.myLessons' },
     { id: 'admin-kurzy',        key: 'nav.courses' },
     { id: 'admin-permanentky',  key: 'nav.passes' },
+    { id: 'manual',            key: 'nav.manual' },
   ],
   admin: [
     { id: 'admin-dashboard', key: 'nav.overview' },
     { id: 'kalendar',        key: 'nav.calendar' },
-    { id: 'manual',          key: 'nav.manual' },
     { section: 'nav.sectionManagement' },
     { id: 'moje-lekce',     key: 'nav.myLessons' },
     { id: 'admin-kurzy',        key: 'nav.courses' },
     { id: 'admin-permanentky',  key: 'nav.passes' },
     { id: 'admin-zakaznici',    key: 'nav.customers' },
     { id: 'admin-platby',       key: 'nav.payments' },
+    { id: 'manual',          key: 'nav.manual' },
   ],
 }
 
