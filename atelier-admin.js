@@ -3581,6 +3581,15 @@ function _adminLessonMessageErrorLabel(code) {
   return map[code] || code || _adm('lessonDetail.errOperationFailed')
 }
 
+async function _adminTryProcessEmailQueue() {
+  try {
+    const { error: invokeErr } = await sb.functions.invoke('process-email-queue')
+    if (invokeErr) console.warn('[Admin] process-email-queue invoke failed:', invokeErr)
+  } catch (invokeErr) {
+    console.warn('[Admin] process-email-queue invoke failed:', invokeErr)
+  }
+}
+
 window.adminSendLessonParticipantMessage = async (lessonId) => {
   if (!lessonId) return
   const subjectEl = document.getElementById('mla-message-subject')
@@ -3623,12 +3632,7 @@ window.adminSendLessonParticipantMessage = async (lessonId) => {
         panel.hidden = true
         panel.style.display = 'none'
       }
-      try {
-        const { error: invokeErr } = await sb.functions.invoke('process-email-queue')
-        if (invokeErr) console.warn('[Admin] process-email-queue invoke failed:', invokeErr)
-      } catch (invokeErr) {
-        console.warn('[Admin] process-email-queue invoke failed:', invokeErr)
-      }
+      await _adminTryProcessEmailQueue()
     } else {
       window.showToast?.(_adm('lessonDetail.messageQueuedNone'), 'info')
     }
@@ -3884,7 +3888,7 @@ window.adminDeactivateLesson = async (lessonId) => {
       }
     }
     if (!confirm(_adm('lessonActions.confirmDeactivate'))) return
-    const { error: rpcErr } = await sb.rpc('admin_cancel_lesson', { p_lesson_id: lessonId })
+    const { data, error: rpcErr } = await sb.rpc('admin_cancel_lesson', { p_lesson_id: lessonId })
     if (rpcErr) {
       const missFn = rpcErr.code === 'PGRST202'
         || rpcErr.message?.includes('Could not find the function')
@@ -3902,7 +3906,13 @@ window.adminDeactivateLesson = async (lessonId) => {
       }
       throw rpcErr
     }
+    if (data && data.ok === false) {
+      throw new Error(_adminLessonMessageErrorLabel(data.error))
+    }
     window.showToast?.(_adm('lessonActions.toastDeactivated'), 'ok')
+    if (Number(data?.queued ?? data?.recipients ?? 0) > 0) {
+      await _adminTryProcessEmailQueue()
+    }
     _refreshAfterLessonChange()
   } catch (err) {
     console.error('[Admin] deactivateLesson:', err)
