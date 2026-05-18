@@ -101,6 +101,12 @@ function _passCardSurfaceStyle(hex) {
   return `background:${h}18;border:1px solid ${h}44;`
 }
 
+function _passCancellationLimit(entriesTotal) {
+  const total = Number(entriesTotal)
+  if (!Number.isFinite(total) || total <= 0) return 0
+  return total <= 5 ? 1 : 2
+}
+
 const MAX_COURSE_PHOTOS = 4
 const MAX_PHOTO_UPLOAD_BYTES = 10 * 1024 * 1024
 const COMPRESS_OVER_BYTES = 5 * 1024 * 1024
@@ -1468,10 +1474,15 @@ function _mupPassesListHtml(passes) {
   return addHtml + passes.map(up => {
     const name = loc(up.pass?.name) || _adm('misc.pass')
     const st = up.status || 'active'
+    const cancellationCount = Number(up.cancellation_count ?? 0)
+    const cancellationLimit = _passCancellationLimit(up.entries_total)
     return `
     <div data-mup-card="${esc(up.id)}" style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;background:#fafafa;">
       <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${esc(name)}</div>
       <div style="font-size:11px;color:#6b6b6b;margin-bottom:10px;">${_adm('mup.purchasedOn', { date: fmtDate(up.created_at) })}</div>
+      <div style="font-size:11px;color:#6b6b6b;margin:-4px 0 10px;">
+        ${esc(_adm('mup.cancellationsUsed', { used: cancellationCount, limit: cancellationLimit || 0 }))}
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
           <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelRemaining'))}</label>
@@ -1546,7 +1557,7 @@ async function _mupReloadBody() {
   body.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.generic'))}</div>`
   const [userPassRes, passTemplatesRes] = await Promise.all([
     sb.from('user_passes')
-      .select('id, entries_total, entries_remaining, expires_at, status, price_paid, created_at, pass:passes(name)')
+      .select('id, entries_total, entries_remaining, cancellation_count, expires_at, status, price_paid, created_at, pass:passes(name)')
       .eq('user_id', _mupEditUserId)
       .order('created_at', { ascending: false }),
     sb.from('passes')

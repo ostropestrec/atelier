@@ -375,6 +375,7 @@ export const UI_TRANSLATIONS = {
       hello: 'Dobrý den, {{name}}',
       userYou: 'uživateli',
       passMeta: '{{remaining}} z {{total}} vstupů · platí do {{date}}',
+      passCancellations: 'Storna: {{used}}/{{limit}}',
       sectionPasses: 'Aktivní permanentky',
       emptyPasses: 'Nemáte žádné aktivní permanentky.',
       refundNote:
@@ -598,6 +599,7 @@ export const UI_TRANSLATIONS = {
         labelValidUntil: 'Platnost do',
         labelStatus: 'Stav',
         labelPricePaid: 'Cena zaplaceno (Kč)',
+        cancellationsUsed: 'Storna: {{used}}/{{limit}}',
       },
       platby: {
         empty: 'Žádné platby.',
@@ -1127,6 +1129,7 @@ export const UI_TRANSLATIONS = {
       hello: 'Hello, {{name}}',
       userYou: 'there',
       passMeta: '{{remaining}} of {{total}} entries · valid until {{date}}',
+      passCancellations: 'Cancellations: {{used}}/{{limit}}',
       sectionPasses: 'Active passes',
       emptyPasses: 'You have no active passes.',
       refundNote:
@@ -1352,6 +1355,7 @@ export const UI_TRANSLATIONS = {
         labelValidUntil: 'Valid until',
         labelStatus: 'Status',
         labelPricePaid: 'Price paid (CZK)',
+        cancellationsUsed: 'Cancellations: {{used}}/{{limit}}',
       },
       platby: {
         empty: 'No payments.',

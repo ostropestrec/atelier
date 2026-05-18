@@ -1473,12 +1473,21 @@ export function buildUserOverviewHtml(user) {
         const pct = total ? Math.round((used / total) * 100) : 0
         const ph = pickPassTheme(p?.color_code)
         const exp = up.expires_at ? fmtDate(up.expires_at) : ''
+        const cancellationCount = Number(up.cancellation_count ?? 0)
+        const cancellationLimit = passCancellationLimit(total)
+        const cancellationHtml = cancellationCount > 0 && cancellationLimit > 0
+          ? `<div class="pass-meta" style="margin-top:4px;">${escapeHtml(t(locale, 'dashboard.passCancellations', {
+            used: cancellationCount,
+            limit: cancellationLimit,
+          }))}</div>`
+          : ''
         return `
           <div class="pass-item" style="${passCardSurface(ph)}">
             <div class="pass-top">
               <div>
                 <div class="pass-name">${escapeHtml(name)}</div>
                 <div class="pass-meta">${escapeHtml(t(locale, 'dashboard.passMeta', { remaining, total, date: exp }))}</div>
+                ${cancellationHtml}
               </div>
               <div class="pass-count" style="color:${ph};">${remaining}</div>
             </div>
