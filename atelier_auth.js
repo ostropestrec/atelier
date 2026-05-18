@@ -1298,16 +1298,19 @@ const _SIDEBAR_CFG = {
   guest: [
     { id: 'kalendar',  key: 'nav.calendar' },
     { id: 'kurzy',     key: 'nav.courses' },
+    { id: 'manual',    key: 'nav.manual' },
   ],
   uzivatel: [
     { id: 'nastenka',  key: 'nav.overview' },
     { id: 'kalendar',  key: 'nav.calendar' },
     { id: 'kurzy',     key: 'nav.courses' },
     { id: 'permanentky', key: 'nav.passes' },
+    { id: 'manual',    key: 'nav.manual' },
   ],
   lektor: [
     { id: 'nastenka',          key: 'nav.overview' },
     { id: 'kalendar',          key: 'nav.calendar' },
+    { id: 'manual',            key: 'nav.manual' },
     { section: 'nav.sectionManagement' },
     { id: 'moje-lekce',        key: 'nav.myLessons' },
     { id: 'admin-kurzy',        key: 'nav.courses' },
@@ -1316,6 +1319,7 @@ const _SIDEBAR_CFG = {
   admin: [
     { id: 'admin-dashboard', key: 'nav.overview' },
     { id: 'kalendar',        key: 'nav.calendar' },
+    { id: 'manual',          key: 'nav.manual' },
     { section: 'nav.sectionManagement' },
     { id: 'moje-lekce',     key: 'nav.myLessons' },
     { id: 'admin-kurzy',        key: 'nav.courses' },
@@ -1329,11 +1333,13 @@ const _BOTTOM_NAV = {
   guest: [
     { id: 'kalendar',  key: 'nav.calendar',  icon: _SVG.cal  },
     { id: 'kurzy',     key: 'nav.courses',   icon: _SVG.book },
+    { id: 'manual',    key: 'nav.manual',    icon: _SVG.clip },
   ],
   uzivatel: [
     { id: 'nastenka',  key: 'nav.overview',  icon: _SVG.home },
     { id: 'kalendar',  key: 'nav.calendar',  icon: _SVG.cal  },
     { id: 'kurzy',     key: 'nav.courses',     icon: _SVG.book },
+    { id: 'manual',    key: 'nav.manual',    icon: _SVG.clip },
   ],
   lektor: [
     { id: 'nastenka',     key: 'nav.overview',   icon: _SVG.home },

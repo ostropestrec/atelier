@@ -1198,10 +1198,10 @@ function _courseCard(course) {
   return `
     <div class="admin-course-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
       <div style="width:5px;background:${color};flex-shrink:0;"></div>
-      <div style="flex:1;padding:14px 16px;">
+      <div style="flex:1;padding:14px 16px;display:flex;flex-direction:column;">
         <div role="button" tabindex="0" onclick="window.openDetail?.('${esc(course.id)}')"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.openDetail?.('${esc(course.id)}')}"
-          style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;">
+          style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;flex:1;">
           <div>
             <div style="font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;">
               ${esc(title)}
@@ -1223,7 +1223,7 @@ function _courseCard(course) {
             </span>
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;margin-top:auto;padding-top:12px;flex-wrap:wrap;">
           <button class="btn-small" style="${actionBtnStyle}" onclick="window.${editFn}?.('${esc(course.id)}')">${esc(_adm('btn.edit'))}</button>
           ${active
             ? `${topUpBtn}

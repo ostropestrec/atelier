@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23FD8D40'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Svelte islands feature flags (opt-in přes localStorage). Drží se brzy v <head>,
        aby legacy DOM nikdy neprobliknul, když je flag zapnutý. -->
@@ -59,8 +59,16 @@
       --shell-shadow: 0 20px 50px rgba(40,84,185,.18), 0 4px 16px rgba(40,84,185,.10);
     }
 
-    body {
+    html,
+    body,
+    button,
+    input,
+    select,
+    textarea {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -226,6 +234,7 @@
         padding: 7px 12px; border-radius: var(--btn-radius);
         font-size: 14px; font-weight: 500;
         letter-spacing: 0;
+        text-transform: uppercase;
         color: var(--text);
         cursor: pointer;
         line-height: 1.22;
@@ -305,6 +314,7 @@
         background: transparent;
         padding: 7px 12px; border-radius: var(--btn-radius);
         font-size: 14px; font-weight: 500;
+        text-transform: uppercase;
         line-height: 1.22;
         color: var(--text);
         cursor: pointer; display: block;
@@ -716,6 +726,114 @@
     }
     .card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
     .card-meta  { font-size: 12px; color: var(--muted); }
+
+    /* ── Uživatelský manuál ── */
+    .manual-hero {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      background: #fff;
+      margin-bottom: 18px;
+    }
+    .manual-kicker {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--section-heading-accent);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .manual-title {
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .manual-lead {
+      font-size: 14px;
+      color: var(--anno);
+      line-height: 1.7;
+      max-width: 680px;
+    }
+    .manual-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 16px 0 22px;
+    }
+    .manual-flow-step,
+    .manual-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .manual-flow-step {
+      padding: 14px;
+      position: relative;
+    }
+    .manual-flow-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -7px;
+      top: 50%;
+      width: 12px;
+      height: 1px;
+      background: var(--border);
+    }
+    .manual-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .manual-step-title,
+    .manual-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .manual-step-text,
+    .manual-card-text,
+    .manual-list li {
+      font-size: 12px;
+      color: var(--anno);
+      line-height: 1.65;
+    }
+    .manual-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .manual-card { padding: 16px; }
+    .manual-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+    .manual-note {
+      margin-top: 16px;
+      border-radius: 14px;
+      background: var(--muted-surface);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      font-size: 12px;
+      color: var(--anno);
+      line-height: 1.65;
+    }
+    @media (max-width: 760px) {
+      .manual-flow,
+      .manual-grid {
+        grid-template-columns: 1fr;
+      }
+      .manual-flow-step:not(:last-child)::after { display: none; }
+      .manual-title { font-size: 21px; }
+    }
 
     /* ── Profile + passes + bookings (design podle screenshotů) ─ */
     .profile-head{ margin-bottom: var(--overview-section-gap); }
@@ -1192,6 +1310,86 @@
 <div class="screen" id="screen-nastenka">
   <div class="sec-title" data-i18n="nav.overview">Přehled</div>
   <div id="nastenka-content"></div>
+</div>
+
+<!-- ── Screen: Uživatelský manuál ── -->
+<div class="screen" id="screen-manual">
+  <section class="manual-hero">
+    <div class="manual-kicker" data-i18n="manual.kicker">Uživatelský manuál</div>
+    <h1 class="manual-title" data-i18n="manual.title">Jak aplikace funguje</h1>
+    <p class="manual-lead" data-i18n="manual.lead">
+      Stručný návod pro běžného uživatele: jak najít lekci, přihlásit se, zaplatit a spravovat svoje termíny.
+    </p>
+  </section>
+
+  <div class="manual-flow" aria-label="Postup rezervace lekce">
+    <div class="manual-flow-step">
+      <div class="manual-num">1</div>
+      <div class="manual-step-title" data-i18n="manual.flow1Title">Vyberte kurz nebo lekci</div>
+      <div class="manual-step-text" data-i18n="manual.flow1Text">V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času.</div>
+    </div>
+    <div class="manual-flow-step">
+      <div class="manual-num">2</div>
+      <div class="manual-step-title" data-i18n="manual.flow2Title">Zvolte způsob platby</div>
+      <div class="manual-step-text" data-i18n="manual.flow2Text">Můžete využít aktivní permanentku, nebo zaplatit jednorázový vstup přes Stripe.</div>
+    </div>
+    <div class="manual-flow-step">
+      <div class="manual-num">3</div>
+      <div class="manual-step-title" data-i18n="manual.flow3Title">Dokončete přihlášení</div>
+      <div class="manual-step-text" data-i18n="manual.flow3Text">Po potvrzení se termín objeví v Přehledu. U platby kartou se účast potvrdí po přijetí platby.</div>
+    </div>
+    <div class="manual-flow-step">
+      <div class="manual-num">4</div>
+      <div class="manual-step-title" data-i18n="manual.flow4Title">Přijďte na lekci</div>
+      <div class="manual-step-text" data-i18n="manual.flow4Text">V Nastavení si můžete zapnout připomínku e-mailem, aby vám termín neunikl.</div>
+    </div>
+  </div>
+
+  <div class="manual-grid">
+    <article class="manual-card">
+      <div class="manual-card-title" data-i18n="manual.coursesTitle">Kurzy a kalendář</div>
+      <p class="manual-card-text" data-i18n="manual.coursesText">Kurzy slouží k výběru podle tématu. Kalendář je nejlepší, když hledáte konkrétní den nebo čas.</p>
+      <ul class="manual-list">
+        <li data-i18n="manual.coursesLi1">Detail kurzu ukazuje popis, lektora, cenu, kapacitu a termíny.</li>
+        <li data-i18n="manual.coursesLi2">Tlačítko Rezervovat se zobrazí jen u budoucích termínů, které lze rezervovat.</li>
+        <li data-i18n="manual.coursesLi3">Pokud je lekce plná, aplikace vás na to upozorní.</li>
+      </ul>
+    </article>
+
+    <article class="manual-card">
+      <div class="manual-card-title" data-i18n="manual.passesTitle">Permanentky</div>
+      <p class="manual-card-text" data-i18n="manual.passesText">Permanentka obsahuje předplacené vstupy. Při rezervaci si můžete vybrat termíny, na které ji použijete.</p>
+      <ul class="manual-list">
+        <li data-i18n="manual.passesLi1">V Přehledu vidíte, kolik vstupů vám zbývá.</li>
+        <li data-i18n="manual.passesLi2">Některé permanentky mohou platit jen na vybrané kurzy.</li>
+        <li data-i18n="manual.passesLi3">Při nákupu stejné aktivní permanentky vás aplikace upozorní.</li>
+      </ul>
+    </article>
+
+    <article class="manual-card">
+      <div class="manual-card-title" data-i18n="manual.overviewTitle">Přehled</div>
+      <p class="manual-card-text" data-i18n="manual.overviewText">Přehled je vaše domovská stránka po přihlášení. Najdete v něm aktivní permanentky a budoucí přihlášení na lekce.</p>
+      <ul class="manual-list">
+        <li data-i18n="manual.overviewLi1">U každé lekce vidíte datum, čas, kurz a lektora.</li>
+        <li data-i18n="manual.overviewLi2">Stav lekce rozlišuje potvrzenou účast a čekání na platbu.</li>
+        <li data-i18n="manual.overviewLi3">Z Přehledu můžete u vybraných lekcí provést storno.</li>
+      </ul>
+    </article>
+
+    <article class="manual-card">
+      <div class="manual-card-title" data-i18n="manual.accountTitle">Účet a bezpečnost</div>
+      <p class="manual-card-text" data-i18n="manual.accountText">V Nastavení upravíte osobní údaje, heslo, barvu avatara a e-mailové připomínky.</p>
+      <ul class="manual-list">
+        <li data-i18n="manual.accountLi1">Smazání účtu je nevratné a anonymizuje osobní údaje.</li>
+        <li data-i18n="manual.accountLi2">Budoucí přihlášení se při smazání účtu zruší.</li>
+        <li data-i18n="manual.accountLi3">Pokud řešíte platbu nebo refundaci, kontaktujte ateliér před smazáním účtu.</li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="manual-note" data-i18n="manual.note">
+    Tip: Pokud si nejste jistí, začněte v Kurzech. Vyberte kurz, otevřete detail a aplikace vás provede rezervací krok za krokem.
+  </div>
 </div>
 
 <!-- ── Screen: Nastavení (z menu pod avatarem) ── -->
