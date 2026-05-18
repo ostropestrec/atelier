@@ -2358,7 +2358,7 @@ async function renderCourseDetail(courseId) {
         ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
         ${(passes ?? []).map(p => {
           const pc = passThemeHex(p.color_code)
-          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;">
+          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
             <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
           </div>`
         }).join('')}

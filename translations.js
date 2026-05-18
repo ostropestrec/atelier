@@ -138,7 +138,7 @@ export const UI_TRANSLATIONS = {
       safetyText:
         'U změn, které ovlivní účastníky, postupujte opatrně. Aplikace některé rizikové kroky chrání potvrzením.',
       safetyLi1: 'Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.',
-      safetyLi2: 'Deaktivovanou lekci lze znovu aktivovat jako čistou, bez původních přihlášek.',
+      safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Před zrušením lekce zkontrolujte účastníky a počítejte s automatickým e-mailem.',
       note:
         'Doporučení: průběžně sledujte obsazenost svých lekcí a doplňujte termíny dřív, než všechny vypsané lekce doběhnou.',
@@ -183,7 +183,7 @@ export const UI_TRANSLATIONS = {
       safetyText:
         'Destruktivní akce jsou oddělené potvrzením a některé položky se raději přeskočí, pokud by smazání nebylo bezpečné.',
       safetyLi1: 'Budoucí deaktivované lekce se nemažou hromadně, aby nezmizely omylem.',
-      safetyLi2: 'Deaktivovanou lekci lze znovu aktivovat jako čistou, bez původních přihlášek.',
+      safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Smazání účtu uživatele anonymizuje osobní data a ruší budoucí rezervace.',
       note:
         'Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. U rušení lekcí počítejte s tím, že e-maily odchází přes frontu.',
@@ -894,7 +894,7 @@ export const UI_TRANSLATIONS = {
       safetyText:
         'Be careful with changes that affect participants. The app protects some risky actions with confirmation.',
       safetyLi1: 'Future deactivated lessons are not bulk-deleted, so they do not disappear by accident.',
-      safetyLi2: 'A deactivated lesson can be activated again as clean, without previous bookings.',
+      safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Before cancelling a lesson, check attendees and expect the automatic email notification.',
       note:
         'Recommendation: monitor occupancy continuously and add new sessions before all scheduled lessons run out.',
@@ -939,7 +939,7 @@ export const UI_TRANSLATIONS = {
       safetyText:
         'Destructive actions require confirmation, and some items are skipped when deletion would not be safe.',
       safetyLi1: 'Future deactivated lessons are not bulk-deleted, so they do not disappear by accident.',
-      safetyLi2: 'A deactivated lesson can be activated again as clean, without previous bookings.',
+      safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Deleting a user account anonymises personal data and cancels future bookings.',
       note:
         'Recommendation: before a larger change, first check whether the course or lesson has active bookings. For lesson cancellations, remember that emails are sent through the queue.',
