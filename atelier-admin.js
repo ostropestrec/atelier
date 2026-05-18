@@ -2894,14 +2894,62 @@ window.saveNewWorkshop = async () => {
 
     let savedCourseId = courseId
     if (courseId) {
+      let lessonHasActiveParticipants = false
+      let lessonTimeChanged = false
+      if (lessonId) {
+        const [{ data: currentLesson, error: currentLessonErr }, { count: activeParticipants, error: participantErr }] = await Promise.all([
+          sb.from('lessons')
+            .select('id, start_time, end_time')
+            .eq('id', lessonId)
+            .maybeSingle(),
+          sb.from('bookings')
+            .select('id', { count: 'exact', head: true })
+            .eq('lesson_id', lessonId)
+            .in('status', BLOCKING_PARTICIPATION_STATUSES),
+        ])
+        if (currentLessonErr) throw currentLessonErr
+        if (participantErr) throw participantErr
+        lessonHasActiveParticipants = Number(activeParticipants ?? 0) > 0
+        lessonTimeChanged = !!currentLesson && (
+          new Date(currentLesson.start_time).getTime() !== start.getTime()
+          || new Date(currentLesson.end_time).getTime() !== end.getTime()
+        )
+        if (lessonTimeChanged && lessonHasActiveParticipants && !confirm(_adm('workshop.confirmRescheduleWithParticipants', { n: Number(activeParticipants ?? 0) }))) {
+          return
+        }
+      }
+
       const { error } = await sb.from('courses').update(coursePayload).eq('id', courseId)
       if (error) throw error
       if (lessonId) {
-        const { error: lErr } = await sb.from('lessons').update({
-          start_time: start.toISOString(), end_time: end.toISOString(),
-          capacity, price_single: price,
-        }).eq('id', lessonId)
-        if (lErr) console.warn('[Admin] updateWorkshopLesson:', lErr)
+        const { data: rescheduleData, error: lErr } = await sb.rpc('admin_reschedule_lesson', {
+          p_lesson_id: lessonId,
+          p_start_time: start.toISOString(),
+          p_end_time: end.toISOString(),
+          p_capacity: capacity,
+          p_price_single: price,
+        })
+        if (lErr) {
+          const missFn = lErr.code === 'PGRST202'
+            || lErr.message?.includes('Could not find the function')
+            || lErr.message?.includes('admin_reschedule_lesson')
+          if (missFn && !lessonHasActiveParticipants) {
+            const { error: fallbackErr } = await sb.from('lessons').update({
+              start_time: start.toISOString(), end_time: end.toISOString(),
+              capacity, price_single: price,
+            }).eq('id', lessonId)
+            if (fallbackErr) throw fallbackErr
+          } else if (missFn) {
+            throw new Error(_adm('workshop.errRescheduleNoRpc'))
+          } else {
+            throw lErr
+          }
+        } else if (rescheduleData && rescheduleData.ok === false) {
+          throw new Error(_adminLessonMessageErrorLabel(rescheduleData.error))
+        } else if (Number(rescheduleData?.queued ?? rescheduleData?.recipients ?? 0) > 0) {
+          window.showToast?.(_adm('workshop.toastRescheduled', { n: Number(rescheduleData?.queued ?? rescheduleData?.recipients ?? 0) }), 'ok')
+          await _adminTryProcessEmailQueue()
+        }
       }
     } else {
       const { data, error } = await sb.from('courses')
@@ -3718,6 +3766,7 @@ function _adminLessonMessageErrorLabel(code) {
   const map = {
     not_authenticated: _adm('lessonDetail.messageNotAuthenticated'),
     missing_lesson: _adm('lessonActions.errLessonNotFound'),
+    invalid_time_range: _adm('workshop.errTimeRange'),
     invalid_subject: _adm('lessonDetail.messageMissingSubject'),
     invalid_body: _adm('lessonDetail.messageMissingBody'),
     lesson_not_found: _adm('lessonActions.errLessonNotFound'),

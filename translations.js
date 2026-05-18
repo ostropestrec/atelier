@@ -128,6 +128,7 @@ export const UI_TRANSLATIONS = {
       lessonsLi1: 'Detail účastníků ukazuje potvrzené účasti a umožňuje účastníky z lekce manuálně odhlašovat.',
       lessonsLi2: 'Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.',
       lessonsLi3: 'Zrušení lekce stornuje aktivní přihlášky a rozešle všem účastníkům upozornění o změně na e-mail.',
+      lessonsLi4: 'Při změně data nebo času lekce zůstávají přihlášky platné a účastníkům se odešle e-mail s původním i novým termínem.',
       passesTitle: 'Permanentky',
       passesText:
         'V sekci Permanentky spravujete permanentky navázané na svoje kurzy a jejich základní parametry.',
@@ -141,7 +142,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Před zrušením lekce zkontrolujte účastníky a počítejte s automatickým e-mailem.',
       note:
-        'Doporučení: průběžně sledujte obsazenost svých lekcí a doplňujte termíny dřív, než všechny vypsané lekce doběhnou. Při zrušení lekce se účastníkům automaticky odešle e-mailové upozornění. Odeslání může mít krátké zpoždění.',
+        'Doporučení: průběžně sledujte obsazenost svých lekcí a doplňujte termíny dřív, než všechny vypsané lekce doběhnou. Při zrušení lekce nebo změně termínu se účastníkům automaticky odešle e-mailové upozornění. Odeslání může mít krátké zpoždění.',
     },
     adminManual: {
       kicker: 'Admin manuál',
@@ -173,6 +174,7 @@ export const UI_TRANSLATIONS = {
       lessonsLi1: 'Detail účastníků ukazuje potvrzené účasti a umožňuje účastníky z lekce manuálně odhlašovat.',
       lessonsLi2: 'Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.',
       lessonsLi3: 'Zrušení lekce stornuje aktivní přihlášky a rozešle všem účastníkům upozornění o změně na e-mail.',
+      lessonsLi4: 'Při změně data nebo času lekce zůstávají přihlášky platné a účastníkům se odešle e-mail s původním i novým termínem.',
       paymentsTitle: 'Platby a zákazníci',
       paymentsText:
         'Platby jsou rozdělené po měsících a zákaznická sekce pomáhá dohledat historii uživatele.',
@@ -186,7 +188,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'Zrušený termín lekce lze znovu aktivovat pouze v sekci Deaktivované lekce; aktivuje se jako čistý, bez původních přihlášek.',
       safetyLi3: 'Smazání účtu uživatele anonymizuje osobní data a ruší budoucí rezervace.',
       note:
-        'Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. Při zrušení lekce se účastníkům automaticky odešle e-mailové upozornění. Odeslání může mít krátké zpoždění.',
+        'Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. Při zrušení lekce nebo změně termínu se účastníkům automaticky odešle e-mailové upozornění. Odeslání může mít krátké zpoždění.',
     },
     pages: {
       signIn: 'Přihlásit se',
@@ -653,6 +655,11 @@ export const UI_TRANSLATIONS = {
         errMinParticipants: 'Minimální počet účastníků musí být 1–kapacita.',
         errTimeRange: 'Zadejte čas od a čas do.',
         errTimeOrder: 'Čas do musí být po čase od.',
+        confirmRescheduleWithParticipants:
+          'Na lekci jsou přihlášení účastníci ({{n}}). Po změně termínu jim odešleme e-mailové upozornění. Pokračovat?',
+        toastRescheduled: 'Termín byl změněn a e-mail byl zařazen pro {{n}} účastníků.',
+        errRescheduleNoRpc:
+          'Změnu termínu s účastníky nelze uložit, dokud není v Supabase nasazený SQL patch admin_reschedule_lesson.',
       },
       courseModal: {
         titleEdit: 'Upravit kurz',
@@ -884,6 +891,7 @@ export const UI_TRANSLATIONS = {
       lessonsLi1: 'Attendee detail shows confirmed participation and lets you manually remove attendees from a lesson.',
       lessonsLi2: 'You can send a custom bulk email to attendees of one specific lesson.',
       lessonsLi3: 'Cancelling a lesson cancels active bookings and sends all participants an email notification about the change.',
+      lessonsLi4: 'When a lesson date or time changes, bookings stay valid and participants receive an email with the original and new time.',
       passesTitle: 'Passes',
       passesText:
         'In Passes, you manage passes connected to your courses and their basic settings.',
@@ -897,7 +905,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Before cancelling a lesson, check attendees and expect the automatic email notification.',
       note:
-        'Recommendation: monitor occupancy continuously and add new sessions before all scheduled lessons run out. When a lesson is cancelled, participants automatically receive an email notification. Sending can be delayed briefly.',
+        'Recommendation: monitor occupancy continuously and add new sessions before all scheduled lessons run out. When a lesson is cancelled or rescheduled, participants automatically receive an email notification. Sending can be delayed briefly.',
     },
     adminManual: {
       kicker: 'Admin guide',
@@ -929,6 +937,7 @@ export const UI_TRANSLATIONS = {
       lessonsLi1: 'Attendee detail shows confirmed participation and lets you manually remove attendees from a lesson.',
       lessonsLi2: 'You can send a custom bulk email to attendees of one specific lesson.',
       lessonsLi3: 'Cancelling a lesson cancels active bookings and sends all participants an email notification about the change.',
+      lessonsLi4: 'When a lesson date or time changes, bookings stay valid and participants receive an email with the original and new time.',
       paymentsTitle: 'Payments and customers',
       paymentsText:
         'Payments are grouped by month, and customer management helps trace a user’s history.',
@@ -942,7 +951,7 @@ export const UI_TRANSLATIONS = {
       safetyLi2: 'A cancelled lesson date can be activated again only from Deactivated lessons; it is activated as clean, without previous bookings.',
       safetyLi3: 'Deleting a user account anonymises personal data and cancels future bookings.',
       note:
-        'Recommendation: before a larger change, first check whether the course or lesson has active bookings. When a lesson is cancelled, participants automatically receive an email notification. Sending can be delayed briefly.',
+        'Recommendation: before a larger change, first check whether the course or lesson has active bookings. When a lesson is cancelled or rescheduled, participants automatically receive an email notification. Sending can be delayed briefly.',
     },
     pages: {
       signIn: 'Sign in',
@@ -1408,6 +1417,11 @@ export const UI_TRANSLATIONS = {
         errMinParticipants: 'Minimum participants must be between 1 and capacity.',
         errTimeRange: 'Enter start and end time.',
         errTimeOrder: 'End time must be after start time.',
+        confirmRescheduleWithParticipants:
+          'There are enrolled participants on this lesson ({{n}}). After changing the time, we will send them an email notification. Continue?',
+        toastRescheduled: 'Lesson time was changed and email was queued for {{n}} participants.',
+        errRescheduleNoRpc:
+          'Changing a lesson time with participants cannot be saved until the admin_reschedule_lesson SQL patch is deployed in Supabase.',
       },
       courseModal: {
         titleEdit: 'Edit course',
