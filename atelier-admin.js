@@ -1107,8 +1107,9 @@ function _courseCard(course) {
   const editFn     = isWorkshop ? 'adminEditWorkshop' : 'adminEditCourse'
   const workshopLbl = _adm('kurzy.workshopBadge')
   const deactBadge = _adm('state.deactivatedBadge')
+  const actionBtnStyle = 'font-size:11px;padding:6px 10px;'
   const topUpBtn = active && !isWorkshop
-    ? `<button class="btn-small" onclick="window.adminTopUpCourseLessons?.('${esc(course.id)}')">${esc(_adm('courseActions.topUpLessons'))}</button>`
+    ? `<button class="btn-small" style="${actionBtnStyle}" onclick="window.adminTopUpCourseLessons?.('${esc(course.id)}')">${esc(_adm('courseActions.topUpLessons'))}</button>`
     : ''
   return `
     <div class="admin-course-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
@@ -1137,13 +1138,13 @@ function _courseCard(course) {
             </span>
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-          <button class="btn-small" onclick="window.${editFn}?.('${esc(course.id)}')">${esc(_adm('btn.edit'))}</button>
+        <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
+          <button class="btn-small" style="${actionBtnStyle}" onclick="window.${editFn}?.('${esc(course.id)}')">${esc(_adm('btn.edit'))}</button>
           ${active
             ? `${topUpBtn}
-               <button class="btn-small danger" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">${esc(_adm('btn.deactivate'))}</button>`
-            : `<button class="btn-small" onclick="window.adminToggleCourse?.('${esc(course.id)}',true)">${esc(_adm('btn.activate'))}</button>
-               <button class="btn-small danger" onclick="window.adminDeleteCourse?.('${esc(course.id)}')">${esc(_adm('btn.delete'))}</button>`}
+               <button class="btn-small danger" style="${actionBtnStyle}" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">${esc(_adm('btn.deactivate'))}</button>`
+            : `<button class="btn-small" style="${actionBtnStyle}" onclick="window.adminToggleCourse?.('${esc(course.id)}',true)">${esc(_adm('btn.activate'))}</button>
+               <button class="btn-small danger" style="${actionBtnStyle}" onclick="window.adminDeleteCourse?.('${esc(course.id)}')">${esc(_adm('btn.delete'))}</button>`}
         </div>
       </div>
     </div>`
