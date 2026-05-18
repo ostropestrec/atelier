@@ -852,7 +852,22 @@
     }
 
     /* ── Profile + passes + bookings (design podle screenshotů) ─ */
-    .profile-head{ margin-bottom: var(--overview-section-gap); }
+    .profile-head{
+      margin-bottom: var(--overview-section-gap);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .profile-head-text{ min-width: 0; }
+    .profile-head-art{
+      width: clamp(96px, 22vw, 160px);
+      max-width: 38%;
+      height: auto;
+      object-fit: contain;
+      margin-top: -8px;
+      flex: 0 0 auto;
+    }
     .hello{ font-size: 20px; font-weight: 600; margin-bottom: 4px; }
     .subtle{ font-size: 13px; color: var(--muted); }
     .section-h{

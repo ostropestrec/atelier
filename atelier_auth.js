@@ -1459,8 +1459,10 @@ export function buildUserGreetingHtml(user) {
   const helloName = first || user.name || t(locale, 'dashboard.userYou')
   return `
     <div class="profile-head">
-      <div class="hello">${escapeHtml(t(locale, 'dashboard.hello', { name: helloName }))}</div>
-      <div class="subtle">${escapeHtml(user.email || '')}</div>
+      <div class="profile-head-text">
+        <div class="hello">${escapeHtml(t(locale, 'dashboard.hello', { name: helloName }))}</div>
+        <div class="subtle">${escapeHtml(user.email || '')}</div>
+      </div>
     </div>`
 }
 
@@ -1555,8 +1557,11 @@ export function buildUserOverviewHtml(user) {
 
   return `
     <div class="profile-head">
-      <div class="hello">${escapeHtml(t(locale, 'dashboard.hello', { name: helloName }))}</div>
-      <div class="subtle">${escapeHtml(user.email || '')}</div>
+      <div class="profile-head-text">
+        <div class="hello">${escapeHtml(t(locale, 'dashboard.hello', { name: helloName }))}</div>
+        <div class="subtle">${escapeHtml(user.email || '')}</div>
+      </div>
+      <img class="profile-head-art" src="./assets/atelier-overview-clouds.png" alt="" loading="lazy" aria-hidden="true" />
     </div>
 
     <div class="section-h">${escapeHtml(t(locale, 'dashboard.sectionPasses'))}</div>
