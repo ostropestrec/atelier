@@ -982,7 +982,9 @@ window.renderLektorDashboard = renderLektorDashboard
 window.adminLessonActionButtons = (lessonId, status = 'active') => {
   const lid = String(lessonId ?? '').replace(/'/g, "\'")
   if (status === 'cancelled') {
-    return `<button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+    return `<button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
+      onclick="event.stopPropagation();window.adminActivateLesson?.('${lid}')">${esc(_adm('btn.activate'))}</button>
+    <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
       onclick="event.stopPropagation();window.adminDeleteLesson?.('${lid}')">${esc(_adm('btn.delete'))}</button>`
   }
   return `<button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;"
@@ -1050,7 +1052,7 @@ export async function renderAdminKurzy() {
   try {
     await adminRace((async () => {
     let baseQuery = sb.from('courses')
-      .select('id, title, color_code, is_active, is_workshop, capacity_default, price_single, cancellation_hours, owner:users!owner_id(id,name)')
+      .select('id, title, color_code, is_active, is_workshop, capacity_default, price_single, cancellation_hours, schedule_days, schedule_time_start, schedule_time_end, owner:users!owner_id(id,name)')
       .order('title->cs')
     if (_isStaffAdmin() && _adminCoursesScope === 'moje' && currentUser?.id) {
       baseQuery = baseQuery.eq('owner_id', currentUser.id)
@@ -1098,6 +1100,30 @@ export async function renderAdminKurzy() {
   }
 }
 
+function _adminCourseScheduleHtml(course) {
+  if (course.is_workshop) return ''
+  const dayLabels = _adminLocale() === 'en'
+    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    : ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
+  const days = (course.schedule_days ?? [])
+    .map(Number)
+    .filter(d => Number.isInteger(d) && d >= 0 && d <= 6)
+    .sort((a, b) => a - b)
+    .map(d => dayLabels[d])
+  const timeFrom = course.schedule_time_start ? String(course.schedule_time_start).slice(0, 5) : ''
+  const timeTo = course.schedule_time_end ? String(course.schedule_time_end).slice(0, 5) : ''
+  const scheduleText = days.length && timeFrom && timeTo
+    ? `${days.join(', ')} · ${timeFrom}–${timeTo}`
+    : _adm('kurzy.scheduleMissing')
+  return `
+    <div style="margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#faf8f5;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9b6f5f;margin-bottom:3px;">
+        ${esc(_adm('kurzy.schedule'))}
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#2f2a24;">${esc(scheduleText)}</div>
+    </div>`
+}
+
 function _courseCard(course) {
   const color      = _courseThemeHex(course.color_code)
   const title      = loc(course.title) || _adm('misc.courseFallback')
@@ -1111,6 +1137,7 @@ function _courseCard(course) {
   const topUpBtn = active && !isWorkshop
     ? `<button class="btn-small" style="${actionBtnStyle}" onclick="window.adminTopUpCourseLessons?.('${esc(course.id)}')">${esc(_adm('courseActions.topUpLessons'))}</button>`
     : ''
+  const scheduleHtml = _adminCourseScheduleHtml(course)
   return `
     <div class="admin-course-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
       <div style="width:5px;background:${color};flex-shrink:0;"></div>
@@ -1129,6 +1156,7 @@ function _courseCard(course) {
               <span>${esc(_adm('kurzy.capacity'))} ${course.capacity_default} ${_adm('misc.spotsSuffix')}</span>
               ${!isWorkshop ? `<span>${esc(_adm('kurzy.cancellation'))} ${course.cancellation_hours} ${_adm('kurzy.hoursShort')}</span>` : ''}
             </div>
+            ${scheduleHtml}
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-size:16px;font-weight:700;color:${color};">${fmtPrice(course.price_single)}</div>
@@ -2351,8 +2379,8 @@ function _passCard(pass, courseMap) {
                   background:${ph}22;color:${ph};">${esc(n)}</span>`).join('')}
             </div>` : `<div style="font-size:11px;color:#9b9b9b;">${esc(_adm('passesPage.notLinked'))}</div>`}
         </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:18px;font-weight:700;color:${ph};margin-bottom:10px;">${fmtPrice(pass.price)}</div>
+        <div style="text-align:left;flex-shrink:0;">
+          <div style="font-size:18px;font-weight:700;color:${ph};margin-bottom:10px;text-align:left;">${fmtPrice(pass.price)}</div>
           <div style="display:flex;gap:8px;">
             <button class="btn-small" onclick="window.openPassModal?.('${esc(pass.id)}')">${esc(_adm('btn.edit'))}</button>
             <button class="btn-small danger" onclick="window.adminDeletePass?.('${esc(pass.id)}')">${esc(_adm('btn.delete'))}</button>
@@ -3970,6 +3998,44 @@ window.adminDeactivateLesson = async (lessonId) => {
 }
 
 window.adminCancelLesson = window.adminDeactivateLesson
+
+window.adminActivateLesson = async (lessonId) => {
+  if (!lessonId || !confirm(_adm('lessonActions.confirmActivate'))) return
+  try {
+    if (_isStaffLektor()) {
+      const { data: lesson, error: lessonErr } = await sb.from('lessons')
+        .select('id, course:courses(owner_id)')
+        .eq('id', lessonId)
+        .maybeSingle()
+      if (lessonErr) throw lessonErr
+      if (!lesson) throw new Error(_adm('lessonActions.errLessonNotFound'))
+      const course = Array.isArray(lesson.course) ? lesson.course[0] : lesson.course
+      if (String(course?.owner_id ?? '') !== String(currentUser?.id ?? '')) {
+        throw new Error(_adm('lessonActions.errNotOwnLesson'))
+      }
+    }
+
+    const { error: bookingErr } = await sb.from('bookings')
+      .update({
+        status: PARTICIPATION_STATUS.CANCELLED,
+        cancelled_at: new Date().toISOString(),
+      })
+      .eq('lesson_id', lessonId)
+      .in('status', BLOCKING_PARTICIPATION_STATUSES)
+    if (bookingErr) throw bookingErr
+
+    const { error: lessonErr } = await sb.from('lessons')
+      .update({ status: 'active' })
+      .eq('id', lessonId)
+    if (lessonErr) throw lessonErr
+
+    window.showToast?.(_adm('lessonActions.toastActivated'), 'ok')
+    _refreshAfterLessonChange()
+  } catch (err) {
+    console.error('[Admin] adminActivateLesson:', err)
+    window.showToast?.(_adm('toast.errorWithMsg', { msg: err.message ?? err }), 'error')
+  }
+}
 
 window.adminDeleteLesson = async (lessonId) => {
   if (!lessonId || !confirm(_adm('lessonActions.confirmDelete'))) return

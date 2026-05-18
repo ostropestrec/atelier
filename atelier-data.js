@@ -2309,10 +2309,11 @@ async function renderCourseDetail(courseId) {
 
   const heroImg = imageUrls[0] ?? null
   const galleryThumbUrls = imageUrls.length > 1 ? imageUrls.slice(1) : []
+  const backTarget = _isStaffUser() ? 'admin-kurzy' : 'kurzy'
 
   el.innerHTML = `
     <div style="max-width:760px;">
-      <button class="btn-wide" onclick="window.nav?.('kurzy')" style="margin-bottom:16px;">
+      <button class="btn-wide" onclick="window.nav?.('${backTarget}')" style="margin-bottom:16px;">
         ‹ ${_tp('courses.backToCourses')}
       </button>
       <div style="height:4px;background:${color};border-radius:99px;margin-bottom:16px;"></div>

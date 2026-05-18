@@ -384,6 +384,8 @@ export const UI_TRANSLATIONS = {
         capacity: 'Kapacita:',
         cancellation: 'Storno:',
         hoursShort: 'h',
+        schedule: 'Rozvrh',
+        scheduleMissing: 'Rozvrh není nastavený',
         workshopBadge: 'WORKSHOP',
       },
       customers: {
@@ -572,8 +574,11 @@ export const UI_TRANSLATIONS = {
           'Lekce byla deaktivována, ale e-mailová upozornění se nezařadila automaticky. Zkontrolujte prosím nastavení notifikací.',
         toastDeactivated: 'Lekce byla deaktivována.',
         confirmDelete: 'Opravdu trvale smazat tuto deaktivovanou lekci? Akce je nevratná.',
+        confirmActivate:
+          'Aktivovat lekci znovu jako čistou? Původní přihlášky se neobnoví.',
         errDeleteOnlyDeactivated: 'Smazat lze jen deaktivovanou lekci — nejprve ji deaktivujte.',
         toastDeleted: 'Lekce byla smazána.',
+        toastActivated: 'Lekce byla aktivována jako čistá.',
         errLessonNotFound: 'Lekce nenalezena.',
         errNotOwnLesson: 'Tuto lekci může deaktivovat pouze její lektor.',
         errNotOwnAttendees: 'Účastníky této lekce může zobrazit pouze její lektor.',
@@ -976,6 +981,8 @@ export const UI_TRANSLATIONS = {
         capacity: 'Capacity:',
         cancellation: 'Cancellation:',
         hoursShort: 'h',
+        schedule: 'Schedule',
+        scheduleMissing: 'No schedule set',
         workshopBadge: 'WORKSHOP',
       },
       customers: {
@@ -1167,9 +1174,12 @@ export const UI_TRANSLATIONS = {
         toastDeactivated: 'Lesson deactivated.',
         confirmDelete:
           'Really permanently delete this deactivated lesson? This cannot be undone.',
+        confirmActivate:
+          'Activate this lesson again as clean? Previous bookings will not be restored.',
         errDeleteOnlyDeactivated:
           'Only deactivated lessons can be deleted — deactivate first.',
         toastDeleted: 'Lesson deleted.',
+        toastActivated: 'Lesson activated as clean.',
         errLessonNotFound: 'Lesson not found.',
         errNotOwnLesson: 'Only this lesson’s instructor can deactivate it.',
         errNotOwnAttendees: 'Only this lesson’s instructor can view attendees.',
