@@ -241,8 +241,8 @@
       }
       .side-link:hover { color: var(--primary); }
       .side-link.active{
-        color: var(--primary);
-        border-color: var(--primary);
+        color: var(--section-heading-accent);
+        border-color: var(--section-heading-accent);
         background: transparent;
         font-weight: 600;
       }
@@ -319,8 +319,8 @@
         transition: color .15s ease, border-color .15s ease;
       }
       .side-link.active {
-        color: var(--primary);
-        border-color: var(--primary);
+        color: var(--section-heading-accent);
+        border-color: var(--section-heading-accent);
         background: transparent;
         font-weight: 600;
       }
@@ -1350,7 +1350,7 @@
 
     <article class="manual-card">
       <div class="manual-card-title" data-i18n="manual.bookingTermsTitle">Rezervace a storno</div>
-      <p class="manual-card-text" data-i18n="manual.bookingTermsText">Rezervace místa je závazná. Po potvrzení s vámi ateliér počítá a místo je blokované pro vás.</p>
+      <p class="manual-card-text" data-i18n="manual.bookingTermsText">Rezervace místa je závazná. Po potvrzení s vámi počítáme a místo je blokované pro vás.</p>
       <ul class="manual-list">
         <li data-i18n="manual.bookingTermsLi1">Storno je možné jen v čase povoleném u konkrétního kurzu nebo lekce.</li>
         <li data-i18n="manual.bookingTermsLi2">Pokud už storno lhůta uplynula, aplikace zrušení rezervace nepovolí.</li>
@@ -1360,9 +1360,9 @@
 
     <article class="manual-card">
       <div class="manual-card-title" data-i18n="manual.lessonCancelledTitle">Když lektor zruší lekci</div>
-      <p class="manual-card-text" data-i18n="manual.lessonCancelledText">Pokud lektor nebo admin lekci zruší, vaše rezervace se stornuje a místo už se nepočítá jako obsazené.</p>
+      <p class="manual-card-text" data-i18n="manual.lessonCancelledText">Pokud lektor lekci zruší, vaše rezervace se stornuje a místo už se nepočítá jako obsazené.</p>
       <ul class="manual-list">
-        <li data-i18n="manual.lessonCancelledLi1">Účastníkům lekce se automaticky zařadí e-mailové upozornění.</li>
+        <li data-i18n="manual.lessonCancelledLi1">Účastníci lekce dostanou o zrušení upozornění e-mailem.</li>
         <li data-i18n="manual.lessonCancelledLi2">E-mail se odešle na adresu uvedenou ve vašem účtu.</li>
         <li data-i18n="manual.lessonCancelledLi3">Pokud se e-mail zpozdí, rozhodující je stav lekce přímo v aplikaci.</li>
       </ul>
@@ -1568,7 +1568,7 @@
     <div class="manual-flow-step">
       <div class="manual-num">3</div>
       <div class="manual-step-title" data-i18n="adminManual.flow3Title">Pečujte o lekce</div>
-      <div class="manual-step-text" data-i18n="adminManual.flow3Text">U lekcí kontrolujete účastníky, posíláte hromadné zprávy a při zrušení lekce se účastníkům zařadí e-mail.</div>
+      <div class="manual-step-text" data-i18n="adminManual.flow3Text">U lekcí kontrolujete účastníky, můžete posílat hromadné zprávy a při zrušení lekce se účastníkům automaticky rozešle upozornění na e-mail.</div>
     </div>
     <div class="manual-flow-step">
       <div class="manual-num">4</div>
@@ -1580,11 +1580,12 @@
   <div class="manual-grid">
     <article class="manual-card">
       <div class="manual-card-title" data-i18n="adminManual.coursesTitle">Kurzy, workshopy a termíny</div>
-      <p class="manual-card-text" data-i18n="adminManual.coursesText">Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí.</p>
+      <p class="manual-card-text" data-i18n="adminManual.coursesText">Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí. Běžný kurz pracuje s týdenním rozvrhem, workshop má jeden konkrétní termín.</p>
       <ul class="manual-list">
-        <li data-i18n="adminManual.coursesLi1">Běžné kurzy mají rozvrh a tlačítko pro doplnění dalších termínů.</li>
-        <li data-i18n="adminManual.coursesLi2">Workshop má jeden konkrétní datum a čas.</li>
-        <li data-i18n="adminManual.coursesLi3">Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.</li>
+        <li data-i18n="adminManual.coursesLi1">Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.</li>
+        <li data-i18n="adminManual.coursesLi2">Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.</li>
+        <li data-i18n="adminManual.coursesLi3">Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.</li>
+        <li data-i18n="adminManual.coursesLi4">Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.</li>
       </ul>
     </article>
 
@@ -1592,9 +1593,9 @@
       <div class="manual-card-title" data-i18n="adminManual.lessonsTitle">Lekce a účastníci</div>
       <p class="manual-card-text" data-i18n="adminManual.lessonsText">Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.</p>
       <ul class="manual-list">
-        <li data-i18n="adminManual.lessonsLi1">Detail účastníků ukazuje potvrzené účasti i čekání na platbu.</li>
+        <li data-i18n="adminManual.lessonsLi1">Detail účastníků ukazuje potvrzené účasti a umožňuje účastníky z lekce manuálně odhlašovat.</li>
         <li data-i18n="adminManual.lessonsLi2">Účastníkům konkrétní lekce můžete poslat vlastní hromadný e-mail.</li>
-        <li data-i18n="adminManual.lessonsLi3">Zrušení lekce stornuje aktivní přihlášky a zařadí notifikace do e-mailové fronty.</li>
+        <li data-i18n="adminManual.lessonsLi3">Zrušení lekce stornuje aktivní přihlášky a rozešle všem účastníkům upozornění o změně na e-mail.</li>
       </ul>
     </article>
 
