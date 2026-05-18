@@ -1853,6 +1853,17 @@
     return id
   }
 
+  function syncActiveNavigation(screenId) {
+    const role = window.__userRole ?? 'uzivatel'
+    const currentScreenId = screenId
+      ?? document.querySelector('.screen.active')?.id?.replace('screen-', '')
+      ?? (window.isAuthenticated?.() ? 'nastenka' : 'kalendar')
+    const activeNavId = sidebarActiveIdForScreen(currentScreenId, role)
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'))
+    document.querySelectorAll('.side-link').forEach(b => b.classList.remove('active'))
+    document.querySelectorAll(`[data-nav-id="${activeNavId}"]`).forEach(el => el.classList.add('active'))
+  }
+
   function nav(id, el) {
     console.log('[Debug] nav()', id, '— jen přepnutí screenu + hooky, NE volá init()')
     // Sekce přístupné jen adminovi (lektor jejich tlačítka v sidebaru ani nevidí, ale nav() je extra ochrana)
@@ -1884,17 +1895,9 @@
     if (adminOnlySections.has(id) && role !== 'admin') return
 
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
-    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'))
-    document.querySelectorAll('.side-link').forEach(b => b.classList.remove('active'))
-
     const screen = document.getElementById('screen-' + id)
     if (screen) screen.classList.add('active')
-
-    const activeNavId = sidebarActiveIdForScreen(id, role)
-    const activeEl = el
-      ?? document.querySelector(`.side-link[data-nav-id="${activeNavId}"]`)
-      ?? document.querySelector(`.nav button[data-nav-id="${activeNavId}"]`)
-    if (activeEl) activeEl.classList.add('active')
+    syncActiveNavigation(id)
 
     window.closeSidebar?.()
 
@@ -1908,9 +1911,11 @@
       try { fn?.(id, el) }
       catch (e) { console.error('[app-nav-hook]', e) }
     })
+    syncActiveNavigation(id)
   }
 
   window.nav = nav
+  window.syncActiveNavigation = syncActiveNavigation
 
   // Lang: jedno přepínací tlačítko zobrazuje cílový jazyk (CS → „English“, EN → „Česky“).
   window.syncLangUI = (currentLang) => {

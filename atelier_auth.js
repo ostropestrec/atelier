@@ -1402,6 +1402,7 @@ export function renderNavigation(user) {
     ).join('')
   }
 
+  window.syncActiveNavigation?.(activeScreenId)
 }
 
 function pickPassTheme(hex) {
