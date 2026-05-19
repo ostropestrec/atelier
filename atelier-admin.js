@@ -1781,14 +1781,30 @@ window.adminDeleteCustomerUserPass = async (triggerEl) => {
   }
 }
 
-// ── Admin Platby ─────────────────────────────────────────────
-// State pro month picker: pamatuje si vybraný měsíc napříč re-rendery (např. po refundu).
-// `null` = "aktuální měsíc" — defaultní stav po načtení obrazovky. Reset by se hodil
-// při odhlášení/role-switchi, ale prozatím držíme jednoduchost.
-/** @type {string | null}  formát 'YYYY-MM' */
-let _adminPlatbyMonth = null
-/** @type {Set<string> | null}  lazy-init při prvním otevření pickeru */
-let _adminPlatbyExpandedYears = null
+// ── Platby / Historie lektora (sdílená měsíční rekapitulace) ──
+/** @type {Record<'admin'|'lektor', { month: string|null, expandedYears: Set<string>|null }>} */
+const _platbyScopeState = {
+  admin:  { month: null, expandedYears: null },
+  lektor: { month: null, expandedYears: null },
+}
+const _PLATBY_SCOPE_META = {
+  admin: {
+    contentId: 'admin-platby-content',
+    pickerId: 'admin-platby-picker',
+    raceKey: 'admin-platby',
+    pageTitleKey: 'platby.pageTitle',
+    canRefund: true,
+    handlerPrefix: 'adminPlatby',
+  },
+  lektor: {
+    contentId: 'lektor-historie-content',
+    pickerId: 'lektor-historie-picker',
+    raceKey: 'lektor-historie',
+    pageTitleKey: 'historie.pageTitle',
+    canRefund: false,
+    handlerPrefix: 'lektorHistorie',
+  },
+}
 
 const _PLATBY_FETCH_LIMIT = 5000  // strop pro all-time fetch; reálně tisícinásobek typického objemu
 
@@ -1801,8 +1817,12 @@ function _platbyMonthKeyOf(date) {
   if (Number.isNaN(d.getTime())) return null
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
-function _platbyActiveMonth() {
-  return _adminPlatbyMonth ?? _platbyCurrentMonthKey()
+function _platbyActiveMonth(scope) {
+  return _platbyScopeState[scope].month ?? _platbyCurrentMonthKey()
+}
+function _platbyHandler(scope, action) {
+  const prefix = _PLATBY_SCOPE_META[scope].handlerPrefix
+  return `window.${prefix}${action}?.()`
 }
 function _platbyShiftMonth(key, delta) {
   const [y, m] = key.split('-').map(Number)
@@ -1848,14 +1868,23 @@ function _platbyGroupByMonth(payments) {
 }
 
 export async function renderAdminPlatby() {
-  // Platby jsou admin-only — lektor nemá přístup k souhrnu plateb napříč ateliérem.
   if (!_isStaffAdmin()) return
-  const el = document.getElementById('admin-platby-content')
+  return _renderPlatbyHistory('admin')
+}
+
+export async function renderLektorHistorie() {
+  if (!_isStaffLektor()) return
+  return _renderPlatbyHistory('lektor')
+}
+
+async function _renderPlatbyHistory(scope) {
+  const meta = _PLATBY_SCOPE_META[scope]
+  const el = document.getElementById(meta.contentId)
   if (!el) return
   const prevHtml = el.innerHTML
-  const loadNeedle = _adm('loading.payments')
+  const loadNeedle = _adm(scope === 'lektor' ? 'loading.history' : 'loading.payments')
   const stable = _adminHadStableContent(prevHtml, loadNeedle)
-  if (stable) console.log('[Debug] Admin platby: obnovuji na pozadí')
+  if (stable) console.log('[Debug] Platby/historie:', scope, '— obnovuji na pozadí')
   else el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   try {
     await adminRace((async () => {
@@ -1923,7 +1952,7 @@ export async function renderAdminPlatby() {
     ]
 
     const byMonth = _platbyGroupByMonth(allPayments)
-    const activeKey = _platbyActiveMonth()
+    const activeKey = _platbyActiveMonth(scope)
     const activeEntry = byMonth.get(activeKey) ?? { gross: 0, refunds: 0, net: 0, items: [] }
 
     // Granice pro prev/next: min existující měsíc dat, max = aktuální měsíc (do budoucna nepouštíme)
@@ -1934,8 +1963,8 @@ export async function renderAdminPlatby() {
     const canNext = activeKey < maxKey
 
     el.innerHTML = `
-      <div class="page-title" style="margin-bottom:16px;">${esc(_adm('platby.pageTitle'))}</div>
-      ${_platbyHeaderHtml(activeKey, canPrev, canNext)}
+      <div class="page-title" style="margin-bottom:16px;">${esc(_adm(meta.pageTitleKey))}</div>
+      ${_platbyHeaderHtml(scope, activeKey, canPrev, canNext)}
       <div class="admin-stat-grid">
         <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(activeEntry.gross)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div></div>
         <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:18px;">${fmtPrice(activeEntry.refunds)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div></div>
@@ -1943,23 +1972,23 @@ export async function renderAdminPlatby() {
       </div>
       <div class="admin-section-title">${esc(_adm('platby.sectionMonth', { month: _platbyMonthLabel(activeKey) }))}</div>
       ${activeEntry.items.length
-        ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${activeEntry.items.map(_platbaRow).join('')}</div>`
+        ? `<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">${activeEntry.items.map(p => _platbaRow(p, meta.canRefund)).join('')}</div>`
         : `<div class="empty">${esc(_adm('platby.emptyInMonth'))}</div>`}
-      ${_monthPickerModalHtml(byMonth, activeKey)}
+      ${_monthPickerModalHtml(scope, byMonth, activeKey)}
     `
-    })(), 'admin-platby')
+    })(), meta.raceKey)
   } catch (err) {
     if (err?.code === 'TIMEOUT' && stable) {
       console.warn('[Debug] Admin platby: timeout — poslední známý obsah')
       el.innerHTML = prevHtml
       return
     }
-    console.error('[Admin] renderAdminPlatby:', err)
+    console.error('[Admin] renderPlatbyHistory:', scope, err)
     el.innerHTML = `<div class="empty">${esc(_adm('err.loadPayments'))}</div>`
   }
 }
 
-function _platbaRow(p) {
+function _platbaRow(p, canRefund = true) {
   const isPass = p.type === 'pass'
   const paidAmount = _paymentAmount(p)
   const refundApplied = _paymentRefundAmount(p)
@@ -2012,7 +2041,7 @@ function _platbaRow(p) {
         ${p.refundNote ? ` · ${esc(p.refundNote)}` : ''}
       </div>`
     : ''
-  const refundControls = refundPending || refundCanStart
+  const refundControls = canRefund && (refundPending || refundCanStart)
     ? `
       <div style="flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(0,0,0,.08);">
         <input
@@ -2063,7 +2092,7 @@ function _platbaRow(p) {
 }
 
 // ── Platby header (prev/next + clickable month pill) ─────────
-function _platbyHeaderHtml(activeKey, canPrev, canNext) {
+function _platbyHeaderHtml(scope, activeKey, canPrev, canNext) {
   const label = _platbyMonthLabel(activeKey)
   const prevAria = esc(_adm('platby.prevMonthAria'))
   const nextAria = esc(_adm('platby.nextMonthAria'))
@@ -2074,14 +2103,14 @@ function _platbyHeaderHtml(activeKey, canPrev, canNext) {
         aria-label="${prevAria}"
         title="${prevAria}"
         ${canPrev ? '' : 'disabled'}
-        onclick="window.adminPlatbyPrevMonth?.()"
+        onclick="${_platbyHandler(scope, 'PrevMonth')}"
         style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:18px;line-height:1;cursor:${canPrev ? 'pointer' : 'not-allowed'};opacity:${canPrev ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
         ‹
       </button>
       <button type="button"
         aria-label="${pickAria}"
         title="${pickAria}"
-        onclick="window.adminPlatbyOpenMonthPicker?.()"
+        onclick="${_platbyHandler(scope, 'OpenMonthPicker')}"
         style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;min-width:180px;justify-content:center;">
         <span aria-hidden="true">📅</span>
         <span>${esc(label)}</span>
@@ -2090,7 +2119,7 @@ function _platbyHeaderHtml(activeKey, canPrev, canNext) {
         aria-label="${nextAria}"
         title="${nextAria}"
         ${canNext ? '' : 'disabled'}
-        onclick="window.adminPlatbyNextMonth?.()"
+        onclick="${_platbyHandler(scope, 'NextMonth')}"
         style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:18px;line-height:1;cursor:${canNext ? 'pointer' : 'not-allowed'};opacity:${canNext ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
         ›
       </button>
@@ -2103,20 +2132,23 @@ function _platbyHeaderHtml(activeKey, canPrev, canNext) {
 //  – 1 rok  → ploché zobrazení 12 dlaždic (žádné year headery)
 //  – 2+ let → každý rok je collapsible sekce; defaultně expandnuté roky:
 //             aktuální rok + rok obsahující vybraný měsíc
-function _monthPickerModalHtml(byMonth, activeKey) {
+function _monthPickerModalHtml(scope, byMonth, activeKey) {
+  const meta = _PLATBY_SCOPE_META[scope]
+  const pickerId = meta.pickerId
+  const hp = meta.handlerPrefix
   // Years se daty (jen tam, kde alespoň jeden měsíc obsahuje platby)
   const yearsWithData = [...new Set([...byMonth.keys()].map(k => k.slice(0, 4)))].sort()
   if (yearsWithData.length === 0) {
     // Žádná data → modal je v podstatě jen "zavřít", ale rendrovat ho stejně,
     // aby uživatel viděl konzistentní stav.
     return `
-      <div id="admin-platby-picker" class="pop-overlay" onclick="if(event.target===this) window.adminPlatbyCloseMonthPicker?.()">
+      <div id="${pickerId}" class="pop-overlay" onclick="if(event.target===this) window.${hp}CloseMonthPicker?.()">
         <div class="pop-sheet" style="max-width:560px;">
           <div class="pop-bar"></div>
           <div class="pop-body" style="padding:20px;">
             <div style="font-size:16px;font-weight:600;margin-bottom:12px;">${esc(_adm('platby.pickerTitle'))}</div>
             <div class="empty" style="padding:24px 8px;">${esc(_adm('platby.empty'))}</div>
-            <button type="button" class="pop-close" onclick="window.adminPlatbyCloseMonthPicker?.()">${esc(_adm('platby.pickerClose'))}</button>
+            <button type="button" class="pop-close" onclick="window.${hp}CloseMonthPicker?.()">${esc(_adm('platby.pickerClose'))}</button>
           </div>
         </div>
       </div>
@@ -2124,8 +2156,9 @@ function _monthPickerModalHtml(byMonth, activeKey) {
   }
 
   // Lazy init Set expandnutých roků: dnes + rok vybraného měsíce
-  if (_adminPlatbyExpandedYears === null) {
-    _adminPlatbyExpandedYears = new Set([
+  const scopeState = _platbyScopeState[scope]
+  if (scopeState.expandedYears === null) {
+    scopeState.expandedYears = new Set([
       String(new Date().getFullYear()),
       activeKey.slice(0, 4),
     ])
@@ -2142,11 +2175,11 @@ function _monthPickerModalHtml(byMonth, activeKey) {
   }
 
   const renderYear = (year) => {
-    const expanded = flat || _adminPlatbyExpandedYears.has(year)
+    const expanded = flat || scopeState.expandedYears.has(year)
     const yearNet = yearTotals.get(year) ?? 0
     const header = flat ? '' : `
       <button type="button"
-        onclick="window.adminPlatbyToggleYear?.('${esc(year)}')"
+        onclick="window.${hp}ToggleYear?.('${esc(year)}')"
         style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:0;background:transparent;cursor:pointer;border-top:1px solid var(--border);font-size:14px;font-weight:600;text-align:left;">
         <span style="display:inline-flex;align-items:center;gap:8px;">
           <span aria-hidden="true" style="display:inline-block;width:12px;transition:transform .15s;transform:rotate(${expanded ? '90deg' : '0'});">▸</span>
@@ -2177,7 +2210,7 @@ function _monthPickerModalHtml(byMonth, activeKey) {
                 : 'platby-picker-tile platby-picker-tile-empty'
           const onClick = isFuture
             ? ''
-            : ` onclick="window.adminPlatbySelectMonth?.('${esc(key)}')"`
+            : ` onclick="window.${hp}SelectMonth?.('${esc(key)}')"`
           const disabled = isFuture ? ' disabled' : ''
           return `
             <button type="button" class="${stateClass}"${onClick}${disabled}>
@@ -2241,14 +2274,14 @@ function _monthPickerModalHtml(byMonth, activeKey) {
         background: #fafafa;
       }
     </style>
-    <div id="admin-platby-picker" class="pop-overlay" onclick="if(event.target===this) window.adminPlatbyCloseMonthPicker?.()">
+    <div id="${pickerId}" class="pop-overlay" onclick="if(event.target===this) window.${hp}CloseMonthPicker?.()">
       <div class="pop-sheet" style="max-width:560px;">
         <div class="pop-bar"></div>
         <div class="pop-body" style="padding:16px 0 16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px 12px;">
             <div style="font-size:16px;font-weight:600;">${esc(_adm('platby.pickerTitle'))}</div>
             <button type="button"
-              onclick="window.adminPlatbyJumpToCurrent?.()"
+              onclick="window.${hp}JumpToCurrent?.()"
               style="font-size:12px;padding:6px 12px;border:1px solid var(--border);background:#fff;border-radius:20px;cursor:pointer;">
               ${esc(_adm('platby.pickerJumpToCurrent'))}
             </button>
@@ -2256,7 +2289,7 @@ function _monthPickerModalHtml(byMonth, activeKey) {
           ${flatYearTitle}
           ${yearsWithData.slice().reverse().map(renderYear).join('')}
           <div style="padding:8px 16px 0;">
-            <button type="button" class="pop-close" onclick="window.adminPlatbyCloseMonthPicker?.()">${esc(_adm('platby.pickerClose'))}</button>
+            <button type="button" class="pop-close" onclick="window.${hp}CloseMonthPicker?.()">${esc(_adm('platby.pickerClose'))}</button>
           </div>
         </div>
       </div>
@@ -2264,45 +2297,53 @@ function _monthPickerModalHtml(byMonth, activeKey) {
   `
 }
 
-// ── Platby month-picker window handlers ──────────────────────
-// Re-renderujeme přes celé renderAdminPlatby() — drobný refetch, zato vždy konzistentní stav.
-// Pokud se objeví performance problém na dlouhých historiích, doplníme cache vrstvu odděleně.
-window.adminPlatbyOpenMonthPicker = () => {
-  const el = document.getElementById('admin-platby-picker')
-  if (el) el.style.display = 'flex'
+// ── Platby / Historie month-picker window handlers ───────────
+function _platbyRerender(scope) {
+  if (scope === 'lektor') void renderLektorHistorie()
+  else void renderAdminPlatby()
 }
-window.adminPlatbyCloseMonthPicker = () => {
-  const el = document.getElementById('admin-platby-picker')
-  if (el) el.style.display = 'none'
+function _bindPlatbyPickerHandlers(scope) {
+  const meta = _PLATBY_SCOPE_META[scope]
+  const hp = meta.handlerPrefix
+  const st = _platbyScopeState[scope]
+  window[`${hp}OpenMonthPicker`] = () => {
+    const el = document.getElementById(meta.pickerId)
+    if (el) el.style.display = 'flex'
+  }
+  window[`${hp}CloseMonthPicker`] = () => {
+    const el = document.getElementById(meta.pickerId)
+    if (el) el.style.display = 'none'
+  }
+  window[`${hp}SelectMonth`] = (key) => {
+    if (typeof key !== 'string' || !/^\d{4}-\d{2}$/.test(key)) return
+    if (key > _platbyCurrentMonthKey()) return
+    st.month = key
+    _platbyRerender(scope)
+  }
+  window[`${hp}PrevMonth`] = () => {
+    st.month = _platbyShiftMonth(_platbyActiveMonth(scope), -1)
+    _platbyRerender(scope)
+  }
+  window[`${hp}NextMonth`] = () => {
+    const next = _platbyShiftMonth(_platbyActiveMonth(scope), +1)
+    if (next > _platbyCurrentMonthKey()) return
+    st.month = next
+    _platbyRerender(scope)
+  }
+  window[`${hp}ToggleYear`] = (year) => {
+    if (typeof year !== 'string') return
+    if (st.expandedYears === null) st.expandedYears = new Set()
+    if (st.expandedYears.has(year)) st.expandedYears.delete(year)
+    else st.expandedYears.add(year)
+    _platbyRerender(scope)
+  }
+  window[`${hp}JumpToCurrent`] = () => {
+    st.month = null
+    _platbyRerender(scope)
+  }
 }
-window.adminPlatbySelectMonth = (key) => {
-  if (typeof key !== 'string' || !/^\d{4}-\d{2}$/.test(key)) return
-  // Vybraný měsíc nikdy nesmí být v budoucnosti (UI ho schovává/disabluje, ale brán paths existuje)
-  if (key > _platbyCurrentMonthKey()) return
-  _adminPlatbyMonth = key
-  void renderAdminPlatby()
-}
-window.adminPlatbyPrevMonth = () => {
-  _adminPlatbyMonth = _platbyShiftMonth(_platbyActiveMonth(), -1)
-  void renderAdminPlatby()
-}
-window.adminPlatbyNextMonth = () => {
-  const next = _platbyShiftMonth(_platbyActiveMonth(), +1)
-  if (next > _platbyCurrentMonthKey()) return
-  _adminPlatbyMonth = next
-  void renderAdminPlatby()
-}
-window.adminPlatbyToggleYear = (year) => {
-  if (typeof year !== 'string') return
-  if (_adminPlatbyExpandedYears === null) _adminPlatbyExpandedYears = new Set()
-  if (_adminPlatbyExpandedYears.has(year)) _adminPlatbyExpandedYears.delete(year)
-  else _adminPlatbyExpandedYears.add(year)
-  void renderAdminPlatby()
-}
-window.adminPlatbyJumpToCurrent = () => {
-  _adminPlatbyMonth = null
-  void renderAdminPlatby()
-}
+_bindPlatbyPickerHandlers('admin')
+_bindPlatbyPickerHandlers('lektor')
 
 async function _updatePaymentRefundState(type, paymentId, nextStatus, btnEl = null) {
   if (!paymentId || !['pending', 'completed'].includes(nextStatus)) return
@@ -4568,6 +4609,7 @@ window.__refreshAdminScreen = async (route) => {
   if (route === 'admin-kurzy')       await renderAdminKurzy()
   if (route === 'admin-zakaznici')   await renderAdminZakaznici()
   if (route === 'admin-platby')      await renderAdminPlatby()
+  if (route === 'lektor-historie')   await renderLektorHistorie()
   if (route === 'admin-permanentky') await renderAdminPermanentky()
 }
 

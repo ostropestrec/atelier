@@ -1786,6 +1786,11 @@
   <div id="admin-platby-content"></div>
 </div>
 
+<!-- ── Screen: Lektor Historie ── -->
+<div class="screen" id="screen-lektor-historie">
+  <div id="lektor-historie-content"></div>
+</div>
+
 <!-- ── Screen: Admin Permanentky ── -->
 <div class="screen" id="screen-admin-permanentky">
   <div id="admin-permanentky-content"></div>
@@ -1921,7 +1926,7 @@
     // Správa kurzů a permanentek — admin i lektor (RLS scopuje lektora na vlastní)
     const staffSections     = new Set(['admin-kurzy', 'admin-permanentky'])
     // Lekce, které učím — admin i lektor
-    const lektorSections    = new Set(['moje-lekce'])
+    const lektorSections    = new Set(['moje-lekce', 'lektor-historie'])
     const protectedAll      = new Set(['nastaveni', 'permanentky', ...lektorSections, ...staffSections, ...adminOnlySections])
 
     if (id === 'nastenka' && !(window.isAuthenticated?.())) {

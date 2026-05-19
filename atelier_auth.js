@@ -1331,6 +1331,7 @@ const _SIDEBAR_CFG = {
     { id: 'moje-lekce',        key: 'nav.myLessons' },
     { id: 'admin-kurzy',        key: 'nav.courses' },
     { id: 'admin-permanentky',  key: 'nav.passes' },
+    { id: 'lektor-historie',   key: 'nav.history' },
     { id: 'manual',            key: 'nav.manual' },
   ],
   admin: [
@@ -1363,6 +1364,7 @@ const _BOTTOM_NAV = {
     { id: 'kalendar',     key: 'nav.calendar',   icon: _SVG.cal  },
     { id: 'moje-lekce',   key: 'nav.myLessons', icon: _SVG.clip },
     { id: 'admin-kurzy',  key: 'nav.courses',      icon: _SVG.book },
+    { id: 'lektor-historie', key: 'nav.history', icon: _SVG.clip },
   ],
   admin: [
     { id: 'admin-dashboard', key: 'nav.overview',  icon: _SVG.home },

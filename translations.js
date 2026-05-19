@@ -49,6 +49,7 @@ export const UI_TRANSLATIONS = {
       settings: 'Nastavení',
       customers: 'Zákazníci',
       payments: 'Platby',
+      history: 'Historie',
       sectionOverview: 'PŘEHLED',
       sectionManagement: 'SPRÁVA',
     },
@@ -129,6 +130,11 @@ export const UI_TRANSLATIONS = {
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
         'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
+      historieTitle: 'Historie plateb',
+      historieText:
+        'V sekci Historie vidíte měsíční přehled plateb za svoje kurzy a permanentky — stejný kalendář měsíců jako u admina v Platbách.',
+      historieLi1: 'Zahrnuje jednorázové vstupy na vaše lekce a nákupy vašich permanentek.',
+      historieLi2: 'Refundace může zpracovat pouze administrátor.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
         'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
@@ -412,6 +418,7 @@ export const UI_TRANSLATIONS = {
         courses: 'Načítám kurzy…',
         customers: 'Načítám zákazníky…',
         payments: 'Načítám platby…',
+        history: 'Načítám historii…',
         passes: 'Načítám permanentky…',
         generic: 'Načítám…',
         modalCourses: 'Načítám kurzy…',
@@ -616,6 +623,9 @@ export const UI_TRANSLATIONS = {
         labelStatus: 'Stav',
         labelPricePaid: 'Cena zaplaceno (Kč)',
         cancellationsUsed: 'Storna: {{used}}/{{limit}}',
+      },
+      historie: {
+        pageTitle: 'Historie plateb',
       },
       platby: {
         empty: 'Žádné platby.',
@@ -832,6 +842,7 @@ export const UI_TRANSLATIONS = {
       settings: 'Settings',
       customers: 'Customers',
       payments: 'Payments',
+      history: 'History',
       sectionOverview: 'OVERVIEW',
       sectionManagement: 'MANAGEMENT',
     },
@@ -903,6 +914,11 @@ export const UI_TRANSLATIONS = {
       flow4Title: 'Keep the offer current',
       flow4Text:
         'Deactivate outdated sessions, activate lessons again as clean, and add new sessions in time.',
+      historieTitle: 'Payment history',
+      historieText:
+        'In History you see a monthly overview of payments for your courses and passes — the same month calendar as admin Payments.',
+      historieLi1: 'Includes single entries for your lessons and purchases of your passes.',
+      historieLi2: 'Only an administrator can process refunds.',
       coursesTitle: 'My courses, workshops, and sessions',
       coursesText:
         'Instructors manage their own courses and workshops. A standard course uses a weekly schedule; a workshop has one specific date.',
@@ -1193,6 +1209,7 @@ export const UI_TRANSLATIONS = {
         courses: 'Loading courses…',
         customers: 'Loading customers…',
         payments: 'Loading payments…',
+        history: 'Loading history…',
         passes: 'Loading passes…',
         generic: 'Loading…',
         modalCourses: 'Loading courses…',
@@ -1399,6 +1416,9 @@ export const UI_TRANSLATIONS = {
         labelStatus: 'Status',
         labelPricePaid: 'Price paid (CZK)',
         cancellationsUsed: 'Cancellations: {{used}}/{{limit}}',
+      },
+      historie: {
+        pageTitle: 'Payment history',
       },
       platby: {
         empty: 'No payments.',
