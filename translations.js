@@ -127,6 +127,8 @@ export const UI_TRANSLATIONS = {
       coursesLi2: 'Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.',
       coursesLi3: 'Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
+      coursesLi5:
+        'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
         'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
@@ -173,6 +175,8 @@ export const UI_TRANSLATIONS = {
       coursesLi2: 'Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.',
       coursesLi3: 'Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
+      coursesLi5:
+        'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
         'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
@@ -318,6 +322,7 @@ export const UI_TRANSLATIONS = {
     },
     courses: {
       noActiveCourses: 'Žádné aktivní kurzy',
+      notAvailable: 'Tento kurz pro vás není dostupný.',
       badgeFull: 'plno',
       badgeSpots: 'volná místa',
       detailLink: 'Detail kurzu →',
@@ -411,6 +416,7 @@ export const UI_TRANSLATIONS = {
         generic: 'Načítám…',
         modalCourses: 'Načítám kurzy…',
         modalPasses: 'Načítám permanentky…',
+        modalAllowedUsers: 'Načítám zákazníky…',
         attendees: 'Načítám…',
       },
       err: {
@@ -541,6 +547,7 @@ export const UI_TRANSLATIONS = {
         workshopDateTime: 'Datum a čas',
         workshopDateMissing: 'Termín workshopu není nastavený',
         workshopBadge: 'WORKSHOP',
+        restrictedBadge: 'Jen pro vybrané',
       },
       customers: {
         pageTitle: 'Zákazníci',
@@ -684,6 +691,12 @@ export const UI_TRANSLATIONS = {
         errRetryGeneric: 'Zkuste to znovu.',
         modalLoadFail:
           'Nepodařilo se načíst data. Zkuste okno zavřít a otevřít znovu, nebo obnovte stránku.',
+        restrictedLabel: 'Omezený přístup',
+        restrictedHint:
+          'Kurz neuvidí v katalogu ani v kalendáři nikdo kromě vybraných uživatelů a správců. Vyberte alespoň jednoho uživatele.',
+        allowedUsersLabel: 'Povolení uživatelé',
+        allowedUsersSearchPh: 'Hledat podle jména nebo e-mailu…',
+        allowedUsersEmpty: 'Žádní zákazníci nenalezeni.',
       },
       alerts: {
         notImage: '„{{name}}“ není obrázek.',
@@ -897,6 +910,8 @@ export const UI_TRANSLATIONS = {
       coursesLi2: 'The Add more sessions button adds the next 4 weeks for all days on which the course runs.',
       coursesLi3: 'A workshop has one specific date and time, and additional sessions are not added automatically.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
+      coursesLi5:
+        'You can restrict a course to selected customers only — others will not see it in the catalog or calendar.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
@@ -943,6 +958,8 @@ export const UI_TRANSLATIONS = {
       coursesLi2: 'The Add more sessions button adds the next 4 weeks for all days on which the course runs.',
       coursesLi3: 'A workshop has one specific date and time, and additional sessions are not added automatically.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
+      coursesLi5:
+        'You can restrict a course to selected customers only — others will not see it in the catalog or calendar.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
@@ -1086,6 +1103,7 @@ export const UI_TRANSLATIONS = {
     },
     courses: {
       noActiveCourses: 'No active courses',
+      notAvailable: 'This course is not available to you.',
       badgeFull: 'full',
       badgeSpots: 'capacity available',
       detailLink: 'Course details →',
@@ -1179,6 +1197,7 @@ export const UI_TRANSLATIONS = {
         generic: 'Loading…',
         modalCourses: 'Loading courses…',
         modalPasses: 'Loading passes…',
+        modalAllowedUsers: 'Loading customers…',
         attendees: 'Loading…',
       },
       err: {
@@ -1310,6 +1329,7 @@ export const UI_TRANSLATIONS = {
         workshopDateTime: 'Date and time',
         workshopDateMissing: 'Workshop date is not set',
         workshopBadge: 'WORKSHOP',
+        restrictedBadge: 'Invite only',
       },
       customers: {
         pageTitle: 'Customers',
@@ -1453,6 +1473,12 @@ export const UI_TRANSLATIONS = {
         errRetryGeneric: 'Please try again.',
         modalLoadFail:
           'Could not load data. Close and reopen the dialog, or refresh the page.',
+        restrictedLabel: 'Restricted access',
+        restrictedHint:
+          'Only selected users and staff will see this course in the catalog and calendar. Pick at least one user.',
+        allowedUsersLabel: 'Allowed users',
+        allowedUsersSearchPh: 'Search by name or email…',
+        allowedUsersEmpty: 'No customers found.',
       },
       alerts: {
         notImage: '“{{name}}” is not an image.',

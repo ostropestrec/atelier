@@ -2258,7 +2258,18 @@ window.closeCourseGalleryLightbox = () => {
 }
 
 // ── Otevření detailu kurzu ────────────────────────────────────
-window.openDetail = (courseId) => {
+window.openDetail = async (courseId) => {
+  try {
+    await window.refreshPublicData?.()
+  } catch (e) {
+    console.warn('[App] openDetail refresh:', e)
+  }
+  const course = window.AppState?.courses?.find(c => c.id === courseId)
+  if (!course) {
+    window.showToast?.(_tp('courses.notAvailable'), 'error')
+    window.nav?.('kurzy')
+    return
+  }
   window._detailCourseId = courseId
   window.nav?.('detail-kurzu')
 }
@@ -2267,7 +2278,7 @@ async function renderCourseDetail(courseId) {
   const el = document.getElementById('detail-kurzu-content')
   if (!el) return
   const course = window.AppState.courses.find(c => c.id === courseId)
-  if (!course) { el.innerHTML = `<div class="empty">Kurz nenalezen.</div>`; return }
+  if (!course) { el.innerHTML = `<div class="empty">${_tp('courses.notAvailable')}</div>`; return }
 
   const color     = courseThemeHex(course.color_code)
   const title     = loc(course.title)

@@ -82,6 +82,9 @@ const PASS_PALETTE = [
 // ── Stav modálů ──────────────────────────────────────────────
 let _ncSelectedDays  = new Set()
 let _ncSelectedColor = PRESET_COLORS[0]
+let _mcInviteCandidates = []
+let _mcAllowedUserIds = new Set()
+let _mcAllowedUsersQuery = ''
 let _wsSelectedColor = PRESET_COLORS[0]
 let _mpSelectedColor = PASS_PALETTE[0]
 let _ncExistingImages = []
@@ -1061,7 +1064,7 @@ export async function renderAdminKurzy() {
   try {
     await adminRace((async () => {
     let baseQuery = sb.from('courses')
-      .select('id, title, color_code, is_active, is_workshop, capacity_default, price_single, cancellation_hours, schedule_days, schedule_time_start, schedule_time_end, owner:users!owner_id(id,name)')
+      .select('id, title, color_code, is_active, is_workshop, is_restricted, capacity_default, price_single, cancellation_hours, schedule_days, schedule_time_start, schedule_time_end, owner:users!owner_id(id,name)')
       .order('title->cs')
     if (_isStaffAdmin() && _adminCoursesScope === 'moje' && currentUser?.id) {
       baseQuery = baseQuery.eq('owner_id', currentUser.id)
@@ -1212,6 +1215,7 @@ function _courseCard(course) {
             <div style="font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;">
               ${esc(title)}
               ${isWorkshop ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FFF4E0;color:#8B5C00;letter-spacing:.04em;">${esc(workshopLbl)}</span>` : ''}
+              ${course.is_restricted ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#E8EEF8;color:#2854B9;letter-spacing:.04em;">${esc(_adm('kurzy.restrictedBadge'))}</span>` : ''}
               ${!active ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:4px;">${esc(deactBadge)}</span>` : ''}
             </div>
             <div style="font-size:11px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;">
@@ -3243,6 +3247,27 @@ function buildCourseModal() {
             </label>
           </div>
 
+          <!-- Omezený přístup -->
+          <div style="margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px;">
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;user-select:none;">
+              <input type="checkbox" id="mc-restricted" onchange="window._mcToggleRestricted?.()"
+                style="width:16px;height:16px;margin-top:2px;accent-color:var(--primary);flex-shrink:0;" />
+              <span>
+                <span style="font-size:13px;font-weight:600;display:block;">${esc(_adm('courseModal.restrictedLabel'))}</span>
+                <span style="font-size:11px;color:#6b6b6b;line-height:1.45;">${esc(_adm('courseModal.restrictedHint'))}</span>
+              </span>
+            </label>
+            <div id="mc-allowed-users-wrap" style="display:none;margin-top:12px;">
+              <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">${esc(_adm('courseModal.allowedUsersLabel'))}</label>
+              <input type="search" id="mc-allowed-users-search" placeholder="${esc(_adm('courseModal.allowedUsersSearchPh'))}"
+                oninput="window._mcFilterAllowedUsers?.(this.value)"
+                style="${INP}margin-bottom:8px;" />
+              <div id="mc-allowed-users-list" style="max-height:200px;overflow-y:auto;">
+                <div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.modalAllowedUsers'))}</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Povolené permanentky -->
           <div style="margin-bottom:12px;">
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:8px;">${esc(_adm('passesPage.allowedPassesLabel'))}</label>
@@ -3325,6 +3350,18 @@ async function _openCourseModal(courseId = null) {
   _ncExistingImages = []
   _ncNewFiles       = []
   _ncRenderPhotos()
+  _mcAllowedUserIds = new Set()
+  _mcAllowedUsersQuery = ''
+  _mcInviteCandidates = []
+  const restrictedEl = document.getElementById('mc-restricted')
+  if (restrictedEl) restrictedEl.checked = false
+  const allowedSearchEl = document.getElementById('mc-allowed-users-search')
+  if (allowedSearchEl) allowedSearchEl.value = ''
+  window._mcToggleRestricted?.()
+  const allowedListEl = document.getElementById('mc-allowed-users-list')
+  if (allowedListEl) {
+    allowedListEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('loading.modalAllowedUsers'))}</div>`
+  }
   const noteEl = document.getElementById('mc-edit-note')
   if (noteEl) noteEl.style.display = isEdit ? 'block' : 'none'
 
@@ -3334,25 +3371,35 @@ async function _openCourseModal(courseId = null) {
 
   let passes = []
   let courseData = { data: null }
+  let allowedUserIds = []
   let modalDataFailed = false
   try {
     // Lektor v modalu kurzu vidí jen své vlastní permanentky — cizí by mu RLS UPDATE tiše neumožnil.
     const passesQuery = _scopeOwnerQuery(
       sb.from('passes').select('id, name, entries_total, price').eq('is_active', true).order('created_at')
     )
-    const [passRes, cRes] = await Promise.all([
+    const [passRes, cRes, , allowedRes] = await Promise.all([
       passesQuery,
       courseId
         ? sb.from('courses').select('*').eq('id', courseId).single()
         : Promise.resolve({ data: null }),
+      _loadMcInviteCandidates(),
+      courseId
+        ? sb.from('course_allowed_users').select('user_id').eq('course_id', courseId)
+        : Promise.resolve({ data: [] }),
     ])
     passes = passRes?.data ?? []
     courseData = cRes ?? { data: null }
+    allowedUserIds = (allowedRes?.data ?? []).map(r => r.user_id)
   } catch (e) {
     modalDataFailed = true
     console.error('[Admin] modal kurz:', e)
     passesListEl.innerHTML = `<div style="font-size:12px;color:#791F1F;padding:8px 0;">
       ${esc(_adm('courseModal.modalLoadFail'))}</div>`
+    if (allowedListEl) {
+      allowedListEl.innerHTML = `<div style="font-size:12px;color:#791F1F;padding:8px 0;">
+        ${esc(_adm('courseModal.modalLoadFail'))}</div>`
+    }
   }
 
   const course = courseData?.data
@@ -3381,6 +3428,12 @@ async function _openCourseModal(courseId = null) {
     // Load existing images
     _ncExistingImages = (course.images ?? []).filter(Boolean).slice(0, MAX_COURSE_PHOTOS)
     _ncRenderPhotos()
+    if (restrictedEl) restrictedEl.checked = !!course.is_restricted
+    _mcAllowedUserIds = new Set(allowedUserIds)
+    window._mcToggleRestricted?.()
+    _mcRenderAllowedUsersList()
+  } else if (!modalDataFailed) {
+    _mcRenderAllowedUsersList()
   }
 
   if (!modalDataFailed) {
@@ -3446,6 +3499,8 @@ window.saveNewCourse = async () => {
   const timeTo      = document.getElementById('mc-time-to')?.value
   const selectedDays    = [..._ncSelectedDays]
   const selectedPassIds = [...document.querySelectorAll('#mc-passes-list input[type=checkbox]:checked')].map(cb => cb.value)
+  const isRestricted    = document.getElementById('mc-restricted')?.checked ?? false
+  const selectedUserIds = isRestricted ? [..._mcAllowedUserIds] : []
 
   if (!name)              { showErr(errEl, _adm('courseModal.errName')); return }
   if (!price || price<=0) { showErr(errEl, _adm('courseModal.errTicketPrice')); return }
@@ -3473,6 +3528,7 @@ window.saveNewCourse = async () => {
       schedule_days: selectedDays,
       schedule_time_start: timeFrom,
       schedule_time_end: timeTo,
+      is_restricted: isRestricted,
     }
 
     let savedId = courseId
@@ -3509,6 +3565,7 @@ window.saveNewCourse = async () => {
 
     // Sync pass associations
     await _syncPassAssociations(savedId, selectedPassIds)
+    await _syncCourseAllowedUsers(savedId, selectedUserIds)
 
     window.closeNewCourseModal?.()
     renderAdminKurzy()
@@ -3527,6 +3584,90 @@ window.saveNewCourse = async () => {
       btn.disabled = false
       btn.textContent = courseId ? _adm('btn.save') : _adm('btn.saveCourse')
     }
+  }
+}
+
+function _mcCustomerSearchText(u) {
+  return _normalizeSearch(`${u.name ?? ''} ${u.email ?? ''}`)
+}
+
+window._mcToggleRestricted = () => {
+  const on = document.getElementById('mc-restricted')?.checked
+  const wrap = document.getElementById('mc-allowed-users-wrap')
+  if (wrap) wrap.style.display = on ? 'block' : 'none'
+}
+
+window._mcFilterAllowedUsers = (value) => {
+  _mcAllowedUsersQuery = String(value ?? '')
+  _mcRenderAllowedUsersList()
+}
+
+window._mcToggleAllowedUser = (userId, checked) => {
+  if (checked) _mcAllowedUserIds.add(userId)
+  else _mcAllowedUserIds.delete(userId)
+}
+
+function _mcRenderAllowedUsersList() {
+  const listEl = document.getElementById('mc-allowed-users-list')
+  if (!listEl) return
+  const q = _normalizeSearch(_mcAllowedUsersQuery)
+  const filtered = !_mcInviteCandidates.length
+    ? []
+    : _mcInviteCandidates.filter(u => !q || u.searchText.includes(q))
+  if (!filtered.length) {
+    listEl.innerHTML = `<div style="font-size:12px;color:#9b9b9b;padding:8px 0;">${esc(_adm('courseModal.allowedUsersEmpty'))}</div>`
+    return
+  }
+  listEl.innerHTML = filtered.map(u => `
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--btn-radius);
+      border:1px solid var(--border);margin-bottom:6px;cursor:pointer;user-select:none;">
+      <input type="checkbox" value="${esc(u.id)}" ${_mcAllowedUserIds.has(u.id) ? 'checked' : ''}
+        onchange="window._mcToggleAllowedUser?.('${esc(u.id)}', this.checked)"
+        style="width:16px;height:16px;accent-color:var(--primary);flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.name || u.email)}</div>
+        <div style="font-size:11px;color:#6b6b6b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.email ?? '')}</div>
+      </div>
+    </label>`).join('')
+}
+
+async function _loadMcInviteCandidates() {
+  const { data, error } = await sb.from('users')
+    .select('id, name, email')
+    .eq('role', 'uzivatel')
+    .not('email', 'like', 'deleted_%@%')
+    .order('name')
+  if (error) throw error
+  _mcInviteCandidates = (data ?? []).map(u => ({
+    ...u,
+    searchText: _mcCustomerSearchText(u),
+  }))
+}
+
+async function _syncCourseAllowedUsers(courseId, selectedUserIds) {
+  const { data: existing, error } = await sb.from('course_allowed_users')
+    .select('user_id')
+    .eq('course_id', courseId)
+  if (error) throw error
+  const current = new Set((existing ?? []).map(r => r.user_id))
+  const next = new Set(selectedUserIds)
+  const toRemove = [...current].filter(id => !next.has(id))
+  const toAdd = [...next].filter(id => !current.has(id))
+  if (toRemove.length) {
+    const { error: delErr } = await sb.from('course_allowed_users')
+      .delete()
+      .eq('course_id', courseId)
+      .in('user_id', toRemove)
+    if (delErr) throw delErr
+  }
+  if (toAdd.length) {
+    const rows = toAdd.map(user_id => ({
+      course_id: courseId,
+      user_id,
+      granted_by: currentUser?.id ?? null,
+    }))
+    const { error: insErr } = await sb.from('course_allowed_users').insert(rows)
+    if (insErr) throw insErr
   }
 }
 
