@@ -369,32 +369,29 @@ async function init() {
   try {
     logSupabaseClientDebug()
 
-    // 1) Kurzy + lekce jsou veřejné — nepotřebují přihlášeného uživatele.
-    //    Spouštíme je hned, paralelně s auth. Auth modul mezitím dělá getSession + hydrataci profilu/passes/bookings.
-    const dataFetches = Promise.all([
-      fetchCourses().catch(e => {
-        console.warn('[Debug] Init: fetchCourses chyba — pokračuji s prázdnými kurzy:', e?.message ?? e)
-        console.dir(e, { depth: null })
-        return null
-      }),
-      fetchLessons().catch(e => {
-        console.warn('[Debug] Init: fetchLessons:', e?.message ?? e)
-        console.dir(e, { depth: null })
-        return null
-      }),
-      fetchUpcomingLessons().catch(e => {
-        console.warn('[Debug] Init: fetchUpcomingLessons:', e?.message ?? e)
-        console.dir(e, { depth: null })
-        return null
-      }),
-    ])
-
-    // 2) Počkat na auth (getSession + případná hydratace profilu, již běží od loadu atelier_auth.js).
-    //    Druhé getSession() z dřívější verze odstraněno — auth modul ho právě dokončil, opakování je čisté plýtvání RTT.
+    // 1) Nejdřív auth — až potom kurzy/lekce, aby RLS vidělo přihlášeného uživatele
+    //    (jinak zůstanou jen veřejné kurzy až do reloadu stránky).
     if (window.__authReady) await window.__authReady
     console.log('[App] Auth ready (tab resume sync je ' + (ENABLE_TAB_RESUME_SYNC ? 'ZAP' : 'VY') + 'PNUTÝ)')
 
-    // 3) Admin modul (~135 KB) jen pro staff (admin nebo lektor) — lazy import paralelně s daty.
+    const dataFetches = (async () => {
+      await fetchCourses().catch(e => {
+        console.warn('[Debug] Init: fetchCourses chyba — pokračuji s prázdnými kurzy:', e?.message ?? e)
+        console.dir(e, { depth: null })
+      })
+      await Promise.all([
+        fetchLessons().catch(e => {
+          console.warn('[Debug] Init: fetchLessons:', e?.message ?? e)
+          console.dir(e, { depth: null })
+        }),
+        fetchUpcomingLessons().catch(e => {
+          console.warn('[Debug] Init: fetchUpcomingLessons:', e?.message ?? e)
+          console.dir(e, { depth: null })
+        }),
+      ])
+    })()
+
+    // 2) Admin modul (~135 KB) jen pro staff (admin nebo lektor) — lazy import paralelně s daty.
     //    Lektor používá z admin modulu: správu kurzů/workshopů, permanentek a akce v „Moje lekce"
     //    (otevření účastníků, storno lekce, storno rezervace zákazníka). RLS scopuje vše na vlastní.
     const _role = window.AppState.role
@@ -563,9 +560,8 @@ async function fetchCourses() {
 
   if (!primary.error) {
     window.AppState.courses = (primary.data ?? []).map(normalizeCourseRecord)
+    window.AppState._coursesFetchSettled = true
     emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'primary' })
-    _reconcileLessonsWithCourses()
-    emit(EVENTS.LESSONS_UPDATED, { scope: 'reconcile' })
     return
   }
 
@@ -601,9 +597,8 @@ async function fetchCourses() {
     ...c,
     owner: ownerMap[c.owner_id] ?? null,
   }))
+  window.AppState._coursesFetchSettled = true
   emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'fallback' })
-  _reconcileLessonsWithCourses()
-  emit(EVENTS.LESSONS_UPDATED, { scope: 'reconcile' })
 }
 
 function _calcDurMin(startStr, endStr) {
@@ -619,13 +614,10 @@ function _visibleCourseIdSet() {
 }
 
 function _filterLessonsByVisibleCourses(lessons) {
+  // Kurzy ještě nenačtené — neřež (jinak prázdný kalendář při závodu fetchCourses vs. fetchLessons).
+  if (!window.AppState._coursesFetchSettled) return lessons ?? []
   const ids = _visibleCourseIdSet()
   return (lessons ?? []).filter(l => ids.has(l.course_id))
-}
-
-function _reconcileLessonsWithCourses() {
-  window.AppState.lessons = _filterLessonsByVisibleCourses(window.AppState.lessons)
-  window.AppState.upcomingLessons = _filterLessonsByVisibleCourses(window.AppState.upcomingLessons)
 }
 
 // ── Fetch: lekce pro aktuální týden ──────────────────────────
@@ -741,8 +733,8 @@ function renderAll() {
 }
 
 async function refreshPublicData() {
+  await fetchCourses().catch(() => {})
   await Promise.allSettled([
-    fetchCourses().catch(() => {}),
     fetchLessons().catch(() => {}),
     fetchUpcomingLessons().catch(() => {}),
     currentUser?.id && typeof window.refreshUserBookings === 'function'

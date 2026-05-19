@@ -295,7 +295,11 @@ export async function initAuth() {
         renderAuthUI(null)
         renderProtectedSections(null)
         _syncPasswordRecoveryUi()
-        rerenderCalendar()
+        if (typeof window.refreshPublicData === 'function') {
+          void window.refreshPublicData()
+        } else {
+          rerenderCalendar()
+        }
         break
       case 'USER_UPDATED':
         await loadUserProfile(session.user.id)
@@ -395,7 +399,11 @@ async function onSessionChange(session) {
     renderAuthUI(currentUser)
     renderProtectedSections(currentUser)
     renderSettings(currentUser)
-    rerenderCalendar()
+    if (typeof window.refreshPublicData === 'function') {
+      await window.refreshPublicData()
+    } else {
+      rerenderCalendar()
+    }
     updateEnrolledOnNastenska()
   } finally {
     _sessionHydrateInFlight = null
