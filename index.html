@@ -186,6 +186,16 @@
       padding: 9px 14px; background: transparent; cursor: pointer;
     }
     .sbtn.primary{ background: var(--primary); color:#fff; border-color: var(--primary); }
+    @media (max-width: 1023px) {
+      .top-actions .sbtn {
+        font-size: 12px;
+        padding: 6px 11px;
+        border-radius: 999px;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+      .top-actions { gap: 8px; }
+    }
 
     /* ── Avatar dropdown menu ── */
     #av-menu {
