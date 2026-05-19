@@ -564,6 +564,8 @@ async function fetchCourses() {
   if (!primary.error) {
     window.AppState.courses = (primary.data ?? []).map(normalizeCourseRecord)
     emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'primary' })
+    _reconcileLessonsWithCourses()
+    emit(EVENTS.LESSONS_UPDATED, { scope: 'reconcile' })
     return
   }
 
@@ -600,6 +602,8 @@ async function fetchCourses() {
     owner: ownerMap[c.owner_id] ?? null,
   }))
   emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'fallback' })
+  _reconcileLessonsWithCourses()
+  emit(EVENTS.LESSONS_UPDATED, { scope: 'reconcile' })
 }
 
 function _calcDurMin(startStr, endStr) {
@@ -607,6 +611,21 @@ function _calcDurMin(startStr, endStr) {
   const [sh, sm] = startStr.split(':').map(Number)
   const [eh, em] = endStr.split(':').map(Number)
   return (eh * 60 + em) - (sh * 60 + sm)
+}
+
+/** Lekce jen u kurzů v AppState (lesson_availability může vrátit i skryté kurzy). */
+function _visibleCourseIdSet() {
+  return new Set((window.AppState.courses ?? []).map(c => c.id))
+}
+
+function _filterLessonsByVisibleCourses(lessons) {
+  const ids = _visibleCourseIdSet()
+  return (lessons ?? []).filter(l => ids.has(l.course_id))
+}
+
+function _reconcileLessonsWithCourses() {
+  window.AppState.lessons = _filterLessonsByVisibleCourses(window.AppState.lessons)
+  window.AppState.upcomingLessons = _filterLessonsByVisibleCourses(window.AppState.upcomingLessons)
 }
 
 // ── Fetch: lekce pro aktuální týden ──────────────────────────
@@ -621,7 +640,7 @@ async function fetchLessons(from = window.AppState.weekStart) {
     .lt('start_time',  to.toISOString())
     .order('start_time')
   if (error) { console.error('fetchLessons:', error); return }
-  window.AppState.lessons = data ?? []
+  window.AppState.lessons = _filterLessonsByVisibleCourses(data ?? [])
   emit(EVENTS.LESSONS_UPDATED, { scope: 'week', from: from.toISOString() })
 }
 
@@ -635,7 +654,7 @@ async function fetchUpcomingLessons() {
     .order('start_time')
     .limit(300)
   if (error) { console.error('fetchUpcomingLessons:', error); return }
-  window.AppState.upcomingLessons = data ?? []
+  window.AppState.upcomingLessons = _filterLessonsByVisibleCourses(data ?? [])
   emit(EVENTS.LESSONS_UPDATED, { scope: 'upcoming' })
 }
 
@@ -803,7 +822,8 @@ export function renderKalendar() {
 
   window.AppState.lessons.forEach(l => {
     const course  = window.AppState.courses.find(c => c.id === l.course_id)
-    const color   = courseThemeHex(course?.color_code)
+    if (!course) return
+    const color   = courseThemeHex(course.color_code)
     const start   = new Date(l.start_time)
     const end     = new Date(l.end_time)
     const dayIdx  = (start.getDay() + 6) % 7  // 0=Po … 6=Ne
@@ -865,7 +885,7 @@ function renderWeekHeader() {
 
 function calMinMax() {
   let mn = 9, mx = 18
-  window.AppState.lessons.forEach(l => {
+  _filterLessonsByVisibleCourses(window.AppState.lessons).forEach(l => {
     const s = new Date(l.start_time), e = new Date(l.end_time)
     mn = Math.min(mn, s.getHours())
     mx = Math.max(mx, e.getHours() + (e.getMinutes() > 0 ? 1 : 0))

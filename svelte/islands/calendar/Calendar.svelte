@@ -24,13 +24,16 @@
     return out
   })
 
-  const lessonsForDay: readonly Lesson[] = $derived(
-    $upcomingLessons.filter((l) => toISODate(new Date(l.start_time)) === $selectedDay)
-  )
-
   function courseFor(courseId: Lesson['course_id']): Course | undefined {
     return $courses.find((c) => c.id === courseId)
   }
+
+  const lessonsForDay: readonly Lesson[] = $derived(
+    $upcomingLessons.filter((l) => {
+      if (!courseFor(l.course_id)) return false
+      return toISODate(new Date(l.start_time)) === $selectedDay
+    })
+  )
 
   function localized(field: LocalizedText | undefined): string {
     if (!field) return ''

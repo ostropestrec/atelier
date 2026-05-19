@@ -142,3 +142,6 @@ create policy "bookings_insert_own"
 commit;
 
 -- notify pgrst, 'reload schema';
+
+-- Doplňte také sql_patch_lesson_availability_course_access.sql
+-- (odstraní „duchy“ v kalendáři u uzavřených kurzů).
