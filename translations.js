@@ -132,9 +132,9 @@ export const UI_TRANSLATIONS = {
         'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
       historieTitle: 'Historie plateb',
       historieText:
-        'V sekci Historie vidíte měsíční přehled plateb za svoje kurzy a permanentky — stejný kalendář měsíců jako u admina v Platbách.',
-      historieLi1: 'Zahrnuje jednorázové vstupy na vaše lekce a nákupy vašich permanentek.',
-      historieLi2: 'Refundace může zpracovat pouze administrátor.',
+        'V sekci Historie vidíte měsíční přehled plateb jen za vaše permanentky, kurzy, workshopy a lekce — stejný kalendář měsíců jako u admina v Platbách.',
+      historieLi1: 'Zahrnuje nákupy vašich permanentek a jednorázové vstupy na lekce vašich kurzů a workshopů.',
+      historieLi2: 'Nezobrazuje vaše vlastní nákupy u jiných lektorů. Refundace může zpracovat pouze administrátor.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
         'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
@@ -916,9 +916,9 @@ export const UI_TRANSLATIONS = {
         'Deactivate outdated sessions, activate lessons again as clean, and add new sessions in time.',
       historieTitle: 'Payment history',
       historieText:
-        'In History you see a monthly overview of payments for your courses and passes — the same month calendar as admin Payments.',
-      historieLi1: 'Includes single entries for your lessons and purchases of your passes.',
-      historieLi2: 'Only an administrator can process refunds.',
+        'In History you see a monthly overview of payments for your passes, courses, workshops, and lessons only — the same month calendar as admin Payments.',
+      historieLi1: 'Includes purchases of your passes and single entries for lessons in your courses and workshops.',
+      historieLi2: 'Does not show your own purchases from other instructors. Only an administrator can process refunds.',
       coursesTitle: 'My courses, workshops, and sessions',
       coursesText:
         'Instructors manage their own courses and workshops. A standard course uses a weekly schedule; a workshop has one specific date.',

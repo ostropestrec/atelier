@@ -1847,6 +1847,19 @@ function _platbyMonthShort(monthNum) {
  * Seskupí normalizované platby podle 'YYYY-MM' a vrátí mapu se souhrny.
  * Refundy patří do měsíce **originální platby** (varianta a).
  */
+/** Jen platby za vlastní permanentky / kurzy / lekce (ne vlastní nákupy lektora jako zákazníka). */
+function _platbyRowsForLektorOwner(allPasses, allSingles) {
+  const ownerId = currentUser?.id
+  if (!ownerId) return { passes: [], singles: [] }
+  const passes = (allPasses ?? []).filter(
+    p => p.pass?.owner_id === ownerId,
+  )
+  const singles = (allSingles ?? []).filter(
+    b => b.lesson?.course?.owner_id === ownerId,
+  )
+  return { passes, singles }
+}
+
 function _platbyGroupByMonth(payments) {
   const byMonth = new Map()
   for (const p of payments) {
@@ -1888,10 +1901,12 @@ async function _renderPlatbyHistory(scope) {
   else el.innerHTML = `<div class="empty" style="padding:40px;">${esc(loadNeedle)}</div>`
   try {
     await adminRace((async () => {
+    const passSelect = 'id,price_paid,created_at,status,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),pass:passes(name,owner_id)'
+    const singleSelect = 'id,price_paid,status,created_at,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code,owner_id))'
     const [allPassesRes, allSinglesRes] = await Promise.all([
-      sb.from('user_passes').select('id,price_paid,created_at,status,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),pass:passes(name)')
+      sb.from('user_passes').select(passSelect)
         .order('created_at',{ascending:false}).limit(_PLATBY_FETCH_LIMIT),
-      sb.from('bookings').select('id,price_paid,status,created_at,refund_status,refund_note,refunded_at,refund_amount,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
+      sb.from('bookings').select(singleSelect)
         .eq('payment_type','single').order('created_at',{ascending:false}).limit(_PLATBY_FETCH_LIMIT),
     ])
 
@@ -1899,7 +1914,7 @@ async function _renderPlatbyHistory(scope) {
     if (allPassesRes.error) {
       if (!_looksLikeMissingRefundColumns(allPassesRes.error)) throw allPassesRes.error
       const fallbackPassesRes = await sb.from('user_passes')
-        .select('id,price_paid,created_at,status,user:users(name,email),pass:passes(name)')
+        .select('id,price_paid,created_at,status,user:users(name,email),pass:passes(name,owner_id)')
         .order('created_at',{ascending:false})
         .limit(_PLATBY_FETCH_LIMIT)
       if (fallbackPassesRes.error) throw fallbackPassesRes.error
@@ -1916,7 +1931,7 @@ async function _renderPlatbyHistory(scope) {
     if (allSinglesRes.error) {
       if (!_looksLikeMissingRefundColumns(allSinglesRes.error)) throw allSinglesRes.error
       const fallbackSinglesRes = await sb.from('bookings')
-        .select('id,price_paid,status,created_at,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code))')
+        .select('id,price_paid,status,created_at,user:users(name,email),lesson:lessons(start_time,course:courses(title,color_code,owner_id))')
         .eq('payment_type','single')
         .order('created_at',{ascending:false})
         .limit(_PLATBY_FETCH_LIMIT)
@@ -1928,6 +1943,12 @@ async function _renderPlatbyHistory(scope) {
         refunded_at: null,
         refund_amount: null,
       }))
+    }
+
+    if (scope === 'lektor') {
+      const scoped = _platbyRowsForLektorOwner(allPasses, allSingles)
+      allPasses = scoped.passes
+      allSingles = scoped.singles
     }
 
     const allPayments = [
