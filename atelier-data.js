@@ -594,6 +594,7 @@ async function fetchCourses() {
   if (!primary.error) {
     window.AppState.courses = (primary.data ?? []).map(normalizeCourseRecord)
     window.AppState._coursesFetchSettled = true
+    await _refreshWorkshopSessionMeta()
     emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'primary' })
     return
   }
@@ -631,6 +632,7 @@ async function fetchCourses() {
     owner: ownerMap[c.owner_id] ?? null,
   }))
   window.AppState._coursesFetchSettled = true
+  await _refreshWorkshopSessionMeta()
   emit(EVENTS.COURSES_UPDATED, { count: window.AppState.courses.length, source: 'fallback' })
 }
 
@@ -657,13 +659,14 @@ function _filterLessonsByVisibleCourses(lessons) {
 async function fetchLessons(from = window.AppState.weekStart) {
   const to = new Date(from)
   to.setDate(to.getDate() + 7)
-  const { data, error } = await sb
+  const weekQuery = sb
     .from('lesson_availability')
     .select(LESSONS_SELECT)
     .eq('status', 'active')
     .gte('start_time', from.toISOString())
     .lt('start_time',  to.toISOString())
     .order('start_time')
+  const [{ data, error }] = await Promise.all([weekQuery, _refreshWorkshopSessionMeta()])
   if (error) { console.error('fetchLessons:', error); return }
   window.AppState.lessons = _filterLessonsByVisibleCourses(data ?? [])
   emit(EVENTS.LESSONS_UPDATED, { scope: 'week', from: from.toISOString() })
@@ -811,15 +814,35 @@ function _escHtml(s) {
 // ============================================================
 // KALENDÁŘ
 // ============================================================
-/** @returns {Map<string, { index: number, total: number }>} */
-function _workshopSessionMetaByLessonId() {
+/** Všechna aktivní setkání workshopů (ne jen aktuální týden) — pro správné číslo (2), (3)… */
+async function _refreshWorkshopSessionMeta() {
   const map = new Map()
+  if (!window.AppState._coursesFetchSettled) {
+    window.AppState.workshopSessionMeta = map
+    return
+  }
+  const workshopIds = (window.AppState.courses ?? [])
+    .filter(c => c.is_workshop)
+    .map(c => c.id)
+  if (!workshopIds.length) {
+    window.AppState.workshopSessionMeta = map
+    return
+  }
+  const { data, error } = await sb
+    .from('lesson_availability')
+    .select('lesson_id, course_id, start_time')
+    .in('course_id', workshopIds)
+    .eq('status', 'active')
+    .order('start_time')
+  if (error) {
+    console.warn('[App] _refreshWorkshopSessionMeta:', error)
+    return
+  }
   const byCourse = new Map()
-  for (const l of _filterLessonsByVisibleCourses(window.AppState.lessons ?? [])) {
-    const course = window.AppState.courses.find(c => c.id === l.course_id)
-    if (!course?.is_workshop) continue
-    if (!byCourse.has(l.course_id)) byCourse.set(l.course_id, [])
-    byCourse.get(l.course_id).push(l)
+  for (const l of _filterLessonsByVisibleCourses(data ?? [])) {
+    const cid = l.course_id
+    if (!byCourse.has(cid)) byCourse.set(cid, [])
+    byCourse.get(cid).push(l)
   }
   for (const lessons of byCourse.values()) {
     lessons.sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
@@ -827,7 +850,12 @@ function _workshopSessionMetaByLessonId() {
       map.set(String(l.lesson_id ?? l.id), { index: i + 1, total: lessons.length })
     })
   }
-  return map
+  window.AppState.workshopSessionMeta = map
+}
+
+/** @returns {Map<string, { index: number, total: number }>} */
+function _workshopSessionMetaByLessonId() {
+  return window.AppState.workshopSessionMeta ?? new Map()
 }
 
 function _workshopEventTitle(courseTitle, sessionMeta) {
