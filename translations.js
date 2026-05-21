@@ -90,9 +90,8 @@ export const UI_TRANSLATIONS = {
         'V sekci Kurzy i v Kalendáři prohlížíte nabídku ateliéru. U každého kurzu vidíte popis, lektora, termíny a cenu; rezervaci dokončíte v detailu kurzu nebo u konkrétní lekce v kalendáři.',
       coursesLi1: 'Běžný kurz má opakující se výuku — v detailu uvidíte vypsané lekce a vyberete termín, který vám vyhovuje.',
       coursesLi2: 'Workshop může mít jedno nebo více setkání; v kalendáři mají další setkání v názvu číslo (2), (3) atd. U workshopu s více setkáními rezervujete celý cyklus najednou.',
-      coursesLi3: 'Uzavřený kurz poznáte podle štítku Uzavřený v seznamu kurzů, v kalendáři i v detailu — kurz zůstane viditelný všem.',
-      coursesLi4: 'U uzavřeného kurzu si můžete přečíst obsah, termíny a cenu stejně jako u běžného kurzu.',
-      coursesLi5: 'Rezervovat uzavřený kurz můžete jen pokud vás lektor nebo ateliér přidal mezi povolené účastníky — jinak uvidíte vysvětlující text místo tlačítka rezervace.',
+      coursesLi3:
+        'Štítek „Uzavřený“ značí kurz, který je určený výhradně uzavřené skupině účastníků.',
       lessonCancelledTitle: 'Když lektor zruší lekci',
       lessonCancelledText:
         'Pokud lektor lekci zruší, vaše rezervace se stornuje a místo už se nepočítá jako obsazené.',
@@ -139,9 +138,8 @@ export const UI_TRANSLATIONS = {
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
         'Uzavřený kurz: v modalu kurzu zapněte přepínač Uzavřený kurz (omezený přístup) a vyberte povolené zákazníky.',
-      coursesLi7: 'Uzavřený kurz vidí všichni v katalogu a kalendáři se štítkem Uzavřený — už se neskrývá.',
-      coursesLi8: 'Musíte vybrat alespoň jednoho povoleného zákazníka — bez výběru uzavřený kurz neuložíte.',
-      coursesLi9: 'Ostatní uživatelé kurz uvidí, ale aplikace jim rezervaci nepovolí.',
+      coursesLi7:
+        'Štítek „Uzavřený“ značí kurz, který je určený výhradně uzavřené skupině účastníků.',
       coursesLi10: 'Vy jako lektor se na vlastní kurz nepřihlašujete jako účastník — stejně jako administrátor.',
       historieTitle: 'Historie plateb',
       historieText:
@@ -197,9 +195,8 @@ export const UI_TRANSLATIONS = {
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
         'Uzavřený kurz: v modalu kurzu zapněte přepínač Uzavřený kurz (omezený přístup) a vyberte povolené zákazníky ze seznamu.',
-      coursesLi7: 'Uzavřený kurz vidí všichni v katalogu a kalendáři se štítkem Uzavřený.',
-      coursesLi8: 'Vyberte alespoň jednoho povoleného zákazníka — bez výběru uzavřený kurz neuložíte.',
-      coursesLi9: 'Ostatní uživatelé si kurz prohlédnou, rezervaci ale aplikace nepovolí.',
+      coursesLi7:
+        'Štítek „Uzavřený“ značí kurz, který je určený výhradně uzavřené skupině účastníků.',
       coursesLi10: 'Administrátor i lektor se na lekce nepřihlašují jako účastníci — pouze spravují obsah a účastníky.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
@@ -920,9 +917,8 @@ export const UI_TRANSLATIONS = {
         'In Courses and Calendar you browse the atelier offer. Each course shows description, instructor, dates, and price; you complete booking in the course detail or from a specific lesson in the calendar.',
       coursesLi1: 'A standard course has recurring lessons — open the detail to see scheduled sessions and pick a date that suits you.',
       coursesLi2: 'A workshop can have one or multiple sessions; extra sessions are numbered in the calendar title as (2), (3), etc. Multi-session workshops are booked as one full cycle.',
-      coursesLi3: 'A closed course is marked with a Closed badge in the course list, calendar, and detail — it stays visible to everyone.',
-      coursesLi4: 'You can read the content, dates, and price of a closed course just like any other course.',
-      coursesLi5: 'You can book a closed course only if the instructor or atelier added you to the allowed list — otherwise you see an explanation instead of the booking button.',
+      coursesLi3:
+        'The “Closed” badge marks a course intended exclusively for a closed group of participants.',
       lessonCancelledTitle: 'When an instructor cancels a lesson',
       lessonCancelledText:
         'If an instructor cancels a lesson, your booking is cancelled and the spot no longer counts as occupied.',
@@ -974,9 +970,8 @@ export const UI_TRANSLATIONS = {
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
         'For a closed course, turn on Closed course (restricted access) in the course modal and pick allowed customers.',
-      coursesLi7: 'Everyone sees a closed course in the catalog and calendar with a Closed badge — it is no longer hidden.',
-      coursesLi8: 'Pick at least one allowed customer — you cannot save a closed course without a selection.',
-      coursesLi9: 'Other users can browse the course, but the app will not let them book.',
+      coursesLi7:
+        'The “Closed” badge marks a course intended exclusively for a closed group of participants.',
       coursesLi10: 'As the course owner you do not book your own course as a participant — same as an administrator.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
@@ -1027,9 +1022,8 @@ export const UI_TRANSLATIONS = {
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
         'For a closed course, turn on Closed course (restricted access) in the course modal and pick allowed customers from the list.',
-      coursesLi7: 'Everyone sees a closed course in the catalog and calendar with a Closed badge.',
-      coursesLi8: 'Select at least one allowed customer — you cannot save a closed course without a selection.',
-      coursesLi9: 'Other users can view the course, but the app blocks booking for them.',
+      coursesLi7:
+        'The “Closed” badge marks a course intended exclusively for a closed group of participants.',
       coursesLi10: 'Administrators and instructors manage lessons as staff — they do not book as participants.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
