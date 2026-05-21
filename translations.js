@@ -60,7 +60,7 @@ export const UI_TRANSLATIONS = {
         'Stručný návod pro uživatele: jak najít lekci, přihlásit se, zaplatit a spravovat svoje termíny.',
       flow1Title: 'Vyberte kurz nebo lekci',
       flow1Text:
-        'V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času.',
+        'V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času. Uzavřené kurzy mají štítek Uzavřený.',
       flow2Title: 'Zvolte způsob platby',
       flow2Text:
         'Můžete zvolit jednorázový vstup, nebo si zakoupit permanentku.',
@@ -85,6 +85,13 @@ export const UI_TRANSLATIONS = {
       bookingTermsLi3: 'U permanentky do 5 vstupů máte nárok na 1 včasné storno s vrácením vstupu.',
       bookingTermsLi4: 'U permanentky od 6 vstupů máte nárok na 2 včasná storna s vrácením vstupu.',
       bookingTermsLi5: 'U jednorázových plateb se podmínky storna řídí nastavením dané lekce.',
+      closedCoursesTitle: 'Uzavřené kurzy',
+      closedCoursesText:
+        'Některé kurzy jsou uzavřené — vidíte je v katalogu i kalendáři, přihlásit se ale mohou jen vybraní účastníci.',
+      closedCoursesLi1: 'Uzavřený kurz poznáte podle štítku Uzavřený v seznamu kurzů, v kalendáři i v detailu.',
+      closedCoursesLi2: 'Obsah kurzu, termíny a cenu si můžete prohlédnout jako u běžného kurzu.',
+      closedCoursesLi3: 'Rezervovat se můžete jen pokud vás lektor nebo ateliér přidal mezi povolené účastníky — jinak uvidíte vysvětlující text místo tlačítka.',
+      closedCoursesLi4: 'U workshopu s více setkáními platí stejná pravidla; uzavřený workshop rezervujete najednou za celý cyklus, pokud máte povolení.',
       lessonCancelledTitle: 'Když lektor zruší lekci',
       lessonCancelledText:
         'Pokud lektor lekci zruší, vaše rezervace se stornuje a místo už se nepočítá jako obsazené.',
@@ -130,7 +137,14 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
-        'U kurzu lze zapnout uzavřený přístup a vybrat konkrétní zákazníky — kurz uvidí všichni jako uzavřený, přihlásit se mohou jen vybraní.',
+        'Uzavřený kurz: v modalu kurzu zapněte omezený přístup, vyberte zákazníky — viz karta Uzavřený přístup níže.',
+      closedCoursesTitle: 'Uzavřený přístup k kurzu',
+      closedCoursesText:
+        'V úpravě kurzu nebo workshopu zapnete omezený přístup a určíte, kdo se může přihlásit.',
+      closedCoursesLi1: 'Kurz zůstane viditelný všem v katalogu a kalendáři se štítkem Uzavřený (už se neskrývá).',
+      closedCoursesLi2: 'Musíte vybrat alespoň jednoho povoleného zákazníka — bez výběru uzavřený kurz neuložíte.',
+      closedCoursesLi3: 'Ostatní uživatelé kurz uvidí, ale aplikace jim rezervaci nepovolí.',
+      closedCoursesLi4: 'Vy jako lektor kurzu ho nespravujete přes rezervaci jako účastník — stejně jako administrátor.',
       historieTitle: 'Historie plateb',
       historieText:
         'V sekci Historie vidíte měsíční přehled plateb jen za vaše permanentky, kurzy, workshopy a lekce — stejný kalendář měsíců jako u admina v Platbách.',
@@ -184,7 +198,14 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
-        'U kurzu lze zapnout uzavřený přístup a vybrat konkrétní zákazníky — kurz uvidí všichni jako uzavřený, přihlásit se mohou jen vybraní.',
+        'Uzavřený kurz: v modalu zapněte omezený přístup a vyberte zákazníky — viz karta Uzavřený přístup níže.',
+      closedCoursesTitle: 'Uzavřený přístup k kurzu',
+      closedCoursesText:
+        'Při úpravě kurzu nebo workshopu určíte, kdo se může přihlásit. Kurz zůstane v nabídce viditelný.',
+      closedCoursesLi1: 'Uzavřený kurz vidí všichni v katalogu a kalendáři se štítkem Uzavřený.',
+      closedCoursesLi2: 'Vyberte alespoň jednoho povoleného zákazníka ze seznamu zákazníků.',
+      closedCoursesLi3: 'Ostatní uživatelé si kurz prohlédnou, rezervaci ale aplikace nepovolí.',
+      closedCoursesLi4: 'Administrátor i lektor se na lekce nepřihlašují jako účastníci — pouze spravují obsah a účastníky.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
         'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
@@ -722,7 +743,7 @@ export const UI_TRANSLATIONS = {
         errRetryGeneric: 'Zkuste to znovu.',
         modalLoadFail:
           'Nepodařilo se načíst data. Zkuste okno zavřít a otevřít znovu, nebo obnovte stránku.',
-        restrictedLabel: 'Omezený přístup',
+        restrictedLabel: 'Uzavřený kurz',
         restrictedHint:
           'Kurz uvidí všichni v katalogu a kalendáři jako uzavřený. Přihlásit se mohou jen vybraní uživatelé (a vy jako lektor/admin). Vyberte alespoň jednoho uživatele.',
         allowedUsersLabel: 'Povolení uživatelé',
@@ -874,7 +895,7 @@ export const UI_TRANSLATIONS = {
         'A short guide for users: how to find a lesson, book it, pay, and manage your sessions.',
       flow1Title: 'Choose a course or lesson',
       flow1Text:
-        'Courses show the description, instructor, and scheduled dates. Calendar shows lessons by time.',
+        'Courses show the description, instructor, and scheduled dates. Calendar shows lessons by time. Closed courses are marked with a Closed badge.',
       flow2Title: 'Choose payment',
       flow2Text:
         'You can choose a single entry, or buy a pass.',
@@ -899,6 +920,13 @@ export const UI_TRANSLATIONS = {
       bookingTermsLi3: 'For passes with up to 5 entries, you have 1 timely cancellation with the entry returned.',
       bookingTermsLi4: 'For passes with 6 or more entries, you have 2 timely cancellations with entries returned.',
       bookingTermsLi5: 'For single-entry payments, cancellation terms follow the settings of that lesson.',
+      closedCoursesTitle: 'Closed courses',
+      closedCoursesText:
+        'Some courses are closed — everyone can see them in the catalog and calendar, but only selected participants can book.',
+      closedCoursesLi1: 'Look for the Closed badge in the course list, calendar, and course detail.',
+      closedCoursesLi2: 'You can read the course content, dates, and price like any other course.',
+      closedCoursesLi3: 'You can book only if the instructor or atelier added you to the allowed list — otherwise you see an explanation instead of the booking button.',
+      closedCoursesLi4: 'Multi-session workshops follow the same rules; you book the full workshop cycle at once when you are allowed.',
       lessonCancelledTitle: 'When an instructor cancels a lesson',
       lessonCancelledText:
         'If an instructor cancels a lesson, your booking is cancelled and the spot no longer counts as occupied.',
@@ -949,7 +977,14 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
-        'You can mark a course as closed and pick who may book — everyone sees it as closed, only selected users can register.',
+        'For a closed course, enable restricted access in the course modal and pick customers — see the Closed access card below.',
+      closedCoursesTitle: 'Closed course access',
+      closedCoursesText:
+        'In the course or workshop editor, turn on restricted access and choose who may book.',
+      closedCoursesLi1: 'The course stays visible to everyone in the catalog and calendar with a Closed badge.',
+      closedCoursesLi2: 'Pick at least one allowed customer — you cannot save a closed course without a selection.',
+      closedCoursesLi3: 'Other users can browse the course, but the app will not let them book.',
+      closedCoursesLi4: 'As the course owner you do not book it as a participant — same as an administrator.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
@@ -998,7 +1033,14 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
-        'You can mark a course as closed and pick who may book — everyone sees it as closed, only selected users can register.',
+        'For a closed course, enable restricted access in the course modal and pick customers — see the Closed access card below.',
+      closedCoursesTitle: 'Closed course access',
+      closedCoursesText:
+        'When editing a course or workshop, choose who may book. The course remains visible in the public offer.',
+      closedCoursesLi1: 'Everyone sees closed courses in the catalog and calendar with a Closed badge.',
+      closedCoursesLi2: 'Select at least one allowed customer from the customer list.',
+      closedCoursesLi3: 'Other users can view the course, but the app blocks booking for them.',
+      closedCoursesLi4: 'Administrators and instructors manage lessons as staff — they do not book as participants.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
@@ -1535,7 +1577,7 @@ export const UI_TRANSLATIONS = {
         errRetryGeneric: 'Please try again.',
         modalLoadFail:
           'Could not load data. Close and reopen the dialog, or refresh the page.',
-        restrictedLabel: 'Restricted access',
+        restrictedLabel: 'Closed course',
         restrictedHint:
           'Everyone will see the course as closed in the catalog and calendar. Only selected users can book (plus you as instructor/admin). Pick at least one user.',
         allowedUsersLabel: 'Allowed users',

@@ -1375,7 +1375,7 @@
     <div class="manual-flow-step">
       <div class="manual-num">1</div>
       <div class="manual-step-title" data-i18n="manual.flow1Title">Vyberte kurz nebo lekci</div>
-      <div class="manual-step-text" data-i18n="manual.flow1Text">V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času.</div>
+      <div class="manual-step-text" data-i18n="manual.flow1Text">V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času. Uzavřené kurzy mají štítek Uzavřený.</div>
     </div>
     <div class="manual-flow-step">
       <div class="manual-num">2</div>
@@ -1415,6 +1415,17 @@
         <li data-i18n="manual.bookingTermsLi3">U permanentky do 5 vstupů máte nárok na 1 včasné storno s vrácením vstupu.</li>
         <li data-i18n="manual.bookingTermsLi4">U permanentky od 6 vstupů máte nárok na 2 včasná storna s vrácením vstupu.</li>
         <li data-i18n="manual.bookingTermsLi5">U jednorázových plateb se podmínky storna řídí nastavením dané lekce.</li>
+      </ul>
+    </article>
+
+    <article class="manual-card">
+      <div class="manual-card-title" data-i18n="manual.closedCoursesTitle">Uzavřené kurzy</div>
+      <p class="manual-card-text" data-i18n="manual.closedCoursesText">Některé kurzy jsou uzavřené — vidíte je v katalogu i kalendáři, přihlásit se ale mohou jen vybraní účastníci.</p>
+      <ul class="manual-list">
+        <li data-i18n="manual.closedCoursesLi1">Uzavřený kurz poznáte podle štítku Uzavřený v seznamu kurzů, v kalendáři i v detailu.</li>
+        <li data-i18n="manual.closedCoursesLi2">Obsah kurzu, termíny a cenu si můžete prohlédnout jako u běžného kurzu.</li>
+        <li data-i18n="manual.closedCoursesLi3">Rezervovat se můžete jen pokud vás lektor nebo ateliér přidal mezi povolené účastníky — jinak uvidíte vysvětlující text místo tlačítka.</li>
+        <li data-i18n="manual.closedCoursesLi4">U workshopu s více setkáními platí stejná pravidla; uzavřený workshop rezervujete najednou za celý cyklus, pokud máte povolení.</li>
       </ul>
     </article>
 
@@ -1488,7 +1499,27 @@
           <li data-i18n="lektorManual.coursesLi3">Workshop lze rozdělit na více setkání (různá data, společný čas) — v kalendáři jsou označena číslem setkání.</li>
           <li data-i18n="lektorManual.coursesLi6">Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.</li>
           <li data-i18n="lektorManual.coursesLi4">Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.</li>
-          <li data-i18n="lektorManual.coursesLi5">U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.</li>
+          <li data-i18n="lektorManual.coursesLi5">Uzavřený kurz: v modalu kurzu zapněte omezený přístup, vyberte zákazníky — viz karta Uzavřený přístup níže.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="lektorManual.closedCoursesTitle">Uzavřený přístup k kurzu</div>
+        <p class="manual-card-text" data-i18n="lektorManual.closedCoursesText">V úpravě kurzu nebo workshopu zapnete omezený přístup a určíte, kdo se může přihlásit.</p>
+        <ul class="manual-list">
+          <li data-i18n="lektorManual.closedCoursesLi1">Kurz zůstane viditelný všem v katalogu a kalendáři se štítkem Uzavřený (už se neskrývá).</li>
+          <li data-i18n="lektorManual.closedCoursesLi2">Musíte vybrat alespoň jednoho povoleného zákazníka — bez výběru uzavřený kurz neuložíte.</li>
+          <li data-i18n="lektorManual.closedCoursesLi3">Ostatní uživatelé kurz uvidí, ale aplikace jim rezervaci nepovolí.</li>
+          <li data-i18n="lektorManual.closedCoursesLi4">Vy jako lektor kurzu ho nespravujete přes rezervaci jako účastník — stejně jako administrátor.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="lektorManual.historieTitle">Historie plateb</div>
+        <p class="manual-card-text" data-i18n="lektorManual.historieText">V sekci Historie vidíte měsíční přehled plateb jen za vaše permanentky, kurzy, workshopy a lekce — stejný kalendář měsíců jako u admina v Platbách.</p>
+        <ul class="manual-list">
+          <li data-i18n="lektorManual.historieLi1">Zahrnuje nákupy vašich permanentek a jednorázové vstupy na lekce vašich kurzů a workshopů.</li>
+          <li data-i18n="lektorManual.historieLi2">Nezobrazuje vaše vlastní nákupy u jiných lektorů. Refundace může zpracovat pouze administrátor.</li>
         </ul>
       </article>
 
@@ -1571,7 +1602,18 @@
           <li data-i18n="adminManual.coursesLi3">Workshop lze rozdělit na více setkání (různá data, společný čas) — v kalendáři jsou označena číslem setkání.</li>
           <li data-i18n="adminManual.coursesLi6">Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.</li>
           <li data-i18n="adminManual.coursesLi4">Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.</li>
-          <li data-i18n="adminManual.coursesLi5">U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.</li>
+          <li data-i18n="adminManual.coursesLi5">Uzavřený kurz: v modalu zapněte omezený přístup a vyberte zákazníky — viz karta Uzavřený přístup níže.</li>
+        </ul>
+      </article>
+
+      <article class="manual-card">
+        <div class="manual-card-title" data-i18n="adminManual.closedCoursesTitle">Uzavřený přístup k kurzu</div>
+        <p class="manual-card-text" data-i18n="adminManual.closedCoursesText">Při úpravě kurzu nebo workshopu určíte, kdo se může přihlásit. Kurz zůstane v nabídce viditelný.</p>
+        <ul class="manual-list">
+          <li data-i18n="adminManual.closedCoursesLi1">Uzavřený kurz vidí všichni v katalogu a kalendáři se štítkem Uzavřený.</li>
+          <li data-i18n="adminManual.closedCoursesLi2">Vyberte alespoň jednoho povoleného zákazníka ze seznamu zákazníků.</li>
+          <li data-i18n="adminManual.closedCoursesLi3">Ostatní uživatelé si kurz prohlédnou, rezervaci ale aplikace nepovolí.</li>
+          <li data-i18n="adminManual.closedCoursesLi4">Administrátor i lektor se na lekce nepřihlašují jako účastníci — pouze spravují obsah a účastníky.</li>
         </ul>
       </article>
 
