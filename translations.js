@@ -60,7 +60,7 @@ export const UI_TRANSLATIONS = {
         'Stručný návod pro uživatele: jak najít lekci, přihlásit se, zaplatit a spravovat svoje termíny.',
       flow1Title: 'Vyberte kurz nebo lekci',
       flow1Text:
-        'V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času. Uzavřené kurzy mají štítek Uzavřený.',
+        'V Kurzech najdete popis, lektora a vypsané termíny. V Kalendáři vidíte lekce podle času.',
       flow2Title: 'Zvolte způsob platby',
       flow2Text:
         'Můžete zvolit jednorázový vstup, nebo si zakoupit permanentku.',
@@ -85,13 +85,14 @@ export const UI_TRANSLATIONS = {
       bookingTermsLi3: 'U permanentky do 5 vstupů máte nárok na 1 včasné storno s vrácením vstupu.',
       bookingTermsLi4: 'U permanentky od 6 vstupů máte nárok na 2 včasná storna s vrácením vstupu.',
       bookingTermsLi5: 'U jednorázových plateb se podmínky storna řídí nastavením dané lekce.',
-      closedCoursesTitle: 'Uzavřené kurzy',
-      closedCoursesText:
-        'Některé kurzy jsou uzavřené — vidíte je v katalogu i kalendáři, přihlásit se ale mohou jen vybraní účastníci.',
-      closedCoursesLi1: 'Uzavřený kurz poznáte podle štítku Uzavřený v seznamu kurzů, v kalendáři i v detailu.',
-      closedCoursesLi2: 'Obsah kurzu, termíny a cenu si můžete prohlédnout jako u běžného kurzu.',
-      closedCoursesLi3: 'Rezervovat se můžete jen pokud vás lektor nebo ateliér přidal mezi povolené účastníky — jinak uvidíte vysvětlující text místo tlačítka.',
-      closedCoursesLi4: 'U workshopu s více setkáními platí stejná pravidla; uzavřený workshop rezervujete najednou za celý cyklus, pokud máte povolení.',
+      coursesTitle: 'Kurzy',
+      coursesText:
+        'V sekci Kurzy i v Kalendáři prohlížíte nabídku ateliéru. U každého kurzu vidíte popis, lektora, termíny a cenu; rezervaci dokončíte v detailu kurzu nebo u konkrétní lekce v kalendáři.',
+      coursesLi1: 'Běžný kurz má opakující se výuku — v detailu uvidíte vypsané lekce a vyberete termín, který vám vyhovuje.',
+      coursesLi2: 'Workshop může mít jedno nebo více setkání; v kalendáři mají další setkání v názvu číslo (2), (3) atd. U workshopu s více setkáními rezervujete celý cyklus najednou.',
+      coursesLi3: 'Uzavřený kurz poznáte podle štítku Uzavřený v seznamu kurzů, v kalendáři i v detailu — kurz zůstane viditelný všem.',
+      coursesLi4: 'U uzavřeného kurzu si můžete přečíst obsah, termíny a cenu stejně jako u běžného kurzu.',
+      coursesLi5: 'Rezervovat uzavřený kurz můžete jen pokud vás lektor nebo ateliér přidal mezi povolené účastníky — jinak uvidíte vysvětlující text místo tlačítka rezervace.',
       lessonCancelledTitle: 'Když lektor zruší lekci',
       lessonCancelledText:
         'Pokud lektor lekci zruší, vaše rezervace se stornuje a místo už se nepočítá jako obsazené.',
@@ -128,23 +129,20 @@ export const UI_TRANSLATIONS = {
       flow4Title: 'Udržujte nabídku aktuální',
       flow4Text:
         'Deaktivujte neaktuální termíny, aktivujte lekce znovu jako čisté a doplňujte nové termíny včas.',
-      coursesTitle: 'Moje kurzy, workshopy a termíny',
+      coursesTitle: 'Kurzy',
       coursesText:
-        'Lektor spravuje svoje vlastní kurzy a workshopy. Běžný kurz pracuje s týdenním rozvrhem; workshop může mít jeden termín nebo více setkání.',
+        'V sekci Kurzy spravujete svoje kurzy a workshopy. Běžný kurz pracuje s týdenním rozvrhem; workshop může mít jeden termín nebo více setkání. Uzavřený kurz zůstane v nabídce viditelný, rezervovat ho mohou jen vybraní zákazníci.',
       coursesLi1: 'Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.',
       coursesLi2: 'Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.',
       coursesLi3: 'Workshop lze rozdělit na více setkání (různá data, společný čas) — v kalendáři jsou označena číslem setkání.',
       coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
-        'Uzavřený kurz: v modalu kurzu zapněte omezený přístup, vyberte zákazníky — viz karta Uzavřený přístup níže.',
-      closedCoursesTitle: 'Uzavřený přístup k kurzu',
-      closedCoursesText:
-        'V úpravě kurzu nebo workshopu zapnete omezený přístup a určíte, kdo se může přihlásit.',
-      closedCoursesLi1: 'Kurz zůstane viditelný všem v katalogu a kalendáři se štítkem Uzavřený (už se neskrývá).',
-      closedCoursesLi2: 'Musíte vybrat alespoň jednoho povoleného zákazníka — bez výběru uzavřený kurz neuložíte.',
-      closedCoursesLi3: 'Ostatní uživatelé kurz uvidí, ale aplikace jim rezervaci nepovolí.',
-      closedCoursesLi4: 'Vy jako lektor kurzu ho nespravujete přes rezervaci jako účastník — stejně jako administrátor.',
+        'Uzavřený kurz: v modalu kurzu zapněte přepínač Uzavřený kurz (omezený přístup) a vyberte povolené zákazníky.',
+      coursesLi7: 'Uzavřený kurz vidí všichni v katalogu a kalendáři se štítkem Uzavřený — už se neskrývá.',
+      coursesLi8: 'Musíte vybrat alespoň jednoho povoleného zákazníka — bez výběru uzavřený kurz neuložíte.',
+      coursesLi9: 'Ostatní uživatelé kurz uvidí, ale aplikace jim rezervaci nepovolí.',
+      coursesLi10: 'Vy jako lektor se na vlastní kurz nepřihlašujete jako účastník — stejně jako administrátor.',
       historieTitle: 'Historie plateb',
       historieText:
         'V sekci Historie vidíte měsíční přehled plateb jen za vaše permanentky, kurzy, workshopy a lekce — stejný kalendář měsíců jako u admina v Platbách.',
@@ -189,23 +187,20 @@ export const UI_TRANSLATIONS = {
       flow4Title: 'Kontrolujte platby',
       flow4Text:
         'V Platbách sledujete měsíční tržby, jednorázové vstupy, permanentky a refundace.',
-      coursesTitle: 'Kurzy, workshopy a termíny',
+      coursesTitle: 'Kurzy',
       coursesText:
-        'Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí. Běžný kurz pracuje s týdenním rozvrhem; workshop může mít jeden termín nebo více setkání.',
+        'Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí. Běžný kurz pracuje s týdenním rozvrhem; workshop může mít jeden termín nebo více setkání. Uzavřený kurz zůstane viditelný v nabídce, rezervovat ho mohou jen vybraní zákazníci.',
       coursesLi1: 'Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.',
       coursesLi2: 'Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.',
       coursesLi3: 'Workshop lze rozdělit na více setkání (různá data, společný čas) — v kalendáři jsou označena číslem setkání.',
       coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
-        'Uzavřený kurz: v modalu zapněte omezený přístup a vyberte zákazníky — viz karta Uzavřený přístup níže.',
-      closedCoursesTitle: 'Uzavřený přístup k kurzu',
-      closedCoursesText:
-        'Při úpravě kurzu nebo workshopu určíte, kdo se může přihlásit. Kurz zůstane v nabídce viditelný.',
-      closedCoursesLi1: 'Uzavřený kurz vidí všichni v katalogu a kalendáři se štítkem Uzavřený.',
-      closedCoursesLi2: 'Vyberte alespoň jednoho povoleného zákazníka ze seznamu zákazníků.',
-      closedCoursesLi3: 'Ostatní uživatelé si kurz prohlédnou, rezervaci ale aplikace nepovolí.',
-      closedCoursesLi4: 'Administrátor i lektor se na lekce nepřihlašují jako účastníci — pouze spravují obsah a účastníky.',
+        'Uzavřený kurz: v modalu kurzu zapněte přepínač Uzavřený kurz (omezený přístup) a vyberte povolené zákazníky ze seznamu.',
+      coursesLi7: 'Uzavřený kurz vidí všichni v katalogu a kalendáři se štítkem Uzavřený.',
+      coursesLi8: 'Vyberte alespoň jednoho povoleného zákazníka — bez výběru uzavřený kurz neuložíte.',
+      coursesLi9: 'Ostatní uživatelé si kurz prohlédnou, rezervaci ale aplikace nepovolí.',
+      coursesLi10: 'Administrátor i lektor se na lekce nepřihlašují jako účastníci — pouze spravují obsah a účastníky.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
         'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
@@ -895,7 +890,7 @@ export const UI_TRANSLATIONS = {
         'A short guide for users: how to find a lesson, book it, pay, and manage your sessions.',
       flow1Title: 'Choose a course or lesson',
       flow1Text:
-        'Courses show the description, instructor, and scheduled dates. Calendar shows lessons by time. Closed courses are marked with a Closed badge.',
+        'Courses show the description, instructor, and scheduled dates. Calendar shows lessons by time.',
       flow2Title: 'Choose payment',
       flow2Text:
         'You can choose a single entry, or buy a pass.',
@@ -920,13 +915,14 @@ export const UI_TRANSLATIONS = {
       bookingTermsLi3: 'For passes with up to 5 entries, you have 1 timely cancellation with the entry returned.',
       bookingTermsLi4: 'For passes with 6 or more entries, you have 2 timely cancellations with entries returned.',
       bookingTermsLi5: 'For single-entry payments, cancellation terms follow the settings of that lesson.',
-      closedCoursesTitle: 'Closed courses',
-      closedCoursesText:
-        'Some courses are closed — everyone can see them in the catalog and calendar, but only selected participants can book.',
-      closedCoursesLi1: 'Look for the Closed badge in the course list, calendar, and course detail.',
-      closedCoursesLi2: 'You can read the course content, dates, and price like any other course.',
-      closedCoursesLi3: 'You can book only if the instructor or atelier added you to the allowed list — otherwise you see an explanation instead of the booking button.',
-      closedCoursesLi4: 'Multi-session workshops follow the same rules; you book the full workshop cycle at once when you are allowed.',
+      coursesTitle: 'Courses',
+      coursesText:
+        'In Courses and Calendar you browse the atelier offer. Each course shows description, instructor, dates, and price; you complete booking in the course detail or from a specific lesson in the calendar.',
+      coursesLi1: 'A standard course has recurring lessons — open the detail to see scheduled sessions and pick a date that suits you.',
+      coursesLi2: 'A workshop can have one or multiple sessions; extra sessions are numbered in the calendar title as (2), (3), etc. Multi-session workshops are booked as one full cycle.',
+      coursesLi3: 'A closed course is marked with a Closed badge in the course list, calendar, and detail — it stays visible to everyone.',
+      coursesLi4: 'You can read the content, dates, and price of a closed course just like any other course.',
+      coursesLi5: 'You can book a closed course only if the instructor or atelier added you to the allowed list — otherwise you see an explanation instead of the booking button.',
       lessonCancelledTitle: 'When an instructor cancels a lesson',
       lessonCancelledText:
         'If an instructor cancels a lesson, your booking is cancelled and the spot no longer counts as occupied.',
@@ -968,23 +964,20 @@ export const UI_TRANSLATIONS = {
         'In History you see a monthly overview of payments for your passes, courses, workshops, and lessons only — the same month calendar as admin Payments.',
       historieLi1: 'Includes purchases of your passes and single entries for lessons in your courses and workshops.',
       historieLi2: 'Does not show your own purchases from other instructors. Only an administrator can process refunds.',
-      coursesTitle: 'My courses, workshops, and sessions',
+      coursesTitle: 'Courses',
       coursesText:
-        'Instructors manage their own courses and workshops. A standard course uses a weekly schedule; a workshop can have one date or multiple sessions.',
+        'In Courses you manage your courses and workshops. A standard course uses a weekly schedule; a workshop can have one date or multiple sessions. A closed course stays visible in the offer; only selected customers can book.',
       coursesLi1: 'A standard course has set teaching days and times; individual lessons are created from them.',
       coursesLi2: 'The Add more sessions button adds the next 4 weeks for all days on which the course runs.',
       coursesLi3: 'A workshop can be split into multiple sessions (different dates, shared time) — the calendar shows session numbers.',
       coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
-        'For a closed course, enable restricted access in the course modal and pick customers — see the Closed access card below.',
-      closedCoursesTitle: 'Closed course access',
-      closedCoursesText:
-        'In the course or workshop editor, turn on restricted access and choose who may book.',
-      closedCoursesLi1: 'The course stays visible to everyone in the catalog and calendar with a Closed badge.',
-      closedCoursesLi2: 'Pick at least one allowed customer — you cannot save a closed course without a selection.',
-      closedCoursesLi3: 'Other users can browse the course, but the app will not let them book.',
-      closedCoursesLi4: 'As the course owner you do not book it as a participant — same as an administrator.',
+        'For a closed course, turn on Closed course (restricted access) in the course modal and pick allowed customers.',
+      coursesLi7: 'Everyone sees a closed course in the catalog and calendar with a Closed badge — it is no longer hidden.',
+      coursesLi8: 'Pick at least one allowed customer — you cannot save a closed course without a selection.',
+      coursesLi9: 'Other users can browse the course, but the app will not let them book.',
+      coursesLi10: 'As the course owner you do not book your own course as a participant — same as an administrator.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
@@ -1024,23 +1017,20 @@ export const UI_TRANSLATIONS = {
       flow4Title: 'Check payments',
       flow4Text:
         'Payments show monthly revenue, single entries, passes, and refunds.',
-      coursesTitle: 'Courses, workshops, and sessions',
+      coursesTitle: 'Courses',
       coursesText:
-        'Course management is the main place for public offer content and long-term lesson planning. A standard course uses a weekly schedule; a workshop can have one date or multiple sessions.',
+        'Course management is the main place for public offer content and long-term lesson planning. A standard course uses a weekly schedule; a workshop can have one date or multiple sessions. A closed course stays visible in the offer; only selected customers can book.',
       coursesLi1: 'A standard course has set teaching days and times; individual lessons are created from them.',
       coursesLi2: 'The Add more sessions button adds the next 4 weeks for all days on which the course runs.',
       coursesLi3: 'A workshop can be split into multiple sessions (different dates, shared time) — the calendar shows session numbers.',
       coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
-        'For a closed course, enable restricted access in the course modal and pick customers — see the Closed access card below.',
-      closedCoursesTitle: 'Closed course access',
-      closedCoursesText:
-        'When editing a course or workshop, choose who may book. The course remains visible in the public offer.',
-      closedCoursesLi1: 'Everyone sees closed courses in the catalog and calendar with a Closed badge.',
-      closedCoursesLi2: 'Select at least one allowed customer from the customer list.',
-      closedCoursesLi3: 'Other users can view the course, but the app blocks booking for them.',
-      closedCoursesLi4: 'Administrators and instructors manage lessons as staff — they do not book as participants.',
+        'For a closed course, turn on Closed course (restricted access) in the course modal and pick allowed customers from the list.',
+      coursesLi7: 'Everyone sees a closed course in the catalog and calendar with a Closed badge.',
+      coursesLi8: 'Select at least one allowed customer — you cannot save a closed course without a selection.',
+      coursesLi9: 'Other users can view the course, but the app blocks booking for them.',
+      coursesLi10: 'Administrators and instructors manage lessons as staff — they do not book as participants.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
