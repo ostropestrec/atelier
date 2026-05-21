@@ -797,8 +797,8 @@ function _workshopSessionMetaByLessonId() {
 }
 
 function _workshopEventTitle(courseTitle, sessionMeta) {
-  if (!sessionMeta || sessionMeta.total <= 1) return courseTitle
-  return `${courseTitle} (${sessionMeta.index}/${sessionMeta.total})`
+  if (!sessionMeta || sessionMeta.total <= 1 || sessionMeta.index <= 1) return courseTitle
+  return `${courseTitle} (${sessionMeta.index})`
 }
 
 export function renderKalendar() {
@@ -877,7 +877,7 @@ export function renderKalendar() {
     ].filter(Boolean).join(';')
 
     const wsBadge = course?.is_workshop
-      ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP${sessionMeta && sessionMeta.total > 1 ? ` · ${sessionMeta.index}/${sessionMeta.total}` : ''}</div>`
+      ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP${sessionMeta && sessionMeta.index > 1 ? ` (${sessionMeta.index})` : ''}</div>`
       : ''
 
     el.innerHTML = `
