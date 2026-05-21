@@ -777,6 +777,30 @@ function _escHtml(s) {
 // ============================================================
 // KALENDÁŘ
 // ============================================================
+/** @returns {Map<string, { index: number, total: number }>} */
+function _workshopSessionMetaByLessonId() {
+  const map = new Map()
+  const byCourse = new Map()
+  for (const l of _filterLessonsByVisibleCourses(window.AppState.lessons ?? [])) {
+    const course = window.AppState.courses.find(c => c.id === l.course_id)
+    if (!course?.is_workshop) continue
+    if (!byCourse.has(l.course_id)) byCourse.set(l.course_id, [])
+    byCourse.get(l.course_id).push(l)
+  }
+  for (const lessons of byCourse.values()) {
+    lessons.sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+    lessons.forEach((l, i) => {
+      map.set(String(l.lesson_id ?? l.id), { index: i + 1, total: lessons.length })
+    })
+  }
+  return map
+}
+
+function _workshopEventTitle(courseTitle, sessionMeta) {
+  if (!sessionMeta || sessionMeta.total <= 1) return courseTitle
+  return `${courseTitle} (${sessionMeta.index}/${sessionMeta.total})`
+}
+
 export function renderKalendar() {
   const colIds = ['col-po','col-ut','col-st','col-ct','col-pa','col-so','col-ne']
 
@@ -812,6 +836,8 @@ export function renderKalendar() {
     if (col) col.style.minHeight = `${colHeight}px`
   })
 
+  const wsMeta = _workshopSessionMetaByLessonId()
+
   window.AppState.lessons.forEach(l => {
     const course  = window.AppState.courses.find(c => c.id === l.course_id)
     if (!course) return
@@ -829,30 +855,40 @@ export function renderKalendar() {
     const col = document.getElementById(colIds[dayIdx])
     if (!col) return
 
-    const enrolled = isEnrolled(l.lesson_id ?? l.id)
+    const lid = String(l.lesson_id ?? l.id)
+    const sessionMeta = wsMeta.get(lid)
+    const isFollowUpSession = sessionMeta && sessionMeta.index > 1
+    const enrolled = isEnrolled(lid)
     const full     = l.available_spots <= 0 && !enrolled
-    const name     = course ? loc(course.title) : '—'
+    const baseName = course ? loc(course.title) : '—'
+    const name     = _workshopEventTitle(baseName, sessionMeta)
     const timeStr  = `${fmtTime(start)}–${fmtTime(end)}`
+    const bgAlpha = enrolled ? '33' : (isFollowUpSession ? '0c' : '18')
 
     const el = document.createElement('div')
     el.className = 'ev'
     el.style.cssText = [
       `top:${topPx}px`,
       `height:${heightPx}px`,
-      `background:${enrolled ? color + '33' : color + '18'}`,
+      `background:${color + bgAlpha}`,
       `border-left:3px solid ${color}`,
+      isFollowUpSession ? 'opacity:.72' : '',
       full ? 'opacity:.45' : '',
     ].filter(Boolean).join(';')
 
+    const wsBadge = course?.is_workshop
+      ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP${sessionMeta && sessionMeta.total > 1 ? ` · ${sessionMeta.index}/${sessionMeta.total}` : ''}</div>`
+      : ''
+
     el.innerHTML = `
-      <div class="evn" style="color:${color};">${name}</div>
+      <div class="evn" style="color:${color};">${_escHtml(name)}</div>
       <div class="evt" style="color:${color};">${timeStr}</div>
-      ${course?.is_workshop ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP</div>` : ''}
+      ${wsBadge}
       ${enrolled ? `<div class="evb" style="color:${color};">✓ ${_escHtml(_tp('common.enrolled'))}</div>` : ''}
       ${full && !enrolled ? `<div class="evb" style="color:${color};">${_escHtml(_tp('common.full').toUpperCase())}</div>` : ''}
     `
 
-    el.addEventListener('click', () => openKalendarPopup(l, course, enrolled))
+    el.addEventListener('click', () => openKalendarPopup(l, course, enrolled, sessionMeta))
     col.appendChild(el)
   })
 }
@@ -902,9 +938,10 @@ window.calPrev = calPrev
 window.calNext = calNext
 
 // Popup při kliknutí na lekci v kalendáři
-function openKalendarPopup(lesson, course, enrolled) {
+function openKalendarPopup(lesson, course, enrolled, sessionMeta = null) {
   const color   = courseThemeHex(course?.color_code)
-  const name    = course ? loc(course.title) : '—'
+  const baseName = course ? loc(course.title) : '—'
+  const name    = _workshopEventTitle(baseName, sessionMeta)
   const start   = new Date(lesson.start_time)
   const end     = new Date(lesson.end_time)
   const durMin  = Math.round((end - start) / 60000)
@@ -1702,6 +1739,13 @@ function _courseLessonsForBooking(courseId) {
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
 }
 
+function _workshopBundleLessons(courseId) {
+  const course = window.AppState.courses.find(c => c.id === courseId)
+  if (!course?.is_workshop) return null
+  const lessons = _courseLessonsForBooking(courseId)
+  return lessons.length > 1 ? lessons : null
+}
+
 function _isFutureBookableLesson(lesson) {
   const startTs = lesson?.start_time ? new Date(lesson.start_time).getTime() : NaN
   return Number.isFinite(startTs) && startTs > Date.now()
@@ -1733,6 +1777,38 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
   const isPass = payVal.startsWith('up-')
   const userPassId = isPass ? payVal.replace('up-', '') : null
   const up = userPassId ? userPasses.find(p => p.id === userPassId) : null
+  const bundleLessons = !isPass && course?.id ? _workshopBundleLessons(course.id) : null
+
+  if (bundleLessons) {
+    if (singleW) singleW.style.display = 'none'
+    if (multiW) multiW.style.display = 'block'
+    const box = document.getElementById('bk-lesson-checkboxes')
+    if (box) {
+      box.innerHTML = bundleLessons.map(l => {
+        const lid = String(l.lesson_id ?? l.id)
+        const enrolled = isEnrolled(lid)
+        const full = !enrolled && l.available_spots <= 0
+        const line = _fmtBkLessonLine(l)
+        if (enrolled || full) {
+          const tag = enrolled ? _tp('booking.option.enrolled') : _tp('booking.option.full')
+          return `<div class="bk-lesson-enrolled" style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);opacity:.55;color:#9b9b9b;">
+            <span style="font-size:12px;flex:1;">${_escHtml(line)}</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${_escHtml(tag)}</span>
+          </div>`
+        }
+        return `<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);opacity:.85;">
+          <input type="checkbox" name="bk-lesson-cb" value="${lid}" checked disabled style="margin-top:3px;accent-color:${color};"/>
+          <span style="font-size:12px;">${_escHtml(line)}</span>
+        </label>`
+      }).join('')
+    }
+    if (hint) {
+      hint.textContent = _tp('booking.workshopBundleHint', { n: bundleLessons.length })
+    }
+    if (btn) btn.style.background = color
+    _syncPopupPrimaryButton()
+    return
+  }
 
   if (!isPass || !up) {
     if (singleW) singleW.style.display = 'block'
@@ -1906,7 +1982,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
           <div class="bk-opt-radio ${defaultPay === 'single' ? 'on' : ''}"
                style="border-color:${color};${defaultPay === 'single' ? `background:${color};` : ''}"></div>
           <div style="flex:1;">
-            <div class="bnm">${_tp('booking.payment.singleSession')}</div>
+            <div class="bnm">${_tp(_workshopBundleLessons(courseId) ? 'booking.payment.workshopBundlePayment' : 'booking.payment.singleSession')}</div>
             <div class="bsb">${fmtPrice(course.price_single)}</div>
           </div>
         </label>
@@ -2065,12 +2141,24 @@ window.confirmBooking = async () => {
   }
 
   let lessonIds = []
+  const bundleLessons = !isPass && !isBuyPass ? _workshopBundleLessons(courseId) : null
   if (isPass && userPassId) {
     lessonIds = [...document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked')].map(cb => cb.value)
     if (!lessonIds.length) {
       window.showToast?.(_tp('booking.toast.selectAtLeastOne'), 'error')
       return
     }
+  } else if (bundleLessons) {
+    const bookable = bundleLessons.filter(l => {
+      const lid = String(l.lesson_id ?? l.id)
+      return l.available_spots > 0 && !isEnrolled(lid)
+    })
+    if (bookable.length !== bundleLessons.length) {
+      window.showToast?.(_tp('booking.toast.workshopFull'), 'error')
+      resetBtn()
+      return
+    }
+    lessonIds = bookable.map(l => String(l.lesson_id ?? l.id))
   } else {
     const lessonId = document.getElementById('bk-lesson-select')?.value
     if (!lessonId) {
@@ -2095,14 +2183,16 @@ window.confirmBooking = async () => {
     if (!_confirmUserWantsToCompletePurchase({ pilot: PILOT_FREE_CHECKOUT })) return
     if (!PILOT_FREE_CHECKOUT) {
       const courseTitle = loc(course?.title) || ''
-      const lesRow = selectedLessons[0]
-      const lessonWhen = lesRow?.start_time ? fmtLessonPill(lesRow.start_time) : ''
+      const lessonWhen = selectedLessons.length > 1
+        ? selectedLessons.map(l => l.start_time ? fmtLessonPill(l.start_time) : '').filter(Boolean).join(', ')
+        : (selectedLessons[0]?.start_time ? fmtLessonPill(selectedLessons[0].start_time) : '')
       window.openExternalStripePaymentModal?.({
         kind: 'lesson-single',
         courseId,
         courseTitle,
         price: priceNum,
         lessonWhen,
+        lessonIds,
         reopenBookingPopup: true,
       })
       return
@@ -2146,22 +2236,31 @@ window.confirmBooking = async () => {
         if (error) throw error
       }
     } else {
-      const lesson_id = lessonIds[0]
-      const { error } = await sb.from('bookings').insert({
-        user_id:      currentUser.id,
-        lesson_id,
-        payment_type: 'single',
-        price_paid:   PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : pricePaid,
-        status:       PARTICIPATION_STATUS.CONFIRMED,
-      })
-      if (error) throw error
+      const isWorkshopBundle = !!bundleLessons && lessonIds.length > 1
+      for (let i = 0; i < lessonIds.length; i++) {
+        const lesson_id = lessonIds[i]
+        const paid = isWorkshopBundle
+          ? (i === 0 ? (PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : pricePaid) : 0)
+          : (PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : pricePaid)
+        const { error } = await sb.from('bookings').insert({
+          user_id:      currentUser.id,
+          lesson_id,
+          payment_type: 'single',
+          price_paid:   paid,
+          status:       PARTICIPATION_STATUS.CONFIRMED,
+        })
+        if (error) throw error
+      }
     }
 
     console.log('[Booking] Popup rezervace úspěšná', lessonIds)
     document.getElementById('pop-booking').style.display = 'none'
     const n = lessonIds.length
+    const isWorkshopBundleDone = !!bundleLessons && n > 1 && !isPass
     window.showToast?.(
-      n > 1 ? _tp('booking.success.many', { n }) : _tp('booking.success.one'),
+      isWorkshopBundleDone
+        ? _tp('booking.success.workshop', { n })
+        : (n > 1 ? _tp('booking.success.many', { n }) : _tp('booking.success.one')),
       'ok',
     )
 
@@ -2300,6 +2399,8 @@ async function renderCourseDetail(courseId) {
   const imageUrls = courseImageUrls(course)
   const ownerName = Array.isArray(course.owner) ? course.owner[0]?.name : course.owner?.name
   const upcoming  = window.AppState.upcomingLessons.filter(l => l.course_id === courseId)
+  const isWorkshopBundle = !!course.is_workshop && upcoming.length > 1
+  const priceSuffix = isWorkshopBundle ? _tp('courses.perWorkshop') : _tp('courses.perSession')
 
   const ownedForDetail = userPasses.filter(up => {
     if (up.entries_remaining <= 0) return false
@@ -2368,9 +2469,10 @@ async function renderCourseDetail(courseId) {
         ${durMin ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${durMin} min</span>` : ''}
         <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${course.capacity_default} ${_tp('courses.capacitySpots')}</span>
         ${upcoming.length ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:#eaf5ea;color:#085041;">${upcoming[0].available_spots} ${_tp('courses.spotsFree')}</span>` : ''}
-        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${_tp('courses.perSession')}</span>
+        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${priceSuffix}</span>
       </div>
 
+      ${isWorkshopBundle ? `<p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>` : ''}
       ${descShort ? `<p class="detail-course-annotation${descLongBlock ? ' is-before-long-desc' : ''}">${descShort}</p>` : ''}
       ${descLongBlock ? `<div style="font-size:14px;line-height:1.75;margin-bottom:${descLongBlock ? '20' : '16'}px;">${descLongBlock}</div>` : ''}
 

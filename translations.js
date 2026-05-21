@@ -123,10 +123,11 @@ export const UI_TRANSLATIONS = {
         'Deaktivujte neaktuální termíny, aktivujte lekce znovu jako čisté a doplňujte nové termíny včas.',
       coursesTitle: 'Moje kurzy, workshopy a termíny',
       coursesText:
-        'Lektor spravuje svoje vlastní kurzy a workshopy. Běžný kurz pracuje s týdenním rozvrhem, workshop má jeden konkrétní termín.',
+        'Lektor spravuje svoje vlastní kurzy a workshopy. Běžný kurz pracuje s týdenním rozvrhem; workshop může mít jeden termín nebo více setkání.',
       coursesLi1: 'Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.',
       coursesLi2: 'Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.',
-      coursesLi3: 'Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.',
+      coursesLi3: 'Workshop lze rozdělit na více setkání (různá data, společný čas) — v kalendáři jsou označena číslem setkání.',
+      coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
         'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
@@ -176,10 +177,11 @@ export const UI_TRANSLATIONS = {
         'V Platbách sledujete měsíční tržby, jednorázové vstupy, permanentky a refundace.',
       coursesTitle: 'Kurzy, workshopy a termíny',
       coursesText:
-        'Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí. Běžný kurz pracuje s týdenním rozvrhem, workshop má jeden konkrétní termín.',
+        'Správa kurzů je hlavní místo pro obsah nabídky i dlouhodobé plánování lekcí. Běžný kurz pracuje s týdenním rozvrhem; workshop může mít jeden termín nebo více setkání.',
       coursesLi1: 'Běžný kurz má nastavené dny a čas výuky; z nich se vypisují jednotlivé lekce.',
       coursesLi2: 'Tlačítko Doplnit další termíny přidá další 4 týdny podle všech dnů, ve kterých kurz běží.',
-      coursesLi3: 'Workshop má jeden konkrétní datum a čas a další termíny se mu nedoplňují automaticky.',
+      coursesLi3: 'Workshop lze rozdělit na více setkání (různá data, společný čas) — v kalendáři jsou označena číslem setkání.',
+      coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
         'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
@@ -289,6 +291,8 @@ export const UI_TRANSLATIONS = {
       },
       multiHint:
         'Můžeš vybrat nejvýše {{max}} {{sessionsWord}} (tolik zbývá na permanentce).',
+      workshopBundleHint: 'Rezervace zahrnuje všechna {{n}} setkání workshopu.',
+      workshopBundlePayment: 'Celý workshop',
       multiHintSessionsOne: 'termín',
       multiHintSessionsFew: 'termíny',
       multiHintSessionsMany: 'termínů',
@@ -300,6 +304,7 @@ export const UI_TRANSLATIONS = {
         singleUnavailableWithPass:
           'Pokud máte aktivní permanentku pro tento kurz, jednorázový vstup není k dispozici.',
         sessionNoLongerAvailable: 'Některý termín už není k dispozici.',
+        workshopFull: 'Workshop není volný — některé setkání je plné.',
         passNotForCourse: 'Permanentka neplatí pro tento kurz.',
         passEntriesLimitReached:
           'Dosáhli jste limitu své permanentky. Pro další lekce si prosím zakupte novou.',
@@ -314,6 +319,7 @@ export const UI_TRANSLATIONS = {
       success: {
         one: '✓ Lekce rezervována!',
         many: '✓ Rezervováno {{n}} lekcí.',
+        workshop: '✓ Workshop rezervován ({{n}} setkání).',
       },
       selectedCount: '{{n}} vybraných termínů',
     },
@@ -341,6 +347,8 @@ export const UI_TRANSLATIONS = {
       occupied: 'obsazeno',
       spotsFree: 'volných',
       perSession: 'vstup',
+      perWorkshop: 'za workshop',
+      workshopSessionsNote: 'Rezervace zahrnuje všechna {{n}} setkání.',
       gallery: 'Galerie',
       enlargePhoto: 'Zvětšit fotografii',
       instructor: 'Lektor/ka',
@@ -452,6 +460,7 @@ export const UI_TRANSLATIONS = {
         courseDetail: 'Detail kurzu',
         detail: 'Detail',
         edit: 'Upravit',
+        duplicate: 'Duplikovat',
         newWorkshop: '+ Nový workshop',
         newCourse: '+ Nový kurz',
         save: 'Uložit změny',
@@ -552,6 +561,7 @@ export const UI_TRANSLATIONS = {
         listedLessonsRange: 'Nejbližší: {{first}} · Poslední: {{last}}',
         noUpcomingLessons: 'Žádný nadcházející termín.',
         workshopDateTime: 'Datum a čas',
+        workshopSessionsCount: '{{n}} setkání',
         workshopDateMissing: 'Termín workshopu není nastavený',
         workshopBadge: 'WORKSHOP',
         restrictedBadge: 'Jen pro vybrané',
@@ -684,6 +694,14 @@ export const UI_TRANSLATIONS = {
         toastRescheduled: 'Termín byl změněn a e-mail byl zařazen pro {{n}} účastníků.',
         errRescheduleNoRpc:
           'Změnu termínu s účastníky nelze uložit, dokud není v Supabase nasazený SQL patch admin_reschedule_lesson.',
+        multiSessions: 'Workshop má více setkání',
+        sessionCount: 'Počet setkání',
+        sessionDateLabel: 'Setkání {{n}}',
+        errPickAllDates: 'Vyplňte datum u každého setkání.',
+        errDuplicateDates: 'Každé setkání musí mít jiné datum.',
+        errCannotRemoveBusySession: 'Setkání s přihlášenými účastníky nelze odebrat — nejdřív odhlašte účastníky.',
+        toastDuplicated: 'Workshop byl zduplikován — zkontrolujte termíny a aktivujte ho.',
+        copyTitleSuffix: 'kopie',
       },
       courseModal: {
         titleEdit: 'Upravit kurz',
@@ -921,10 +939,11 @@ export const UI_TRANSLATIONS = {
       historieLi2: 'Does not show your own purchases from other instructors. Only an administrator can process refunds.',
       coursesTitle: 'My courses, workshops, and sessions',
       coursesText:
-        'Instructors manage their own courses and workshops. A standard course uses a weekly schedule; a workshop has one specific date.',
+        'Instructors manage their own courses and workshops. A standard course uses a weekly schedule; a workshop can have one date or multiple sessions.',
       coursesLi1: 'A standard course has set teaching days and times; individual lessons are created from them.',
       coursesLi2: 'The Add more sessions button adds the next 4 weeks for all days on which the course runs.',
-      coursesLi3: 'A workshop has one specific date and time, and additional sessions are not added automatically.',
+      coursesLi3: 'A workshop can be split into multiple sessions (different dates, shared time) — the calendar shows session numbers.',
+      coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
         'You can restrict a course to selected customers only — others will not see it in the catalog or calendar.',
@@ -969,10 +988,11 @@ export const UI_TRANSLATIONS = {
         'Payments show monthly revenue, single entries, passes, and refunds.',
       coursesTitle: 'Courses, workshops, and sessions',
       coursesText:
-        'Course management is the main place for public offer content and long-term lesson planning. A standard course uses a weekly schedule; a workshop has one specific date.',
+        'Course management is the main place for public offer content and long-term lesson planning. A standard course uses a weekly schedule; a workshop can have one date or multiple sessions.',
       coursesLi1: 'A standard course has set teaching days and times; individual lessons are created from them.',
       coursesLi2: 'The Add more sessions button adds the next 4 weeks for all days on which the course runs.',
-      coursesLi3: 'A workshop has one specific date and time, and additional sessions are not added automatically.',
+      coursesLi3: 'A workshop can be split into multiple sessions (different dates, shared time) — the calendar shows session numbers.',
+      coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
         'You can restrict a course to selected customers only — others will not see it in the catalog or calendar.',
@@ -1080,6 +1100,8 @@ export const UI_TRANSLATIONS = {
       },
       multiHint:
         'You can pick up to {{max}} {{sessionsWord}} — that’s what’s left on your pass.',
+      workshopBundleHint: 'Booking includes all {{n}} workshop sessions.',
+      workshopBundlePayment: 'Full workshop',
       multiHintSessionsOne: 'session',
       multiHintSessionsFew: 'sessions',
       multiHintSessionsMany: 'sessions',
@@ -1091,6 +1113,7 @@ export const UI_TRANSLATIONS = {
         singleUnavailableWithPass:
           'With an active pass for this course, single-session payment isn’t available.',
         sessionNoLongerAvailable: 'One of the sessions is no longer available.',
+        workshopFull: 'Workshop is not available — one session is full.',
         passNotForCourse: 'This pass isn’t valid for this course.',
         passEntriesLimitReached:
           'You’ve reached your pass limit. Please buy a new pass for more lessons.',
@@ -1105,6 +1128,7 @@ export const UI_TRANSLATIONS = {
       success: {
         one: '✓ Booking confirmed!',
         many: '✓ {{n}} bookings confirmed!',
+        workshop: '✓ Workshop booked ({{n}} sessions).',
       },
       selectedCount: '{{n}} sessions selected',
     },
@@ -1132,6 +1156,8 @@ export const UI_TRANSLATIONS = {
       occupied: 'occupied',
       spotsFree: 'free',
       perSession: 'session',
+      perWorkshop: 'for workshop',
+      workshopSessionsNote: 'Booking includes all {{n}} sessions.',
       gallery: 'Gallery',
       enlargePhoto: 'Enlarge photo',
       instructor: 'Instructor',
@@ -1244,6 +1270,7 @@ export const UI_TRANSLATIONS = {
         courseDetail: 'Course details',
         detail: 'Details',
         edit: 'Edit',
+        duplicate: 'Duplicate',
         newWorkshop: '+ New workshop',
         newCourse: '+ New course',
         save: 'Save changes',
@@ -1344,6 +1371,7 @@ export const UI_TRANSLATIONS = {
         listedLessonsRange: 'First: {{first}} · Last: {{last}}',
         noUpcomingLessons: 'No upcoming session.',
         workshopDateTime: 'Date and time',
+        workshopSessionsCount: '{{n}} sessions',
         workshopDateMissing: 'Workshop date is not set',
         workshopBadge: 'WORKSHOP',
         restrictedBadge: 'Invite only',
@@ -1476,6 +1504,14 @@ export const UI_TRANSLATIONS = {
         toastRescheduled: 'Lesson time was changed and email was queued for {{n}} participants.',
         errRescheduleNoRpc:
           'Changing a lesson time with participants cannot be saved until the admin_reschedule_lesson SQL patch is deployed in Supabase.',
+        multiSessions: 'Workshop has multiple sessions',
+        sessionCount: 'Number of sessions',
+        sessionDateLabel: 'Session {{n}}',
+        errPickAllDates: 'Enter a date for each session.',
+        errDuplicateDates: 'Each session must have a different date.',
+        errCannotRemoveBusySession: 'Cannot remove a session with enrolled participants — remove them first.',
+        toastDuplicated: 'Workshop duplicated — check dates and activate it.',
+        copyTitleSuffix: 'copy',
       },
       courseModal: {
         titleEdit: 'Edit course',

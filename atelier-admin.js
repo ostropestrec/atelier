@@ -1145,16 +1145,35 @@ function _adminCourseScheduleHtml(course) {
         ${esc(label)}
       </div>
       <div style="font-size:12px;font-weight:600;color:#2f2a24;">${esc(value)}</div>
-      ${sub ? `<div style="font-size:11px;color:#6b6b6b;margin-top:3px;">${esc(sub)}</div>` : ''}
+      ${sub ? `<div style="font-size:11px;color:#6b6b6b;margin-top:3px;white-space:pre-line;">${esc(sub)}</div>` : ''}
     </div>`
 
   const lessons = Array.isArray(course._adminLessons) ? course._adminLessons : []
   if (course.is_workshop) {
-    const lesson = lessons[0]
-    const when = lesson?.start_time
-      ? `${fmtDateTime(lesson.start_time)}${lesson.end_time ? `–${fmtTimeOnly(lesson.end_time)}` : ''}`
-      : _adm('kurzy.workshopDateMissing')
-    return infoBox(_adm('kurzy.workshopDateTime'), when)
+    const sorted = [...lessons].sort((a, b) =>
+      new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+    )
+    if (!sorted.length) {
+      return infoBox(_adm('kurzy.workshopDateTime'), _adm('kurzy.workshopDateMissing'))
+    }
+    if (sorted.length === 1) {
+      const lesson = sorted[0]
+      const when = lesson?.start_time
+        ? `${fmtDateTime(lesson.start_time)}${lesson.end_time ? `–${fmtTimeOnly(lesson.end_time)}` : ''}`
+        : _adm('kurzy.workshopDateMissing')
+      return infoBox(_adm('kurzy.workshopDateTime'), when)
+    }
+    const lines = sorted.map((lesson, i) => {
+      const when = lesson?.start_time
+        ? `${fmtDateTime(lesson.start_time)}${lesson.end_time ? `–${fmtTimeOnly(lesson.end_time)}` : ''}`
+        : _adm('kurzy.workshopDateMissing')
+      return `${i + 1}. ${when}`
+    }).join('\n')
+    return infoBox(
+      _adm('kurzy.workshopDateTime'),
+      _adm('kurzy.workshopSessionsCount', { n: sorted.length }),
+      lines,
+    )
   }
 
   const dayLabels = _adminLocale() === 'en'
@@ -1203,6 +1222,9 @@ function _courseCard(course) {
   const topUpBtn = active && !isWorkshop
     ? `<button class="btn-small" style="${actionBtnStyle}" onclick="window.adminTopUpCourseLessons?.('${esc(course.id)}')">${esc(_adm('courseActions.topUpLessons'))}</button>`
     : ''
+  const duplicateBtn = isWorkshop
+    ? `<button class="btn-small" style="${actionBtnStyle}" onclick="window.adminDuplicateWorkshop?.('${esc(course.id)}')">${esc(_adm('btn.duplicate'))}</button>`
+    : ''
   const scheduleHtml = _adminCourseScheduleHtml(course)
   return `
     <div class="admin-course-card" style="border:1px solid ${color};border-radius:12px;overflow:hidden;margin-bottom:10px;background:#fff;display:flex;${active ? '' : 'opacity:.75;'}">
@@ -1235,6 +1257,7 @@ function _courseCard(course) {
         </div>
         <div style="display:flex;gap:6px;margin-top:auto;padding-top:12px;flex-wrap:wrap;">
           <button class="btn-small" style="${actionBtnStyle}" onclick="window.${editFn}?.('${esc(course.id)}')">${esc(_adm('btn.edit'))}</button>
+          ${duplicateBtn}
           ${active
             ? `${topUpBtn}
                <button class="btn-small danger" style="${actionBtnStyle}" onclick="window.adminToggleCourse?.('${esc(course.id)}',false)">${esc(_adm('btn.deactivate'))}</button>`
@@ -2722,6 +2745,301 @@ window.adminDeletePass = async (passId) => {
   }
 }
 
+// ── Workshop: více setkání + duplikace ───────────────────────
+const WS_MIN_MULTI = 2
+const WS_MAX_MULTI = 6
+
+function _wsLessonRange(dateStr, timeFrom, timeTo) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const [fH, fM] = timeFrom.split(':').map(Number)
+  const [tH, tM] = timeTo.split(':').map(Number)
+  const start = new Date(year, month - 1, day, fH, fM, 0, 0)
+  const end = new Date(year, month - 1, day, tH, tM, 0, 0)
+  return { start, end }
+}
+
+function _wsDateInputValue(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function _wsIsMultiEnabled() {
+  return !!document.getElementById('mw-multi')?.checked
+}
+
+function _wsSessionCount() {
+  const n = Number(document.getElementById('mw-session-count')?.value)
+  return _wsIsMultiEnabled()
+    ? Math.min(WS_MAX_MULTI, Math.max(WS_MIN_MULTI, n || WS_MIN_MULTI))
+    : 1
+}
+
+/** @param {{ id?: string, date?: string }[] | undefined} preset */
+function _wsRenderSessionDates(preset) {
+  const wrap = document.getElementById('mw-session-dates')
+  const singleWrap = document.getElementById('mw-single-date-wrap')
+  const multiPanel = document.getElementById('mw-multi-panel')
+  const multi = _wsIsMultiEnabled()
+  if (multiPanel) multiPanel.style.display = multi ? 'block' : 'none'
+  if (singleWrap) singleWrap.style.display = multi ? 'none' : 'block'
+  if (!wrap) return
+  if (!multi) return
+  const count = _wsSessionCount()
+  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:#fff;outline:none;box-sizing:border-box;'
+  const rows = []
+  for (let i = 0; i < count; i++) {
+    const p = preset?.[i]
+    const lid = p?.id ? ` data-lesson-id="${esc(String(p.id))}"` : ''
+    const val = p?.date ?? ''
+    rows.push(`
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">${esc(_adm('workshop.sessionDateLabel', { n: i + 1 }))}</label>
+        <input type="date" class="mw-session-date" style="${INP}" value="${esc(val)}"${lid} />
+      </div>`)
+  }
+  wrap.innerHTML = rows.join('')
+}
+
+window._wsToggleMultiUI = () => {
+  _wsRenderSessionDates()
+}
+
+window._wsOnSessionCountChange = () => {
+  const presets = [...document.querySelectorAll('.mw-session-date')].map(inp => ({
+    id: inp.dataset.lessonId || '',
+    date: inp.value,
+  }))
+  _wsRenderSessionDates(presets)
+}
+
+function _wsCollectSessions(errEl) {
+  const timeFrom = document.getElementById('mw-time-from')?.value
+  const timeTo = document.getElementById('mw-time-to')?.value
+  if (!timeFrom || !timeTo) {
+    showErr(errEl, _adm('workshop.errTimeRange'))
+    return null
+  }
+  if (timeFrom >= timeTo) {
+    showErr(errEl, _adm('workshop.errTimeOrder'))
+    return null
+  }
+  const multi = _wsIsMultiEnabled()
+  const sessions = []
+  if (multi) {
+    const inputs = [...document.querySelectorAll('.mw-session-date')]
+    if (!inputs.length) {
+      showErr(errEl, _adm('workshop.errPickAllDates'))
+      return null
+    }
+    const dates = []
+    for (const inp of inputs) {
+      const date = inp.value?.trim()
+      if (!date) {
+        showErr(errEl, _adm('workshop.errPickAllDates'))
+        return null
+      }
+      dates.push(date)
+      sessions.push({
+        lessonId: inp.dataset.lessonId || null,
+        date,
+        start: _wsLessonRange(date, timeFrom, timeTo).start,
+        end: _wsLessonRange(date, timeFrom, timeTo).end,
+      })
+    }
+    if (new Set(dates).size !== dates.length) {
+      showErr(errEl, _adm('workshop.errDuplicateDates'))
+      return null
+    }
+  } else {
+    const date = document.getElementById('mw-date')?.value?.trim()
+    if (!date) {
+      showErr(errEl, _adm('workshop.errPickDate'))
+      return null
+    }
+    const lessonId = document.getElementById('mw-lesson-id')?.value || null
+    sessions.push({
+      lessonId,
+      date,
+      start: _wsLessonRange(date, timeFrom, timeTo).start,
+      end: _wsLessonRange(date, timeFrom, timeTo).end,
+    })
+  }
+  return { sessions, timeFrom, timeTo }
+}
+
+async function _wsUpdateOneLesson(lessonId, start, end, capacity, price) {
+  let lessonHasActiveParticipants = false
+  let lessonTimeChanged = false
+  const [{ data: currentLesson, error: currentLessonErr }, { count: activeParticipants, error: participantErr }] = await Promise.all([
+    sb.from('lessons').select('id, start_time, end_time').eq('id', lessonId).maybeSingle(),
+    sb.from('bookings').select('id', { count: 'exact', head: true }).eq('lesson_id', lessonId).in('status', BLOCKING_PARTICIPATION_STATUSES),
+  ])
+  if (currentLessonErr) throw currentLessonErr
+  if (participantErr) throw participantErr
+  lessonHasActiveParticipants = Number(activeParticipants ?? 0) > 0
+  lessonTimeChanged = !!currentLesson && (
+    new Date(currentLesson.start_time).getTime() !== start.getTime()
+    || new Date(currentLesson.end_time).getTime() !== end.getTime()
+  )
+  if (lessonTimeChanged && lessonHasActiveParticipants && !confirm(_adm('workshop.confirmRescheduleWithParticipants', { n: Number(activeParticipants ?? 0) }))) {
+    return { cancelled: true }
+  }
+  const { data: rescheduleData, error: lErr } = await sb.rpc('admin_reschedule_lesson', {
+    p_lesson_id: lessonId,
+    p_start_time: start.toISOString(),
+    p_end_time: end.toISOString(),
+    p_capacity: capacity,
+    p_price_single: price,
+  })
+  if (lErr) {
+    const missFn = lErr.code === 'PGRST202'
+      || lErr.message?.includes('Could not find the function')
+      || lErr.message?.includes('admin_reschedule_lesson')
+    if (missFn && !lessonHasActiveParticipants) {
+      const { error: fallbackErr } = await sb.from('lessons').update({
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        capacity,
+        price_single: price,
+      }).eq('id', lessonId)
+      if (fallbackErr) throw fallbackErr
+    } else if (missFn) {
+      throw new Error(_adm('workshop.errRescheduleNoRpc'))
+    } else {
+      throw lErr
+    }
+  } else if (rescheduleData && rescheduleData.ok === false) {
+    throw new Error(_adminLessonMessageErrorLabel(rescheduleData.error))
+  } else if (Number(rescheduleData?.queued ?? rescheduleData?.recipients ?? 0) > 0) {
+    window.showToast?.(_adm('workshop.toastRescheduled', { n: Number(rescheduleData?.queued ?? rescheduleData?.recipients ?? 0) }), 'ok')
+    await _adminTryProcessEmailQueue()
+  }
+  return { cancelled: false }
+}
+
+async function _wsSyncLessons(courseId, sessions, capacity, price) {
+  const { data: existing, error } = await sb.from('lessons')
+    .select('id, start_time')
+    .eq('course_id', courseId)
+    .order('start_time')
+  if (error) throw error
+  const existingRows = existing ?? []
+  let queuedEmails = 0
+
+  for (let i = 0; i < sessions.length; i++) {
+    const s = sessions[i]
+    const existingId = s.lessonId || existingRows[i]?.id
+    if (existingId) {
+      const result = await _wsUpdateOneLesson(existingId, s.start, s.end, capacity, price)
+      if (result?.cancelled) return { cancelled: true }
+      sessions[i].lessonId = existingId
+    } else {
+      const { error: insErr } = await sb.from('lessons').insert({
+        course_id: courseId,
+        start_time: s.start.toISOString(),
+        end_time: s.end.toISOString(),
+        capacity,
+        price_single: price,
+        status: 'active',
+      })
+      if (insErr) throw insErr
+    }
+  }
+
+  const extra = existingRows.slice(sessions.length)
+  for (const row of extra) {
+    const { count, error: cntErr } = await sb.from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('lesson_id', row.id)
+      .in('status', BLOCKING_PARTICIPATION_STATUSES)
+    if (cntErr) throw cntErr
+    if (Number(count ?? 0) > 0) {
+      throw new Error(_adm('workshop.errCannotRemoveBusySession'))
+    }
+    const { error: delErr } = await sb.from('lessons').delete().eq('id', row.id)
+    if (delErr) throw delErr
+  }
+  return { cancelled: false, queuedEmails }
+}
+
+window.adminDuplicateWorkshop = async (courseId) => {
+  try {
+    const [{ data: course, error: cErr }, { data: lessons, error: lErr }] = await Promise.all([
+      sb.from('courses').select('*').eq('id', courseId).single(),
+      sb.from('lessons').select('start_time, end_time, capacity, price_single, status').eq('course_id', courseId).order('start_time'),
+    ])
+    if (cErr) throw cErr
+    if (lErr) throw lErr
+
+    const baseTitle = loc(course.title) || _adm('misc.courseFallback')
+    const copySuffix = _adm('workshop.copyTitleSuffix')
+    const { data: newCourse, error: insErr } = await sb.from('courses').insert({
+      owner_id: course.owner_id || currentUser?.id,
+      title: { cs: `${baseTitle} (${copySuffix})` },
+      description_short: course.description_short ?? { cs: '' },
+      description_long: course.description_long ?? { cs: '' },
+      images: Array.isArray(course.images) ? course.images : [],
+      color_code: course.color_code,
+      is_active: false,
+      is_workshop: true,
+      is_restricted: !!course.is_restricted,
+      cancellation_hours: course.cancellation_hours ?? 24,
+      min_participants: course.min_participants ?? 1,
+      capacity_default: course.capacity_default,
+      price_single: course.price_single,
+      schedule_days: [],
+      schedule_time_start: course.schedule_time_start,
+      schedule_time_end: course.schedule_time_end,
+    }).select('id').single()
+    if (insErr) throw insErr
+
+    if (lessons?.length) {
+      const { error: lesErr } = await sb.from('lessons').insert(
+        lessons.map(l => ({
+          course_id: newCourse.id,
+          start_time: l.start_time,
+          end_time: l.end_time,
+          capacity: l.capacity,
+          price_single: l.price_single,
+          status: l.status ?? 'active',
+        })),
+      )
+      if (lesErr) throw lesErr
+    }
+
+    if (course.is_restricted) {
+      const { data: allowed, error: aErr } = await sb.from('course_allowed_users')
+        .select('user_id')
+        .eq('course_id', courseId)
+      if (aErr) throw aErr
+      if (allowed?.length) {
+        const { error: grantErr } = await sb.from('course_allowed_users').insert(
+          allowed.map(a => ({
+            course_id: newCourse.id,
+            user_id: a.user_id,
+            granted_by: currentUser?.id ?? null,
+          })),
+        )
+        if (grantErr) throw grantErr
+      }
+    }
+
+    window.showToast?.(_adm('workshop.toastDuplicated'), 'ok')
+    await renderAdminKurzy()
+    try {
+      await window.refreshPublicData?.()
+    } catch (e) {
+      console.warn('[Admin] refreshPublicData po duplikaci workshopu:', e)
+    }
+    await window.adminEditWorkshop?.(newCourse.id)
+  } catch (err) {
+    console.error('[Admin] adminDuplicateWorkshop:', err)
+    window.showToast?.(_adm('toast.errorWithMsg', { msg: err.message ?? err }), 'error')
+  }
+}
+
 // ── Modal: Nový / upravit workshop ───────────────────────────
 function buildWorkshopModal() {
   if (document.getElementById('modal-workshop')) return
@@ -2787,6 +3105,21 @@ function buildWorkshopModal() {
           </div>
 
           <div style="margin-bottom:12px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="mw-multi" onchange="window._wsToggleMultiUI?.()" style="accent-color:var(--primary);" />
+              <span>${esc(_adm('workshop.multiSessions'))}</span>
+            </label>
+          </div>
+
+          <div id="mw-multi-panel" style="display:none;margin-bottom:12px;">
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">${esc(_adm('workshop.sessionCount'))}</label>
+            <select id="mw-session-count" onchange="window._wsOnSessionCountChange?.()" style="${INP}">
+              ${[2, 3, 4, 5, 6].map(n => `<option value="${n}">${n}</option>`).join('')}
+            </select>
+            <div id="mw-session-dates" style="margin-top:12px;"></div>
+          </div>
+
+          <div id="mw-single-date-wrap" style="margin-bottom:12px;">
             <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px;">Datum</label>
             <input id="mw-date" type="date" style="${INP}" />
           </div>
@@ -2849,8 +3182,13 @@ window.adminNewWorkshop = async () => {
   document.getElementById('mw-min-p').value     = '1'
   document.getElementById('mw-time-from').value = '09:00'
   document.getElementById('mw-time-to').value   = '12:00'
+  const multiEl = document.getElementById('mw-multi')
+  if (multiEl) multiEl.checked = false
+  const countEl = document.getElementById('mw-session-count')
+  if (countEl) countEl.value = '2'
   window._wsPickColor?.(PRESET_COLORS[0])
   await _setMwLongHtml('')
+  _wsRenderSessionDates()
   document.getElementById('modal-workshop').style.display = 'flex'
 }
 
@@ -2866,7 +3204,7 @@ window.adminEditWorkshop = async (courseId) => {
 
   const [{ data: course }, { data: lessons }] = await Promise.all([
     sb.from('courses').select('*').eq('id', courseId).single(),
-    sb.from('lessons').select('id, start_time, end_time').eq('course_id', courseId).order('start_time').limit(1),
+    sb.from('lessons').select('id, start_time, end_time').eq('course_id', courseId).order('start_time'),
   ])
 
   if (course) {
@@ -2884,15 +3222,34 @@ window.adminEditWorkshop = async (courseId) => {
     _mwRenderPhotos()
   }
 
-  const lesson = lessons?.[0]
-  if (lesson) {
-    document.getElementById('mw-lesson-id').value = lesson.id
-    const start = new Date(lesson.start_time)
-    const end   = new Date(lesson.end_time)
-    const pad   = n => String(n).padStart(2, '0')
-    document.getElementById('mw-date').value      = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`
+  const sortedLessons = [...(lessons ?? [])].sort((a, b) =>
+    new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+  )
+  const multiEl = document.getElementById('mw-multi')
+  const countEl = document.getElementById('mw-session-count')
+  if (sortedLessons.length > 1) {
+    if (multiEl) multiEl.checked = true
+    if (countEl) countEl.value = String(Math.min(WS_MAX_MULTI, sortedLessons.length))
+    _wsRenderSessionDates(sortedLessons.map(l => ({
+      id: l.id,
+      date: _wsDateInputValue(l.start_time),
+    })))
+  } else {
+    if (multiEl) multiEl.checked = false
+    const lesson = sortedLessons[0]
+    if (lesson) {
+      document.getElementById('mw-lesson-id').value = lesson.id
+      document.getElementById('mw-date').value = _wsDateInputValue(lesson.start_time)
+    }
+    _wsRenderSessionDates()
+  }
+  const timeLesson = sortedLessons[0]
+  if (timeLesson) {
+    const start = new Date(timeLesson.start_time)
+    const end = new Date(timeLesson.end_time)
+    const pad = n => String(n).padStart(2, '0')
     document.getElementById('mw-time-from').value = `${pad(start.getHours())}:${pad(start.getMinutes())}`
-    document.getElementById('mw-time-to').value   = `${pad(end.getHours())}:${pad(end.getMinutes())}`
+    document.getElementById('mw-time-to').value = `${pad(end.getHours())}:${pad(end.getMinutes())}`
   }
 
   await _setMwLongHtml(course ? loc(course.description_long) : '')
@@ -2911,7 +3268,6 @@ window.saveNewWorkshop = async () => {
   if (errEl) errEl.style.display = 'none'
 
   const courseId = document.getElementById('mw-id')?.value     || null
-  const lessonId = document.getElementById('mw-lesson-id')?.value || null
   const name     = document.getElementById('mw-name')?.value.trim()
   const desc     = document.getElementById('mw-desc')?.value.trim()
   if (!_getQuillCtor()) { showErr(errEl, _adm('workshop.editorNotLoaded')); return }
@@ -2919,9 +3275,6 @@ window.saveNewWorkshop = async () => {
   const price    = Number(document.getElementById('mw-price')?.value)
   const capacity = Number(document.getElementById('mw-capacity')?.value)
   const minPart  = Number(document.getElementById('mw-min-p')?.value)
-  const date     = document.getElementById('mw-date')?.value
-  const timeFrom = document.getElementById('mw-time-from')?.value
-  const timeTo   = document.getElementById('mw-time-to')?.value
 
   if (!name)                      { showErr(errEl, _adm('workshop.errName')); return }
   if (isNaN(price) || price < 0)  { showErr(errEl, _adm('workshop.errPrice')); return }
@@ -2929,19 +3282,14 @@ window.saveNewWorkshop = async () => {
   if (!minPart || minPart < 1 || minPart > capacity) {
     showErr(errEl, _adm('workshop.errMinParticipants')); return
   }
-  if (!date)                      { showErr(errEl, _adm('workshop.errPickDate')); return }
-  if (!timeFrom || !timeTo)       { showErr(errEl, _adm('workshop.errTimeRange')); return }
-  if (timeFrom >= timeTo)         { showErr(errEl, _adm('workshop.errTimeOrder')); return }
+
+  const collected = _wsCollectSessions(errEl)
+  if (!collected) return
+  const { sessions, timeFrom, timeTo } = collected
 
   if (btn) { btn.disabled = true; btn.textContent = _adm('customers.editSaving') }
 
   try {
-    const [year, month, day] = date.split('-').map(Number)
-    const [fH, fM] = timeFrom.split(':').map(Number)
-    const [tH, tM] = timeTo.split(':').map(Number)
-    const start = new Date(year, month - 1, day, fH, fM, 0, 0)
-    const end   = new Date(year, month - 1, day, tH, tM, 0, 0)
-
     const coursePayload = {
       title: { cs: name },
       description_short: { cs: desc || '' },
@@ -2960,74 +3308,26 @@ window.saveNewWorkshop = async () => {
 
     let savedCourseId = courseId
     if (courseId) {
-      let lessonHasActiveParticipants = false
-      let lessonTimeChanged = false
-      if (lessonId) {
-        const [{ data: currentLesson, error: currentLessonErr }, { count: activeParticipants, error: participantErr }] = await Promise.all([
-          sb.from('lessons')
-            .select('id, start_time, end_time')
-            .eq('id', lessonId)
-            .maybeSingle(),
-          sb.from('bookings')
-            .select('id', { count: 'exact', head: true })
-            .eq('lesson_id', lessonId)
-            .in('status', BLOCKING_PARTICIPATION_STATUSES),
-        ])
-        if (currentLessonErr) throw currentLessonErr
-        if (participantErr) throw participantErr
-        lessonHasActiveParticipants = Number(activeParticipants ?? 0) > 0
-        lessonTimeChanged = !!currentLesson && (
-          new Date(currentLesson.start_time).getTime() !== start.getTime()
-          || new Date(currentLesson.end_time).getTime() !== end.getTime()
-        )
-        if (lessonTimeChanged && lessonHasActiveParticipants && !confirm(_adm('workshop.confirmRescheduleWithParticipants', { n: Number(activeParticipants ?? 0) }))) {
-          return
-        }
-      }
-
       const { error } = await sb.from('courses').update(coursePayload).eq('id', courseId)
       if (error) throw error
-      if (lessonId) {
-        const { data: rescheduleData, error: lErr } = await sb.rpc('admin_reschedule_lesson', {
-          p_lesson_id: lessonId,
-          p_start_time: start.toISOString(),
-          p_end_time: end.toISOString(),
-          p_capacity: capacity,
-          p_price_single: price,
-        })
-        if (lErr) {
-          const missFn = lErr.code === 'PGRST202'
-            || lErr.message?.includes('Could not find the function')
-            || lErr.message?.includes('admin_reschedule_lesson')
-          if (missFn && !lessonHasActiveParticipants) {
-            const { error: fallbackErr } = await sb.from('lessons').update({
-              start_time: start.toISOString(), end_time: end.toISOString(),
-              capacity, price_single: price,
-            }).eq('id', lessonId)
-            if (fallbackErr) throw fallbackErr
-          } else if (missFn) {
-            throw new Error(_adm('workshop.errRescheduleNoRpc'))
-          } else {
-            throw lErr
-          }
-        } else if (rescheduleData && rescheduleData.ok === false) {
-          throw new Error(_adminLessonMessageErrorLabel(rescheduleData.error))
-        } else if (Number(rescheduleData?.queued ?? rescheduleData?.recipients ?? 0) > 0) {
-          window.showToast?.(_adm('workshop.toastRescheduled', { n: Number(rescheduleData?.queued ?? rescheduleData?.recipients ?? 0) }), 'ok')
-          await _adminTryProcessEmailQueue()
-        }
-      }
+      const syncResult = await _wsSyncLessons(courseId, sessions, capacity, price)
+      if (syncResult?.cancelled) return
     } else {
       const { data, error } = await sb.from('courses')
         .insert({ ...coursePayload, owner_id: currentUser?.id }).select('id').single()
       if (error) throw error
       savedCourseId = data.id
 
-      const { error: lErr } = await sb.from('lessons').insert({
-        course_id: savedCourseId,
-        start_time: start.toISOString(), end_time: end.toISOString(),
-        capacity, price_single: price, status: 'active',
-      })
+      const { error: lErr } = await sb.from('lessons').insert(
+        sessions.map(s => ({
+          course_id: savedCourseId,
+          start_time: s.start.toISOString(),
+          end_time: s.end.toISOString(),
+          capacity,
+          price_single: price,
+          status: 'active',
+        })),
+      )
       if (lErr) throw lErr
     }
 
