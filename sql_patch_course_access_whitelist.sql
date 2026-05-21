@@ -1,7 +1,7 @@
 -- ============================================================
 -- ATELIER — uzavřené kurzy (whitelist uživatelů)
 -- ============================================================
--- 1) courses.is_restricted — kurz vidí jen vybraní uživatelé + staff
+-- 1) courses.is_restricted — uzavřený kurz (viz sql_patch_course_access_visible.sql: viditelný všem, rezervace jen pro whitelist)
 -- 2) course_allowed_users — vazba kurz ↔ uživatel
 -- 3) can_access_course() — helper pro RLS
 -- 4) úprava politik courses, lessons, bookings + RLS na grant tabulce

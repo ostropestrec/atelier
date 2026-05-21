@@ -379,6 +379,7 @@ async function init() {
         console.warn('[Debug] Init: fetchCourses chyba — pokračuji s prázdnými kurzy:', e?.message ?? e)
         console.dir(e, { depth: null })
       })
+      await fetchCourseBookingAccess().catch(() => {})
       await Promise.all([
         fetchLessons().catch(e => {
           console.warn('[Debug] Init: fetchLessons:', e?.message ?? e)
@@ -544,9 +545,41 @@ const _COURSE_COLS = `
   id, title, description_short, description_long,
   color_code, price_single, capacity_default,
   min_participants,
-  cancellation_hours, images, is_workshop, owner_id,
+  cancellation_hours, images, is_workshop, is_restricted, owner_id,
   schedule_days, schedule_time_start, schedule_time_end
 `
+
+/** Kurzy, na které má přihlášený uživatel právo rezervace (whitelist). */
+window._allowedCourseIds = window._allowedCourseIds ?? new Set()
+
+async function fetchCourseBookingAccess() {
+  if (!currentUser?.id) {
+    window._allowedCourseIds = new Set()
+    return
+  }
+  const { data, error } = await sb
+    .from('course_allowed_users')
+    .select('course_id')
+    .eq('user_id', currentUser.id)
+  if (error) {
+    console.warn('[App] fetchCourseBookingAccess:', error)
+    return
+  }
+  window._allowedCourseIds = new Set((data ?? []).map(r => r.course_id))
+}
+
+/** Uzavřený kurz: viditelný všem, rezervace jen pro vybrané (+ vlastní lektor). */
+function canBookCourse(course) {
+  if (!course?.is_restricted) return true
+  if (_isStaffUser()) return false
+  if (!currentUser?.id) return false
+  if (_currentRole() === 'lektor' && String(course.owner_id) === String(currentUser.id)) return true
+  return window._allowedCourseIds?.has(course.id) ?? false
+}
+
+function _restrictedBadgeHtml() {
+  return `<span class="badge" style="background:#E8EEF8;color:#2854B9;font-size:10px;font-weight:600;">${_escHtml(_tp('courses.badgeRestricted'))}</span>`
+}
 
 async function fetchCourses() {
   // Pokus 1: rovnou s embedem owner. Pokud RLS na users zablokuje JOIN
@@ -734,6 +767,7 @@ function renderAll() {
 
 async function refreshPublicData() {
   await fetchCourses().catch(() => {})
+  await fetchCourseBookingAccess().catch(() => {})
   await Promise.allSettled([
     fetchLessons().catch(() => {}),
     fetchUpcomingLessons().catch(() => {}),
@@ -879,11 +913,15 @@ export function renderKalendar() {
     const wsBadge = course?.is_workshop
       ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP${sessionMeta && sessionMeta.index > 1 ? ` (${sessionMeta.index})` : ''}</div>`
       : ''
+    const restrictedBadge = course?.is_restricted
+      ? `<div class="evb" style="color:#2854B9;opacity:.85;">${_escHtml(_tp('courses.badgeRestricted').toUpperCase())}</div>`
+      : ''
 
     el.innerHTML = `
       <div class="evn" style="color:${color};">${_escHtml(name)}</div>
       <div class="evt" style="color:${color};">${timeStr}</div>
       ${wsBadge}
+      ${restrictedBadge}
       ${enrolled ? `<div class="evb" style="color:${color};">✓ ${_escHtml(_tp('common.enrolled'))}</div>` : ''}
       ${full && !enrolled ? `<div class="evb" style="color:${color};">${_escHtml(_tp('common.full').toUpperCase())}</div>` : ''}
     `
@@ -969,7 +1007,7 @@ function openKalendarPopup(lesson, course, enrolled, sessionMeta = null) {
   const courseOwnerId = Array.isArray(course?.owner) ? course.owner[0]?.id : course?.owner?.id
   const canManageLesson = role === 'admin'
     || (role === 'lektor' && String(course?.owner_id ?? courseOwnerId ?? '') === String(currentUser?.id ?? ''))
-  const canBookLesson = start.getTime() > Date.now()
+  const canBookLesson = start.getTime() > Date.now() && canBookCourse(course)
 
   const enrBadge = document.getElementById('kal-enrolled')
   const bEnr     = document.getElementById('kal-btns-enr')
@@ -1122,6 +1160,8 @@ export function renderKurzy() {
     const soldOut  = !window.AppState.upcomingLessons.some(l => l.course_id === c.id && l.available_spots > 0)
     const upcoming = window.AppState.upcomingLessons.filter(l => l.course_id === c.id)
     const pricePerEntry = c.price_single
+    const restricted = !!c.is_restricted
+    const bookable = canBookCourse(c)
 
     // Pre-select prvního dostupného termínu a jednorázový vstup
     const firstAvail = upcoming.find(l => l.available_spots > 0)
@@ -1144,13 +1184,15 @@ export function renderKurzy() {
           ? `<div class="cc-thumb-wrap"><img class="cc-thumb" src="${thumb0}" alt="" /></div>`
           : `<div class="cc-thumb-wrap cc-thumb-ph" aria-hidden="true"></div>`}
         <div class="cb">
-          <div class="cname">${title}</div>
+          <div class="cname">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
           <div class="cmeta">
             <span class="cmi">${ownerName ?? '—'}</span>
             <span class="cmi">${c.capacity_default} ${_tp('courses.capacitySpots')}</span>
-            ${soldOut
-              ? `<span class="badge" style="background:#fdeaea;color:#791F1F;">${_tp('courses.badgeFull')}</span>`
-              : `<span class="badge" style="background:#eaf5ea;color:#085041;">${_tp('courses.badgeSpots')}</span>`
+            ${restricted && !bookable
+              ? ''
+              : soldOut
+                ? `<span class="badge" style="background:#fdeaea;color:#791F1F;">${_tp('courses.badgeFull')}</span>`
+                : `<span class="badge" style="background:#eaf5ea;color:#085041;">${_tp('courses.badgeSpots')}</span>`
             }
           </div>
         </div>
@@ -1233,6 +1275,9 @@ function buildTermPills(upcoming, color, courseId, interactive = true) {
 function buildCourseReserveButton(c, color, upcoming = []) {
   if (_isStaffUser()) return ''
   if (!upcoming.length) return ''
+  if (!canBookCourse(c)) {
+    return `<div style="font-size:12px;color:#6b6b6b;line-height:1.5;margin-top:8px;padding:10px 12px;background:#f5f5f5;border-radius:10px;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
+  }
   return `
     <button type="button" class="btn-res" id="res-btn-${c.id}" style="background:${color};margin-top:4px;"
       onclick="window.reserveFromCard('${c.id}')">
@@ -1886,6 +1931,10 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
 
   const course = window.AppState.courses.find(c => c.id === courseId)
   if (!course) return
+  if (!canBookCourse(course)) {
+    window.showToast?.(_tp('courses.cannotBookRestricted'), 'error')
+    return
+  }
   const color = courseThemeHex(course.color_code)
 
   if (preselectedLessonId && !_findFutureBookableLessonById(preselectedLessonId)) {
@@ -2100,6 +2149,12 @@ window.confirmBooking = async () => {
   const courseId = payEl?.dataset.courseid
   const course   = window.AppState.courses.find(c => c.id === courseId)
   const singleAllowed = payEl?.dataset.singleAllowed !== '0'
+
+  if (course && !canBookCourse(course)) {
+    window.showToast?.(_tp('courses.cannotBookRestricted'), 'error')
+    resetBtn()
+    return
+  }
 
   const isPass     = payVal.startsWith('up-')
   const isBuyPass  = payVal.startsWith('tpl-')
@@ -2401,6 +2456,8 @@ async function renderCourseDetail(courseId) {
   const upcoming  = window.AppState.upcomingLessons.filter(l => l.course_id === courseId)
   const isWorkshopBundle = !!course.is_workshop && upcoming.length > 1
   const priceSuffix = isWorkshopBundle ? _tp('courses.perWorkshop') : _tp('courses.perSession')
+  const bookable = canBookCourse(course)
+  const restricted = !!course.is_restricted
 
   const ownedForDetail = userPasses.filter(up => {
     if (up.entries_remaining <= 0) return false
@@ -2460,10 +2517,14 @@ async function renderCourseDetail(courseId) {
         ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`
         : `<div class="detail-hero-ph">${_escHtml(_tp('courses.photoAlt'))}</div>`}
 
-      <div style="font-size:22px;font-weight:700;margin-bottom:4px;">${title}</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">
         ${ownerName ?? '—'}${scheduleDays ? ' · ' + scheduleDays : ''}
       </div>
+
+      ${restricted && !bookable && !_isStaffUser()
+        ? `<div style="font-size:13px;color:#2854B9;background:#E8EEF8;padding:12px 14px;border-radius:10px;margin-bottom:16px;line-height:1.55;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
+        : ''}
 
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
         ${durMin ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${durMin} min</span>` : ''}
@@ -2510,12 +2571,12 @@ async function renderCourseDetail(courseId) {
           <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId, false)}</div>
         </div>` : ''}
 
-      ${!_isStaffUser() && upcoming.length && upcoming.some(l => l.available_spots > 0)
+      ${!_isStaffUser() && bookable && upcoming.length && upcoming.some(l => l.available_spots > 0)
         ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
              onclick="window.openBookingPopup?.('${courseId}')">
              ${_tp('booking.btn.continueToBooking')}
            </button>`
-        : (!_isStaffUser() && upcoming.length ? `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
+        : (!_isStaffUser() && bookable && upcoming.length ? `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
              ${_tp('courses.allSessionsFull')}
            </div>` : '')}
     </div>`
@@ -2626,6 +2687,12 @@ window.reserveFromCard = async (courseId) => {
   if (!currentUser) { window.openAuthPopup?.(); return }
   if (_isStaffUser()) {
     window.showToast?.(_staffBookingDisabledMessage(), 'error')
+    return
+  }
+
+  const course = window.AppState.courses.find(c => c.id === courseId)
+  if (course && !canBookCourse(course)) {
+    window.showToast?.(_tp('courses.cannotBookRestricted'), 'error')
     return
   }
 

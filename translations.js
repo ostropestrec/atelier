@@ -130,7 +130,7 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
-        'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
+        'U kurzu lze zapnout uzavřený přístup a vybrat konkrétní zákazníky — kurz uvidí všichni jako uzavřený, přihlásit se mohou jen vybraní.',
       historieTitle: 'Historie plateb',
       historieText:
         'V sekci Historie vidíte měsíční přehled plateb jen za vaše permanentky, kurzy, workshopy a lekce — stejný kalendář měsíců jako u admina v Platbách.',
@@ -184,7 +184,7 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Workshop lze duplikovat tlačítkem Duplikovat — vznikne neaktivní kopie se stejnými termíny.',
       coursesLi4: 'Deaktivace skryje kurz nebo lekci bez okamžitého trvalého smazání.',
       coursesLi5:
-        'U kurzu lze zapnout omezený přístup a vybrat konkrétní zákazníky — kurz pak neuvidí ostatní v katalogu ani v kalendáři.',
+        'U kurzu lze zapnout uzavřený přístup a vybrat konkrétní zákazníky — kurz uvidí všichni jako uzavřený, přihlásit se mohou jen vybraní.',
       lessonsTitle: 'Lekce a účastníci',
       lessonsText:
         'Sekce Lekce slouží k operativní správě konkrétních termínů a lidí přihlášených na lekci.',
@@ -335,6 +335,9 @@ export const UI_TRANSLATIONS = {
     courses: {
       noActiveCourses: 'Žádné aktivní kurzy',
       notAvailable: 'Tento kurz pro vás není dostupný.',
+      badgeRestricted: 'Uzavřený',
+      restrictedBookingHint: 'Uzavřený kurz — přihlášení na lekce je možné jen pro vybrané účastníky.',
+      cannotBookRestricted: 'Na tento uzavřený kurz se nelze přihlásit.',
       badgeFull: 'plno',
       badgeSpots: 'volná místa',
       detailLink: 'Detail kurzu →',
@@ -564,7 +567,7 @@ export const UI_TRANSLATIONS = {
         workshopSessionsCount: '{{n}} setkání',
         workshopDateMissing: 'Termín workshopu není nastavený',
         workshopBadge: 'WORKSHOP',
-        restrictedBadge: 'Jen pro vybrané',
+        restrictedBadge: 'Uzavřený',
       },
       customers: {
         pageTitle: 'Zákazníci',
@@ -721,7 +724,7 @@ export const UI_TRANSLATIONS = {
           'Nepodařilo se načíst data. Zkuste okno zavřít a otevřít znovu, nebo obnovte stránku.',
         restrictedLabel: 'Omezený přístup',
         restrictedHint:
-          'Kurz neuvidí v katalogu ani v kalendáři nikdo kromě vybraných uživatelů a správců. Vyberte alespoň jednoho uživatele.',
+          'Kurz uvidí všichni v katalogu a kalendáři jako uzavřený. Přihlásit se mohou jen vybraní uživatelé (a vy jako lektor/admin). Vyberte alespoň jednoho uživatele.',
         allowedUsersLabel: 'Povolení uživatelé',
         allowedUsersSearchPh: 'Hledat podle jména nebo e-mailu…',
         allowedUsersEmpty: 'Žádní zákazníci nenalezeni.',
@@ -946,7 +949,7 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
-        'You can restrict a course to selected customers only — others will not see it in the catalog or calendar.',
+        'You can mark a course as closed and pick who may book — everyone sees it as closed, only selected users can register.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
@@ -995,7 +998,7 @@ export const UI_TRANSLATIONS = {
       coursesLi6: 'Use Duplicate to copy a workshop as an inactive draft with the same dates.',
       coursesLi4: 'Deactivation hides a course or lesson without permanently deleting it immediately.',
       coursesLi5:
-        'You can restrict a course to selected customers only — others will not see it in the catalog or calendar.',
+        'You can mark a course as closed and pick who may book — everyone sees it as closed, only selected users can register.',
       lessonsTitle: 'Lessons and attendees',
       lessonsText:
         'Lessons are for day-to-day management of specific sessions and the people booked onto them.',
@@ -1144,6 +1147,9 @@ export const UI_TRANSLATIONS = {
     courses: {
       noActiveCourses: 'No active courses',
       notAvailable: 'This course is not available to you.',
+      badgeRestricted: 'Closed',
+      restrictedBookingHint: 'Closed course — booking is only available to selected participants.',
+      cannotBookRestricted: 'You cannot book this closed course.',
       badgeFull: 'full',
       badgeSpots: 'capacity available',
       detailLink: 'Course details →',
@@ -1374,7 +1380,7 @@ export const UI_TRANSLATIONS = {
         workshopSessionsCount: '{{n}} sessions',
         workshopDateMissing: 'Workshop date is not set',
         workshopBadge: 'WORKSHOP',
-        restrictedBadge: 'Invite only',
+        restrictedBadge: 'Closed',
       },
       customers: {
         pageTitle: 'Customers',
@@ -1531,7 +1537,7 @@ export const UI_TRANSLATIONS = {
           'Could not load data. Close and reopen the dialog, or refresh the page.',
         restrictedLabel: 'Restricted access',
         restrictedHint:
-          'Only selected users and staff will see this course in the catalog and calendar. Pick at least one user.',
+          'Everyone will see the course as closed in the catalog and calendar. Only selected users can book (plus you as instructor/admin). Pick at least one user.',
         allowedUsersLabel: 'Allowed users',
         allowedUsersSearchPh: 'Search by name or email…',
         allowedUsersEmpty: 'No customers found.',
