@@ -586,6 +586,23 @@ function _restrictedBadgeHtml() {
   return `<span class="badge" style="background:#E8EEF8;color:#2854B9;font-size:10px;font-weight:600;">${_escHtml(_tp('courses.badgeRestricted'))}</span>`
 }
 
+function _workshopBadgeHtml() {
+  return `<span class="badge" style="background:#FFF4E0;color:#8B5C00;font-size:10px;font-weight:600;">${_escHtml(_tp('courses.badgeWorkshop'))}</span>`
+}
+
+function _isPastLesson(lesson) {
+  const endTs = lesson?.end_time ? new Date(lesson.end_time).getTime() : NaN
+  return Number.isFinite(endTs) && endTs <= Date.now()
+}
+
+function _preferredPayFromCardState(st) {
+  if (!st) return null
+  if (st.paymentType === 'pass' && st.passId) return `up-${st.passId}`
+  if (st.paymentType === 'buy-pass' && st.buyPassTemplateId) return `tpl-${st.buyPassTemplateId}`
+  if (st.paymentType === 'single') return 'single'
+  return null
+}
+
 async function fetchCourses() {
   // Pokus 1: rovnou s embedem owner. Pokud RLS na users zablokuje JOIN
   // (typicky „permission denied for table users"), spadneme do fallbacku
@@ -927,39 +944,44 @@ export function renderKalendar() {
     const isFollowUpSession = sessionMeta && sessionMeta.index > 1
     const enrolled = isEnrolled(lid)
     const full     = l.available_spots <= 0 && !enrolled
+    const isPast   = _isPastLesson(l)
     const baseName = course ? loc(course.title) : '—'
     const name     = _workshopEventTitle(baseName, sessionMeta)
     const timeStr  = `${fmtTime(start)}–${fmtTime(end)}`
-    const bgAlpha = enrolled ? '33' : (isFollowUpSession ? '0c' : '18')
+    const evColor  = isPast ? '#9b9b9b' : color
+    const bgAlpha = isPast ? '18' : (enrolled ? '33' : (isFollowUpSession ? '0c' : '18'))
 
     const el = document.createElement('div')
-    el.className = 'ev'
+    el.className = 'ev' + (isPast ? ' ev-past' : '')
     el.style.cssText = [
       `top:${topPx}px`,
       `height:${heightPx}px`,
-      `background:${color + bgAlpha}`,
-      `border-left:3px solid ${color}`,
-      isFollowUpSession ? 'opacity:.72' : '',
-      full ? 'opacity:.45' : '',
+      `background:${evColor + bgAlpha}`,
+      `border-left:3px solid ${evColor}`,
+      isPast ? 'cursor:default;pointer-events:none;' : '',
+      !isPast && isFollowUpSession ? 'opacity:.72' : '',
+      !isPast && full ? 'opacity:.45' : '',
     ].filter(Boolean).join(';')
 
-    const wsBadge = course?.is_workshop
-      ? `<div class="evb" style="color:${color};opacity:.7;">WORKSHOP${sessionMeta && sessionMeta.index > 1 ? ` (${sessionMeta.index})` : ''}</div>`
+    const wsBadge = !isPast && course?.is_workshop
+      ? `<div class="evb" style="color:${evColor};opacity:.7;">WORKSHOP${sessionMeta && sessionMeta.index > 1 ? ` (${sessionMeta.index})` : ''}</div>`
       : ''
-    const restrictedBadge = course?.is_restricted
+    const restrictedBadge = !isPast && course?.is_restricted
       ? `<div class="evb" style="color:#2854B9;opacity:.85;">${_escHtml(_tp('courses.badgeRestricted').toUpperCase())}</div>`
       : ''
 
     el.innerHTML = `
-      <div class="evn" style="color:${color};">${_escHtml(name)}</div>
-      <div class="evt" style="color:${color};">${timeStr}</div>
+      <div class="evn" style="color:${evColor};">${_escHtml(name)}</div>
+      <div class="evt" style="color:${evColor};">${timeStr}</div>
       ${wsBadge}
       ${restrictedBadge}
-      ${enrolled ? `<div class="evb" style="color:${color};">✓ ${_escHtml(_tp('common.enrolled'))}</div>` : ''}
-      ${full && !enrolled ? `<div class="evb" style="color:${color};">${_escHtml(_tp('common.full').toUpperCase())}</div>` : ''}
+      ${enrolled ? `<div class="evb" style="color:${evColor};">✓ ${_escHtml(_tp('common.enrolled'))}</div>` : ''}
+      ${full && !enrolled && !isPast ? `<div class="evb" style="color:${evColor};">${_escHtml(_tp('common.full').toUpperCase())}</div>` : ''}
     `
 
-    el.addEventListener('click', () => openKalendarPopup(l, course, enrolled, sessionMeta))
+    if (!isPast) {
+      el.addEventListener('click', () => openKalendarPopup(l, course, enrolled, sessionMeta))
+    }
     col.appendChild(el)
   })
 }
@@ -1010,6 +1032,7 @@ window.calNext = calNext
 
 // Popup při kliknutí na lekci v kalendáři
 function openKalendarPopup(lesson, course, enrolled, sessionMeta = null) {
+  if (_isPastLesson(lesson)) return
   const color   = courseThemeHex(course?.color_code)
   const baseName = course ? loc(course.title) : '—'
   const name    = _workshopEventTitle(baseName, sessionMeta)
@@ -1217,7 +1240,7 @@ export function renderKurzy() {
           ? `<div class="cc-thumb-wrap"><img class="cc-thumb" src="${thumb0}" alt="" /></div>`
           : `<div class="cc-thumb-wrap cc-thumb-ph" aria-hidden="true"></div>`}
         <div class="cb">
-          <div class="cname">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
+          <div class="cname">${title}${c.is_workshop ? ` ${_workshopBadgeHtml()}` : ''}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
           <div class="cmeta">
             <span class="cmi">${ownerName ?? '—'}</span>
             <span class="cmi">${c.capacity_default} ${_tp('courses.capacitySpots')}</span>
@@ -1318,7 +1341,7 @@ function buildCourseReserveButton(c, color, upcoming = []) {
     </button>`
 }
 
-function buildBuyPanel(c, color) {
+function buildBuyPanel(c, color, includeReserveButton = true) {
   if (_isStaffUser()) return ''
   return `
     <div class="bo bo-pay"
@@ -1335,10 +1358,11 @@ function buildBuyPanel(c, color) {
     <div id="pass-panel-${c.id}"></div>
     <div id="card-pass-count-${c.id}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
     <div id="card-msg-${c.id}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
+    ${includeReserveButton ? `
     <button class="btn-res" id="res-btn-${c.id}" style="background:${color};"
       onclick="window.reserveFromCard('${c.id}')">
       ${_tp('booking.btn.continueToBooking')}
-    </button>`
+    </button>` : ''}`
 }
 
 async function fetchPassTemplatesForCourse(courseId) {
@@ -1843,7 +1867,7 @@ function _fmtBkLessonLine(l) {
 }
 
 /** Při platbě permanentkou: výběr více termínů (checkboxy), jinak klasický select. */
-function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
+function _syncBkLessonPicker(course, courseLessons, preselectedLessonId, preselectedLessonIds = null) {
   const payEl = document.getElementById('bk-payment-opts')
   const payVal = payEl?.dataset.selected ?? 'single'
   const singleW = document.getElementById('bk-lesson-single-wrap')
@@ -1909,7 +1933,11 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
   const box = document.getElementById('bk-lesson-checkboxes')
   _bkBindLessonCheckboxDelegation()
 
-  const pre = preselectedLessonId != null ? String(preselectedLessonId) : ''
+  const preSet = new Set(
+    Array.isArray(preselectedLessonIds) && preselectedLessonIds.length
+      ? preselectedLessonIds.map(String)
+      : (preselectedLessonId != null ? [String(preselectedLessonId)] : []),
+  )
 
   if (box) {
     box.innerHTML = courseLessons.length
@@ -1922,7 +1950,7 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
               <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${_escHtml(_tp('common.enrolled'))}</span>
             </div>`
           }
-          const checked = pre && lid === pre ? ' checked' : ''
+          const checked = preSet.has(lid) ? ' checked' : ''
           return `<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);cursor:pointer;">
             <input type="checkbox" name="bk-lesson-cb" value="${lid}"${checked} style="margin-top:3px;accent-color:${color};"/>
             <span style="font-size:12px;">${_fmtBkLessonLine(l)} <span style="color:#6b6b6b;">(${_tp('booking.option.spotsSuffix', { n: l.available_spots })})</span></span>
@@ -1955,12 +1983,30 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
 }
 
 // ── Booking popup ─────────────────────────────────────────────
-window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferredPayValue = null) => {
+window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferredPayValue = null, preselectedLessonIds = null) => {
+  const cardSt = window._cardState?.[courseId]
+  if (preselectedLessonId == null && cardSt) {
+    if (cardSt.paymentType === 'single' || cardSt.paymentType === 'buy-pass') {
+      preselectedLessonId = cardSt.lessonId ?? null
+    }
+  }
+  if (preferredPayValue == null) {
+    preferredPayValue = _preferredPayFromCardState(cardSt)
+  }
+  if (preselectedLessonIds == null && cardSt?.paymentType === 'pass' && cardSt.passId) {
+    preselectedLessonIds = Array.isArray(cardSt.lessonIds) ? cardSt.lessonIds : []
+  }
+
   if (!currentUser) {
     const course = window.AppState.courses.find(c => c.id === courseId)
     saveBookingReturn({
       courseId,
-      lessonId: preselectedLessonId ?? window._cardState?.[courseId]?.lessonId ?? null,
+      lessonId: preselectedLessonId ?? cardSt?.lessonId ?? null,
+      lessonIds: preselectedLessonIds ?? cardSt?.lessonIds ?? null,
+      paymentType: cardSt?.paymentType ?? null,
+      passId: cardSt?.passId ?? null,
+      buyPassTemplateId: cardSt?.buyPassTemplateId ?? null,
+      preferredPayValue: preferredPayValue ?? _preferredPayFromCardState(cardSt),
       openBooking: true,
     })
     const les = preselectedLessonId
@@ -2143,7 +2189,12 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
 
   _bindBkLessonSelectPrimaryLabelSync()
 
-  _syncBkLessonPicker(course, _courseLessonsForBooking(courseId), preselectedLessonId)
+  _syncBkLessonPicker(
+    course,
+    _courseLessonsForBooking(courseId),
+    preselectedLessonId,
+    preselectedLessonIds,
+  )
 
   popup.style.display = 'flex'
 }
@@ -2179,8 +2230,11 @@ window._bkSelectPayment = (el, value) => {
 
   const courseId = payEl.dataset.courseid
   const course = window.AppState.courses.find(c => c.id === courseId)
+  const st = window._cardState?.[courseId]
   const selVal = document.getElementById('bk-lesson-select')?.value || ''
-  _syncBkLessonPicker(course, _courseLessonsForBooking(courseId), selVal || null)
+  const preLesson = selVal || st?.lessonId || null
+  const preIds = value.startsWith('up-') && st?.lessonIds?.length ? st.lessonIds : null
+  _syncBkLessonPicker(course, _courseLessonsForBooking(courseId), preLesson, preIds)
 }
 
 window.confirmBooking = async () => {
@@ -2492,7 +2546,7 @@ function _buildDetailBookingSection(course, courseId, color, upcoming, bookable)
   } else if (!isWorkshopBundle) {
     paymentHtml = `
       <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
-        ${buildBuyPanel(course, color)}
+        ${buildBuyPanel(course, color, false)}
         <div id="detail-pass-indicator-${courseId}" style="display:none;font-size:11px;color:#6b6b6b;line-height:1.45;text-align:center;"></div>
       </div>`
   }
@@ -2553,26 +2607,39 @@ async function renderCourseDetail(courseId) {
   const bookable = canBookCourse(course)
   const restricted = !!course.is_restricted
 
-  const ownedForDetail = userPasses.filter(up => {
-    if (up.entries_remaining <= 0) return false
-    const ids = up.pass?.allowed_course_ids
-    return !ids?.length || ids.includes(courseId)
-  })
-  if (ownedForDetail.length) {
-    window._cardState[courseId] = {
-      lessonId: null,
-      lessonIds: [],
-      paymentType: 'pass',
-      passId: ownedForDetail[0].id,
+  const validLessonIds = new Set(upcoming.map(l => String(l.lesson_id ?? l.id)))
+  const prevCard = window._cardState?.[courseId]
+  if (!prevCard) {
+    const ownedForDetail = userPasses.filter(up => {
+      if (up.entries_remaining <= 0) return false
+      const ids = up.pass?.allowed_course_ids
+      return !ids?.length || ids.includes(courseId)
+    })
+    if (ownedForDetail.length) {
+      window._cardState[courseId] = {
+        lessonId: null,
+        lessonIds: [],
+        paymentType: 'pass',
+        passId: ownedForDetail[0].id,
+      }
+    } else {
+      const firstAvailD = upcoming.find(l => l.available_spots > 0)
+      window._cardState[courseId] = {
+        lessonId: firstAvailD ? (firstAvailD.lesson_id ?? firstAvailD.id) : null,
+        lessonIds: [],
+        paymentType: 'single',
+        passId: null,
+      }
     }
   } else {
-    const firstAvailD = upcoming.find(l => l.available_spots > 0)
-    window._cardState[courseId] = {
-      lessonId: firstAvailD ? (firstAvailD.lesson_id ?? firstAvailD.id) : null,
-      lessonIds: [],
-      paymentType: 'single',
-      passId: null,
+    if (prevCard.lessonId != null && !validLessonIds.has(String(prevCard.lessonId))) {
+      const firstAvailD = upcoming.find(l => l.available_spots > 0)
+      prevCard.lessonId = firstAvailD ? (firstAvailD.lesson_id ?? firstAvailD.id) : null
     }
+    if (Array.isArray(prevCard.lessonIds) && prevCard.lessonIds.length) {
+      prevCard.lessonIds = prevCard.lessonIds.filter(id => validLessonIds.has(String(id)))
+    }
+    window._cardState[courseId] = prevCard
   }
 
   const DAYS_CS = ['Po','Út','St','Čt','Pá','So','Ne']
@@ -2781,8 +2848,16 @@ window.reserveFromCard = async (courseId) => {
   if (!currentUser) {
     const course = window.AppState.courses.find(c => c.id === courseId)
     const st = window._cardState?.[courseId] ?? {}
-    const lessonId = st.paymentType === 'single' ? (st.lessonId ?? null) : null
-    saveBookingReturn({ courseId, lessonId, openBooking: true })
+    saveBookingReturn({
+      courseId,
+      lessonId: st.lessonId ?? null,
+      lessonIds: st.lessonIds ?? null,
+      paymentType: st.paymentType ?? null,
+      passId: st.passId ?? null,
+      buyPassTemplateId: st.buyPassTemplateId ?? null,
+      preferredPayValue: _preferredPayFromCardState(st),
+      openBooking: true,
+    })
     window.openAuthPopup?.({
       courseTitle: course ? loc(course.title) : '',
       courseId,
@@ -2813,12 +2888,21 @@ window.reserveFromCard = async (courseId) => {
   const state         = window._cardState?.[courseId] ?? {}
   const paymentType = state.paymentType ?? 'single'
   const passId      = state.passId ?? null
-  const preferredPayValue = paymentType === 'pass' && passId
-    ? `up-${passId}`
-    : (paymentType === 'buy-pass' && state.buyPassTemplateId ? `tpl-${state.buyPassTemplateId}` : 'single')
-  const preselectedLessonId = paymentType === 'single' ? (state.lessonId ?? null) : null
+  const preferredPayValue = _preferredPayFromCardState(state) ?? 'single'
+  const preselectedLessonId = (paymentType === 'single' || paymentType === 'buy-pass')
+    ? (state.lessonId ?? null)
+    : null
+  const preselectedLessonIds = paymentType === 'pass' && passId
+    ? (state.lessonIds ?? [])
+    : null
 
-  window.openBookingPopup?.(courseId, passId || null, preselectedLessonId, preferredPayValue)
+  window.openBookingPopup?.(
+    courseId,
+    passId || null,
+    preselectedLessonId,
+    preferredPayValue,
+    preselectedLessonIds,
+  )
 }
 
 function showCardMsg(courseId, msg, type) {

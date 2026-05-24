@@ -737,7 +737,17 @@ const BOOKING_RETURN_KEY = 'atelier_booking_return'
 const LEGACY_PENDING_KEY = 'pending_booking'
 
 /** Uloží kontext před auth (detail kurzu / kurzy + volitelný termín). */
-export function saveBookingReturn({ courseId, lessonId = null, openBooking = true, screen = null }) {
+export function saveBookingReturn({
+  courseId,
+  lessonId = null,
+  lessonIds = null,
+  paymentType = null,
+  passId = null,
+  buyPassTemplateId = null,
+  preferredPayValue = null,
+  openBooking = true,
+  screen = null,
+}) {
   if (!courseId) return
   const activeScreen = screen
     ?? (document.getElementById('screen-detail-kurzu')?.classList.contains('active')
@@ -749,6 +759,11 @@ export function saveBookingReturn({ courseId, lessonId = null, openBooking = tru
       screen: activeScreen,
       courseId,
       lessonId: lessonId ?? null,
+      lessonIds: lessonIds ?? null,
+      paymentType: paymentType ?? null,
+      passId: passId ?? null,
+      buyPassTemplateId: buyPassTemplateId ?? null,
+      preferredPayValue: preferredPayValue ?? null,
       openBooking: !!openBooking,
     }),
   )
@@ -795,11 +810,26 @@ export async function resumeBookingAfterAuth() {
     await window.refreshPublicData()
   }
 
+  window._cardState ??= {}
+  window._cardState[ret.courseId] = {
+    lessonId: ret.lessonId ?? null,
+    lessonIds: Array.isArray(ret.lessonIds) ? ret.lessonIds : [],
+    paymentType: ret.paymentType ?? 'single',
+    passId: ret.passId ?? null,
+    buyPassTemplateId: ret.buyPassTemplateId ?? null,
+  }
+
   if (ret.openBooking) {
     await new Promise(resolve => {
       requestAnimationFrame(() => requestAnimationFrame(resolve))
     })
-    await window.openBookingPopup?.(ret.courseId, null, ret.lessonId ?? null)
+    await window.openBookingPopup?.(
+      ret.courseId,
+      ret.passId ?? null,
+      ret.lessonId ?? null,
+      ret.preferredPayValue ?? null,
+      ret.lessonIds ?? null,
+    )
   }
   return true
 }
