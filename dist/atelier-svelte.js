@@ -2482,7 +2482,7 @@ const $s = {
 };
 function qs(e, t) {
   ur(t, !0), ys(e, $s);
-  const n = () => vt(Is, "$upcomingLessons", l), r = () => vt(Jn, "$selectedDay", l), i = () => vt(Ns, "$courses", l), s = () => vt(Wr, "$lang", l), f = () => vt(Os, "$tt", l), [l, a] = Ni();
+  const n = () => vt(Ns, "$courses", l), r = () => vt(Is, "$upcomingLessons", l), i = () => vt(Jn, "$selectedDay", l), s = () => vt(Wr, "$lang", l), f = () => vt(Os, "$tt", l), [l, a] = Ni();
   function o(w) {
     const g = w.getFullYear(), C = String(w.getMonth() + 1).padStart(2, "0"), P = String(w.getDate()).padStart(2, "0");
     return `${g}-${C}-${P}`;
@@ -2495,10 +2495,11 @@ function qs(e, t) {
       P.setDate(P.getDate() + C), w.push(P);
     }
     return w;
-  }), c = /* @__PURE__ */ Rt(() => n().filter((w) => o(new Date(w.start_time)) === r()));
-  function h(w) {
-    return i().find((g) => g.id === w);
+  });
+  function c(w) {
+    return n().find((g) => g.id === w);
   }
+  const h = /* @__PURE__ */ Rt(() => r().filter((w) => c(w.course_id) ? o(new Date(w.start_time)) === i() : !1));
   function _(w) {
     return w ? w[s()] ?? w.cs ?? "" : "";
   }
@@ -2511,7 +2512,7 @@ function qs(e, t) {
     return w.toLocaleDateString(g, { weekday: "short", day: "numeric", month: "short" });
   }
   function A(w) {
-    const g = h(w.course_id);
+    const g = c(w.course_id);
     g && window.AtelierAPI.actions.openBookingPopup(g.id, null, w.lesson_id);
   }
   var D = Ls(), S = ue(D), z = ue(S), G = ue(z), oe = _t(S, 2);
@@ -2522,7 +2523,7 @@ function qs(e, t) {
     var tn = ue(P);
     Mt(
       (It) => {
-        Oe = xs(P, 1, "cal-island__day svelte-fu56mo", null, Oe, { active: N(C) === r() }), Re(tn, It);
+        Oe = xs(P, 1, "cal-island__day svelte-fu56mo", null, Oe, { active: N(C) === i() }), Re(tn, It);
       },
       [() => b(N(g))]
     ), Vn("click", P, () => Jn.set(N(C))), Pt(w, P);
@@ -2531,10 +2532,10 @@ function qs(e, t) {
   Kn(
     fe,
     21,
-    () => N(c),
+    () => N(h),
     (w) => w.lesson_id,
     (w, g) => {
-      const C = /* @__PURE__ */ Rt(() => h(N(g).course_id));
+      const C = /* @__PURE__ */ Rt(() => c(N(g).course_id));
       var P = Ps(), Oe = ue(P), tn = ue(Oe), It = _t(Oe, 2), Zr = ue(It), Pn = _t(It, 2), Jr = ue(Pn), nn = _t(Pn, 2), Qr = ue(nn);
       Mt(
         (Xr, ei, ti, ni) => {

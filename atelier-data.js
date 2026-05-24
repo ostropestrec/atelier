@@ -1226,11 +1226,11 @@ export function renderKurzy() {
     const title    = loc(c.title)
     const desc     = loc(c.description_short)
     const ownerName = Array.isArray(c.owner) ? c.owner[0]?.name : c.owner?.name
-    const soldOut  = !window.AppState.upcomingLessons.some(l => l.course_id === c.id && l.available_spots > 0)
     const upcoming = window.AppState.upcomingLessons.filter(l => l.course_id === c.id)
     const pricePerEntry = c.price_single
     const restricted = !!c.is_restricted
     const bookable = canBookCourse(c)
+    const capacityMeta = _kurzyCardCapacityMetaHtml(c, upcoming, restricted, bookable)
 
     _ensureCardStateForCourse(c.id, upcoming)
 
