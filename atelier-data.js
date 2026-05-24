@@ -572,6 +572,37 @@ function _workshopBadgeHtml() {
   return `<span class="badge" style="background:#FFF4E0;color:#8B5C00;font-size:10px;font-weight:600;">${_escHtml(_tp('courses.badgeWorkshop'))}</span>`
 }
 
+/** Kapacita v hlavičce karty Kurzy — workshop = společný pool (stejné číslo na všech termínech). */
+function _kurzyCardCapacityMetaHtml(course, upcoming, restricted, bookable) {
+  const isWorkshopPool = !!course.is_workshop && upcoming.length > 1
+  if (!isWorkshopPool) {
+    const soldOut = !upcoming.some(l => l.available_spots > 0)
+    return {
+      soldOut,
+      inner: `
+            <span class="cmi">${course.capacity_default} ${_tp('courses.capacitySpots')}</span>
+            ${restricted && !bookable
+              ? ''
+              : soldOut
+                ? `<span class="badge" style="background:#fdeaea;color:#791F1F;">${_tp('courses.badgeFull')}</span>`
+                : `<span class="badge" style="background:#eaf5ea;color:#085041;">${_tp('courses.badgeSpots')}</span>`
+            }`,
+    }
+  }
+
+  const ref = upcoming[0]
+  const total = Number(ref?.capacity ?? course.capacity_default) || 0
+  const free = Math.max(0, Number(ref?.available_spots ?? 0))
+  const soldOut = free <= 0
+  const label = _tp('courses.spotsFreeOfTotal', { free, total })
+  return {
+    soldOut,
+    inner: restricted && !bookable
+      ? `<span class="cmi">${_escHtml(label)}</span>`
+      : `<span class="badge" style="background:${soldOut ? '#fdeaea' : '#eaf5ea'};color:${soldOut ? '#791F1F' : '#085041'};">${_escHtml(label)}</span>`,
+  }
+}
+
 function _isPastLesson(lesson) {
   const endTs = lesson?.end_time ? new Date(lesson.end_time).getTime() : NaN
   return Number.isFinite(endTs) && endTs <= Date.now()
@@ -1218,13 +1249,7 @@ export function renderKurzy() {
           <div class="cname">${title}${c.is_workshop ? ` ${_workshopBadgeHtml()}` : ''}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
           <div class="cmeta">
             <span class="cmi">${ownerName ?? '—'}</span>
-            <span class="cmi">${c.capacity_default} ${_tp('courses.capacitySpots')}</span>
-            ${restricted && !bookable
-              ? ''
-              : soldOut
-                ? `<span class="badge" style="background:#fdeaea;color:#791F1F;">${_tp('courses.badgeFull')}</span>`
-                : `<span class="badge" style="background:#eaf5ea;color:#085041;">${_tp('courses.badgeSpots')}</span>`
-            }
+            ${capacityMeta.inner}
           </div>
         </div>
         <div class="cr">
