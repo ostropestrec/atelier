@@ -264,7 +264,7 @@ export const UI_TRANSLATIONS = {
     booking: {
       section: {
         session: 'Termín',
-        payment: 'Způsob platby',
+        payment: 'Možnosti',
       },
       btn: {
         confirmBooking: 'Potvrdit rezervaci',
@@ -290,7 +290,6 @@ export const UI_TRANSLATIONS = {
         entriesLabel: 'vstupů',
         perEntry: 'vstup',
         passAvailableToBuy: 'Permanentka ke koupi',
-        workshopBundlePayment: 'Zaplatit online „{{title}}“ „{{price}}“',
       },
       option: {
         enrolled: 'Přihlášeno',
@@ -381,7 +380,7 @@ export const UI_TRANSLATIONS = {
       galleryNext: 'Další fotografie',
     },
     payment: {
-      externalTitle: 'Způsob platby',
+      externalTitle: 'Možnosti',
       externalLead:
         'Platba proběhne na zabezpečených stránkách Stripe.',
       externalMissingUrl:
@@ -1094,7 +1093,7 @@ export const UI_TRANSLATIONS = {
     booking: {
       section: {
         session: 'Session',
-        payment: 'Payment method',
+        payment: 'Options',
       },
       btn: {
         confirmBooking: 'Confirm booking',
@@ -1118,7 +1117,6 @@ export const UI_TRANSLATIONS = {
         entriesLabel: 'entries',
         perEntry: 'entry',
         passAvailableToBuy: 'Pass available to buy',
-        workshopBundlePayment: 'Pay online "{{title}}" "{{price}}"',
       },
       option: {
         enrolled: 'Booked',
@@ -1209,7 +1207,7 @@ export const UI_TRANSLATIONS = {
       galleryNext: 'Next photo',
     },
     payment: {
-      externalTitle: 'Payment method',
+      externalTitle: 'Options',
       externalLead:
         'Payment will take place on Stripe’s secure checkout.',
       externalMissingUrl:

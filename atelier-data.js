@@ -2215,10 +2215,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
 
   const workshopBundlePay = _workshopBundleLessons(courseId)
   const singlePayTitle = workshopBundlePay
-    ? _tp('booking.payment.workshopBundlePayment', {
-        title: loc(course.title),
-        price: fmtPrice(course.price_single),
-      })
+    ? loc(course.title)
     : _tp('booking.payment.singleSession')
 
   const payEl = document.getElementById('bk-payment-opts')
@@ -2237,7 +2234,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
                style="border-color:${color};${defaultPay === 'single' ? `background:${color};` : ''}"></div>
           <div style="flex:1;">
             <div class="bnm">${_escHtml(singlePayTitle)}</div>
-            <div class="bsb">${workshopBundlePay ? '' : fmtPrice(course.price_single)}</div>
+            <div class="bsb">${fmtPrice(course.price_single)}</div>
           </div>
         </label>
       ` : ''}
