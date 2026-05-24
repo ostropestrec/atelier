@@ -2110,14 +2110,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
       preferredPayValue: preferredPayValue ?? _preferredPayFromCardState(cardSt),
       openBooking: true,
     })
-    const les = preselectedLessonId
-      ? window.AppState.upcomingLessons?.find(l => String(l.lesson_id ?? l.id) === String(preselectedLessonId))
-      : null
-    window.openAuthPopup?.({
-      courseTitle: course ? loc(course.title) : '',
-      lessonDate: les?.start_time ? fmtLessonPill(les.start_time) : '',
-      courseId,
-    })
+    window.openAuthPopup?.()
     return
   }
   if (_isStaffUser()) {
@@ -2892,10 +2885,7 @@ window.reserveFromCard = async (courseId) => {
       preferredPayValue: _preferredPayFromCardState(st),
       openBooking: true,
     })
-    window.openAuthPopup?.({
-      courseTitle: course ? loc(course.title) : '',
-      courseId,
-    })
+    window.openAuthPopup?.()
     return
   }
   if (_isStaffUser()) {

@@ -847,12 +847,6 @@ window.openAuthPopup = (opts = {}) => {
     buildAuthPopup()
     overlay = document.getElementById('auth-overlay')
   }
-  if (opts.courseTitle) {
-    const ctx = document.getElementById('auth-context')
-    const txt = document.getElementById('auth-ctx-text')
-    if (ctx) ctx.style.display = 'flex'
-    if (txt) txt.textContent   = `Rezervuješ: ${opts.courseTitle}${opts.lessonDate ? ' · ' + opts.lessonDate : ''}`
-  }
   if (overlay) overlay.style.display = 'flex'
 }
 
@@ -1069,12 +1063,6 @@ function buildAuthPopup() {
         </div>
 
         <div style="padding:16px;">
-          <!-- Kontext rezervace -->
-          <div id="auth-context" style="display:none;align-items:center;gap:8px;
-            background:#F8F8F8;border-radius:8px;padding:8px 10px;margin-bottom:12px;">
-            <div style="width:7px;height:7px;border-radius:50%;background:#2854B9;flex-shrink:0;"></div>
-            <span id="auth-ctx-text" style="font-size:10px;color:#6b6b6b;line-height:1.4;"></span>
-          </div>
 
           <!-- Google (sdílené) -->
           <button onclick="signInWithProvider('google')"
@@ -1096,8 +1084,8 @@ function buildAuthPopup() {
             <div id="auth-sent" style="${_OK}">✓ Přihlašovací odkaz odeslán. Zkontroluj schránku.</div>
 
             <div style="${_AUTH_CARD};margin-bottom:10px;">
-              <div style="${_AUTH_H}">Přihlašovací odkaz na e-mail</div>
-              <div style="${_AUTH_P}">Pošleme ti odkaz do schránky. Není potřeba zadávat heslo.</div>
+              <div style="${_AUTH_H}">Jednoduše bez hesla</div>
+              <div style="${_AUTH_P}">Bez nutnosti registrace ti pošleme odkaz na e-mail.</div>
               <label style="${_LBL}">E-mail</label>
               <input id="auth-email-input" type="email" placeholder="jmeno@email.cz"
                 onkeydown="if(event.key==='Enter')submitMagicLink()"
