@@ -553,11 +553,25 @@
     .detail-info-row .val { font-weight:600; text-align:right; }
     .blbl { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--section-heading-accent); margin-bottom: 6px; }
     .blbl-sm { font-size: 9px; letter-spacing: .06em; margin-bottom: 2px; }
+    .pay-opts-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pay-opts-pass-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pay-opts-stack .bo.bo-pay,
+    .pay-opts-stack .bk-opt {
+      margin-bottom: 0;
+    }
     .bo.bo-pay {
       border: 0.5px solid rgba(0,0,0,.12);
       border-radius: var(--radius);
       padding: 10px 12px;
-      margin-bottom: 6px;
+      margin-bottom: 0;
       cursor: pointer;
     }
     .brow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
@@ -573,7 +587,7 @@
     .bk-opt {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 12px; border: 0.5px solid rgba(0,0,0,.12);
-      border-radius: var(--radius); cursor: pointer; margin-bottom: 6px; user-select: none;
+      border-radius: var(--radius); cursor: pointer; margin-bottom: 0; user-select: none;
     }
     .bk-opt-sel { border-color: var(--primary); }
     .bk-opt-radio {
@@ -1900,7 +1914,7 @@
       </div>
 
       <div class="blbl" style="margin-bottom:6px;" data-i18n="booking.section.payment">Možnosti</div>
-      <div id="bk-payment-opts" style="margin-bottom:16px;"></div>
+      <div id="bk-payment-opts" class="pay-opts-stack" style="margin-bottom:16px;"></div>
       <div id="bk-pass-buy-panel" style="display:none;margin:-4px 0 16px;"></div>
 
       <button type="button" id="bk-confirm-btn" class="btn-res"

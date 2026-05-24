@@ -1369,10 +1369,7 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
   if (!currentUser) {
     paymentHtml = `<p style="font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>`
   } else if (!isWorkshopBundle) {
-    paymentHtml = `
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-        ${buildBuyPanel(course, color, false)}
-      </div>`
+    paymentHtml = `<div style="margin-top:10px;">${buildBuyPanel(course, color, false)}</div>`
   }
 
   const btnOnclick = isWorkshopBundle
@@ -1423,6 +1420,7 @@ function _buildKurzyAccordionBooking(course, color, upcoming, bookable) {
 function buildBuyPanel(c, color, includeReserveButton = true) {
   if (_isStaffUser()) return ''
   return `
+    <div class="pay-opts-stack">
     <div class="bo bo-pay"
       id="buy-single-${c.id}"
       style="border-color:${color};border-width:1.5px;"
@@ -1434,14 +1432,15 @@ function buildBuyPanel(c, color, includeReserveButton = true) {
       </div>
       <div class="bsb">${_tp('booking.payment.singleSessionValidity')}</div>
     </div>
-    <div id="pass-panel-${c.id}"></div>
+    <div id="pass-panel-${c.id}" class="pay-opts-pass-list"></div>
     <div id="card-pass-count-${c.id}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
     <div id="card-msg-${c.id}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
     ${includeReserveButton ? `
     <button class="btn-res" id="res-btn-${c.id}" style="background:${color};"
       onclick="window.reserveFromCard('${c.id}')">
       ${_tp('booking.btn.continueToBooking')}
-    </button>` : ''}`
+    </button>` : ''}
+    </div>`
 }
 
 async function fetchPassTemplatesForCourse(courseId) {
