@@ -380,8 +380,14 @@
     .cex.on { max-height: 2200px; transition: max-height .5s ease-in; }
     .ml-cx { max-height: 0; overflow: hidden; transition: max-height .3s ease-out; }
     .ml-cx.on { max-height: 600px; transition: max-height .45s ease-in; }
-    .cxi { padding: 0 12px 12px; display: grid; gap: 16px; }
+    .cxi { padding: 0 12px 12px; display: grid; gap: 16px; align-items: stretch; }
     @media (min-width: 600px) { .cxi { grid-template-columns: 1fr 1fr; } }
+    .cxi-left {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .cxi-left .btn-detail { margin-top: auto; }
     .cxi-right { display: flex; flex-direction: column; }
 
     /* ── Detail kurzu ── */

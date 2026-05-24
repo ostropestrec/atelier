@@ -1235,7 +1235,7 @@ export function renderKurzy() {
 
       <div class="cex" id="cx-${c.id}">
         <div class="cxi">
-          <div>
+          <div class="cxi-left">
             ${buildCourseImage(c)}
             <div style="font-size:11px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
             <button type="button" class="btn-detail" onclick="event.stopPropagation();openDetail('${c.id}')">
@@ -2213,6 +2213,14 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
         ? preferred
         : (preferredIsSingle ? 'single' : (defaultPass ? `up-${defaultPass.id}` : 'single')))
 
+  const workshopBundlePay = _workshopBundleLessons(courseId)
+  const singlePayTitle = workshopBundlePay
+    ? _tp('booking.payment.workshopBundlePayment', {
+        title: loc(course.title),
+        price: fmtPrice(course.price_single),
+      })
+    : _tp('booking.payment.singleSession')
+
   const payEl = document.getElementById('bk-payment-opts')
   if (payEl) {
     payEl.dataset.selected  = defaultPay
@@ -2228,8 +2236,8 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
           <div class="bk-opt-radio ${defaultPay === 'single' ? 'on' : ''}"
                style="border-color:${color};${defaultPay === 'single' ? `background:${color};` : ''}"></div>
           <div style="flex:1;">
-            <div class="bnm">${_tp(_workshopBundleLessons(courseId) ? 'booking.payment.workshopBundlePayment' : 'booking.payment.singleSession')}</div>
-            <div class="bsb">${fmtPrice(course.price_single)}</div>
+            <div class="bnm">${_escHtml(singlePayTitle)}</div>
+            <div class="bsb">${workshopBundlePay ? '' : fmtPrice(course.price_single)}</div>
           </div>
         </label>
       ` : ''}

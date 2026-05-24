@@ -290,6 +290,7 @@ export const UI_TRANSLATIONS = {
         entriesLabel: 'vstupů',
         perEntry: 'vstup',
         passAvailableToBuy: 'Permanentka ke koupi',
+        workshopBundlePayment: 'Zaplatit online „{{title}}“ „{{price}}“',
       },
       option: {
         enrolled: 'Přihlášeno',
@@ -305,7 +306,6 @@ export const UI_TRANSLATIONS = {
       multiHint:
         'Můžeš vybrat nejvýše {{max}} {{sessionsWord}} (tolik zbývá na permanentce).',
       workshopBundleHint: 'Rezervace zahrnuje všechna {{n}} setkání workshopu.',
-      workshopBundlePayment: 'Celý workshop',
       multiHintSessionsOne: 'termín',
       multiHintSessionsFew: 'termíny',
       multiHintSessionsMany: 'termínů',
@@ -1118,6 +1118,7 @@ export const UI_TRANSLATIONS = {
         entriesLabel: 'entries',
         perEntry: 'entry',
         passAvailableToBuy: 'Pass available to buy',
+        workshopBundlePayment: 'Pay online "{{title}}" "{{price}}"',
       },
       option: {
         enrolled: 'Booked',
@@ -1133,7 +1134,6 @@ export const UI_TRANSLATIONS = {
       multiHint:
         'You can pick up to {{max}} {{sessionsWord}} — that’s what’s left on your pass.',
       workshopBundleHint: 'Booking includes all {{n}} workshop sessions.',
-      workshopBundlePayment: 'Full workshop',
       multiHintSessionsOne: 'session',
       multiHintSessionsFew: 'sessions',
       multiHintSessionsMany: 'sessions',
