@@ -874,7 +874,7 @@ window.submitPasswordLogin = async () => {
 
   const { error } = await sb.auth.signInWithPassword({ email, password: pass })
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Přihlásit se heslem' }
+  if (btn) { btn.disabled = false; btn.textContent = 'Přihlásit' }
   if (error) {
     if (errEl) { errEl.textContent = _authErr(error.message); errEl.style.display = 'block' }
   } else {
@@ -1074,7 +1074,7 @@ function buildAuthPopup() {
 
           <div style="${_DIV}">
             <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
-            <span style="font-size:10px;color:#9b9b9b;">nebo e-mailem</span>
+            <span style="font-size:10px;color:#9b9b9b;">nebo</span>
             <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
           </div>
 
@@ -1095,9 +1095,14 @@ function buildAuthPopup() {
               </button>
             </div>
 
+            <div style="${_DIV}">
+              <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
+              <span style="font-size:10px;color:#9b9b9b;">nebo</span>
+              <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
+            </div>
+
             <div style="${_AUTH_CARD}">
-              <div style="${_AUTH_H}">Přihlášení heslem</div>
-              <div style="${_AUTH_P}">Klasické přihlášení pomocí e-mailu a hesla.</div>
+              <div style="${_AUTH_H}">Registrovaný uživatel</div>
               <label style="${_LBL}">E-mail</label>
               <input id="auth-login-email-input" type="email" placeholder="jmeno@email.cz"
                 onkeydown="if(event.key==='Enter')submitPasswordLogin()"
@@ -1107,7 +1112,7 @@ function buildAuthPopup() {
                 onkeydown="if(event.key==='Enter')submitPasswordLogin()"
                 style="${_INP}" />
               <button id="auth-submit-btn" onclick="submitPasswordLogin()" style="${_BTN}">
-                Přihlásit se heslem
+                Přihlásit
               </button>
               <div style="text-align:center;margin-top:10px;">
                 <button type="button" id="auth-forgot-link" onclick="submitForgotPassword()"
