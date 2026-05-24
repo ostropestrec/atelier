@@ -1102,7 +1102,7 @@ function buildAuthPopup() {
             </div>
 
             <div style="${_AUTH_CARD}">
-              <div style="${_AUTH_H}">Registrovaný uživatel</div>
+              <div style="${_AUTH_H}margin-bottom:10px;">Registrovaný uživatel</div>
               <label style="${_LBL}">E-mail</label>
               <input id="auth-login-email-input" type="email" placeholder="jmeno@email.cz"
                 onkeydown="if(event.key==='Enter')submitPasswordLogin()"
