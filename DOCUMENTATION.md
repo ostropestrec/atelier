@@ -121,6 +121,14 @@ V souboru `atelier_rls.sql` jsou definovány mimo jiné:
 
 Operace vyžadující **obcházení RLS** (např. systemové zápisy po webhooku) musí běžet pod **`service_role`** na důvěryhodné straně (Edge Function), nikoli v prohlížeči. Klientský anon/authenticated klíč RLS respektuje.
 
+### 3.5 Rezervace vs. přihlášení (produktové vysvětlení)
+
+Návštěvník (`anon`) může **prohlížet** kurzy a kalendář; **zápis rezervace** vyžaduje `authenticated` JWT. Magic link (`signInWithOtp`, `shouldCreateUser: true`) založí nebo přihlásí **účet** — nejde o anonymní rezervaci.
+
+V `atelier_rls.sql` je v komentářích popsán **ghost** flow (rezervace na e-mail bez přihlášení přes Edge Function); v repozitáři **není nasazen** (viz `supabase/functions/`).
+
+Podrobné vysvětlení pro zadavatelku a poznámka k UX z testování: **[docs/rezervace-a-prihlaseni-pro-zadavatelku.md](docs/rezervace-a-prihlaseni-pro-zadavatelku.md)**.
+
 ---
 
 ## 4. Řízení komplexity frontendu (mitigace „complexity drift“)

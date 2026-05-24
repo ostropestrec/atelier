@@ -16,6 +16,8 @@ import {
   canUserCancelBooking,
   getUserBookingCancellationMessage,
   renderNavigation,
+  saveBookingReturn,
+  resumeBookingAfterAuth,
 } from './atelier_auth.js'
 import { t, UI_LANG_STORAGE_KEY } from './translations.js'
 import { EVENTS, emit } from './atelier-events.js'
@@ -420,7 +422,10 @@ async function init() {
     const defaultPage = _role === 'admin'
       ? 'admin-dashboard'
       : (_role === 'lektor' ? 'moje-lekce' : (currentUser ? 'nastenka' : 'kalendar'))
-    window.nav?.(defaultPage)
+    const resumedBooking = await resumeBookingAfterAuth()
+    if (!resumedBooking) {
+      window.nav?.(defaultPage)
+    }
 
     subscribeToLessons()
     if (ENABLE_TAB_RESUME_SYNC) {
@@ -1951,7 +1956,23 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId) {
 
 // ── Booking popup ─────────────────────────────────────────────
 window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferredPayValue = null) => {
-  if (!currentUser) { window.openAuthPopup?.(); return }
+  if (!currentUser) {
+    const course = window.AppState.courses.find(c => c.id === courseId)
+    saveBookingReturn({
+      courseId,
+      lessonId: preselectedLessonId ?? window._cardState?.[courseId]?.lessonId ?? null,
+      openBooking: true,
+    })
+    const les = preselectedLessonId
+      ? window.AppState.upcomingLessons?.find(l => String(l.lesson_id ?? l.id) === String(preselectedLessonId))
+      : null
+    window.openAuthPopup?.({
+      courseTitle: course ? loc(course.title) : '',
+      lessonDate: les?.start_time ? fmtLessonPill(les.start_time) : '',
+      courseId,
+    })
+    return
+  }
   if (_isStaffUser()) {
     window.showToast?.(_staffBookingDisabledMessage(), 'error')
     return
@@ -2451,6 +2472,51 @@ window.closeCourseGalleryLightbox = () => {
   document.removeEventListener('keydown', window._courseGalleryKb, true)
 }
 
+function _buildDetailBookingSection(course, courseId, color, upcoming, bookable) {
+  if (_isStaffUser() || !bookable || !upcoming.length) return ''
+
+  const isWorkshopBundle = !!course.is_workshop && upcoming.length > 1
+  const hasSpots = upcoming.some(l => l.available_spots > 0)
+  if (!hasSpots) {
+    return `<div style="margin-top:18px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
+      ${_escHtml(_tp('courses.allSessionsFull'))}
+    </div>`
+  }
+
+  const termsInteractive = !isWorkshopBundle
+  const pillsHtml = buildTermPills(upcoming, color, courseId, termsInteractive)
+
+  let paymentHtml = ''
+  if (!currentUser) {
+    paymentHtml = `<p style="font-size:12px;color:var(--muted);margin:12px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>`
+  } else if (!isWorkshopBundle) {
+    paymentHtml = `
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+        ${buildBuyPanel(course, color)}
+        <div id="detail-pass-indicator-${courseId}" style="display:none;font-size:11px;color:#6b6b6b;line-height:1.45;text-align:center;"></div>
+      </div>`
+  }
+
+  const btnOnclick = isWorkshopBundle
+    ? `window.openBookingPopup?.('${courseId}')`
+    : `window.reserveFromCard('${courseId}')`
+  const btnLabel = isWorkshopBundle
+    ? _tp('booking.btn.continueToBooking')
+    : _tp('booking.btn.book')
+
+  return `
+    <div class="detail-booking-section" style="margin-top:18px;padding:16px;border:1px solid rgba(0,0,0,.08);border-radius:12px;background:var(--surface,#fff);">
+      <div class="blbl" style="margin-bottom:8px;">${_escHtml(_tp('courses.bookingSectionTitle'))}</div>
+      ${isWorkshopBundle ? `<p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">${pillsHtml}</div>
+      ${paymentHtml}
+      <button type="button" class="btn-res" id="res-btn-${courseId}" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px;"
+        onclick="${btnOnclick}">
+        ${_escHtml(btnLabel)}
+      </button>
+    </div>`
+}
+
 // ── Otevření detailu kurzu ────────────────────────────────────
 window.openDetail = async (courseId) => {
   try {
@@ -2561,9 +2627,25 @@ async function renderCourseDetail(courseId) {
         <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${priceSuffix}</span>
       </div>
 
-      ${isWorkshopBundle ? `<p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>` : ''}
+      ${isWorkshopBundle && !(!_isStaffUser() && bookable && upcoming.length)
+        ? `<p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>`
+        : ''}
       ${descShort ? `<p class="detail-course-annotation${descLongBlock ? ' is-before-long-desc' : ''}">${descShort}</p>` : ''}
       ${descLongBlock ? `<div style="font-size:14px;line-height:1.75;margin-bottom:${descLongBlock ? '20' : '16'}px;">${descLongBlock}</div>` : ''}
+
+      <div class="detail-info-table">
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
+        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
+        ${(passes ?? []).map(p => {
+          const pc = passThemeHex(p.color_code)
+          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
+            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
+          </div>`
+        }).join('')}
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
+      </div>
+
+      ${_buildDetailBookingSection(course, courseId, color, upcoming, bookable)}
 
       ${galleryThumbUrls.length ? `
         <div class="detail-gallery-section">
@@ -2580,36 +2662,20 @@ async function renderCourseDetail(courseId) {
             }).join('')}
           </div>
         </div>` : ''}
-
-      <div class="detail-info-table">
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
-        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
-        ${(passes ?? []).map(p => {
-          const pc = passThemeHex(p.color_code)
-          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
-            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
-          </div>`
-        }).join('')}
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
-      </div>
-
-      ${upcoming.length ? `
-        <div style="margin-top:18px;">
-          <div class="blbl" style="margin-bottom:8px;">${_tp('courses.scheduledDates')}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">${buildTermPills(upcoming, color, courseId, false)}</div>
-        </div>` : ''}
-
-      ${!_isStaffUser() && bookable && upcoming.length && upcoming.some(l => l.available_spots > 0)
-        ? `<button class="btn-res" style="background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;"
-             onclick="window.openBookingPopup?.('${courseId}')">
-             ${_tp('booking.btn.continueToBooking')}
-           </button>`
-        : (!_isStaffUser() && bookable && upcoming.length ? `<div style="margin-top:20px;text-align:center;font-size:13px;color:#791F1F;background:#fdeaea;padding:12px;border-radius:10px;">
-             ${_tp('courses.allSessionsFull')}
-           </div>` : '')}
     </div>`
 
   _refreshDetailPassSlotsRow(courseId)
+  if (!_isStaffUser() && bookable && upcoming.length && upcoming.some(l => l.available_spots > 0)) {
+    const bundle = !!course.is_workshop && upcoming.length > 1
+    if (currentUser && !bundle) {
+      try {
+        await loadPassesForCourse(courseId)
+      } catch (e) {
+        console.warn('[renderCourseDetail] loadPassesForCourse:', e)
+      }
+    }
+    _syncCardPrimaryButton(courseId)
+  }
 }
 
 window.pickTerm = (el, color, courseId) => {
@@ -2712,7 +2778,17 @@ window.selectPayment = (el, courseId, type, passId, buyEntries = null, buyPrice 
 }
 
 window.reserveFromCard = async (courseId) => {
-  if (!currentUser) { window.openAuthPopup?.(); return }
+  if (!currentUser) {
+    const course = window.AppState.courses.find(c => c.id === courseId)
+    const st = window._cardState?.[courseId] ?? {}
+    const lessonId = st.paymentType === 'single' ? (st.lessonId ?? null) : null
+    saveBookingReturn({ courseId, lessonId, openBooking: true })
+    window.openAuthPopup?.({
+      courseTitle: course ? loc(course.title) : '',
+      courseId,
+    })
+    return
+  }
   if (_isStaffUser()) {
     window.showToast?.(_staffBookingDisabledMessage(), 'error')
     return

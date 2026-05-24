@@ -732,18 +732,83 @@ async function mergeGhostIfNeeded(authUser) {
   _markGhostResolved(authUser.email)
 }
 
-// ── Pending booking (rezervace čekající na přihlášení) ────────
-function handlePendingBooking() {
-  const raw = sessionStorage.getItem('pending_booking')
-  if (!raw) return
-  sessionStorage.removeItem('pending_booking')
+// ── Návrat na rozpracovanou rezervaci po přihlášení ───────────
+const BOOKING_RETURN_KEY = 'atelier_booking_return'
+const LEGACY_PENDING_KEY = 'pending_booking'
+
+/** Uloží kontext před auth (detail kurzu / kurzy + volitelný termín). */
+export function saveBookingReturn({ courseId, lessonId = null, openBooking = true, screen = null }) {
+  if (!courseId) return
+  const activeScreen = screen
+    ?? (document.getElementById('screen-detail-kurzu')?.classList.contains('active')
+      ? 'detail-kurzu'
+      : 'kurzy')
+  sessionStorage.setItem(
+    BOOKING_RETURN_KEY,
+    JSON.stringify({
+      screen: activeScreen,
+      courseId,
+      lessonId: lessonId ?? null,
+      openBooking: !!openBooking,
+    }),
+  )
+}
+
+function _readBookingReturn() {
+  const raw = sessionStorage.getItem(BOOKING_RETURN_KEY)
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed?.courseId) return parsed
+    } catch (e) {
+      console.warn('[Auth] atelier_booking_return: invalid JSON', e)
+    }
+  }
+  const legacy = sessionStorage.getItem(LEGACY_PENDING_KEY)
+  if (!legacy) return null
   try {
-    const { lesson_id, course_id } = JSON.parse(raw)
-    window.openBookingPopup?.(course_id, null, lesson_id)
-  } catch (e) {
-    console.warn('handlePendingBooking: invalid JSON', e)
+    const { course_id, lesson_id } = JSON.parse(legacy)
+    if (!course_id) return null
+    return { screen: 'kurzy', courseId: course_id, lessonId: lesson_id ?? null, openBooking: true }
+  } catch {
+    return null
   }
 }
+
+/** Po přihlášení obnoví detail/kurzy a případně otevře booking popup. Vrátí true pokud navigaci převzala. */
+export async function resumeBookingAfterAuth() {
+  if (!currentUser) return false
+  const ret = _readBookingReturn()
+  if (!ret?.courseId) return false
+
+  sessionStorage.removeItem(BOOKING_RETURN_KEY)
+  sessionStorage.removeItem(LEGACY_PENDING_KEY)
+
+  window._detailCourseId = ret.courseId
+  if (ret.screen === 'detail-kurzu') {
+    window.nav?.('detail-kurzu')
+  } else {
+    window.nav?.('kurzy')
+  }
+
+  if (typeof window.refreshPublicData === 'function') {
+    await window.refreshPublicData()
+  }
+
+  if (ret.openBooking) {
+    await new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
+    })
+    await window.openBookingPopup?.(ret.courseId, null, ret.lessonId ?? null)
+  }
+  return true
+}
+
+function handlePendingBooking() {
+  void resumeBookingAfterAuth()
+}
+
+window.__resumeBookingAfterAuth = resumeBookingAfterAuth
 
 // ── Auth popup (Magic Link formulář) ─────────────────────────
 window.openAuthPopup = (opts = {}) => {
@@ -878,11 +943,14 @@ window.submitRegister = async () => {
   }
   if (btn) { btn.disabled = true; btn.textContent = 'Registruji…' }
 
-  const { error } = await sb.auth.signUp({ email, password: pass })
+  const { data, error } = await sb.auth.signUp({ email, password: pass })
 
   if (btn) { btn.disabled = false; btn.textContent = 'Registrovat se' }
   if (error) {
     if (errEl) { errEl.textContent = _authErr(error.message); errEl.style.display = 'block' }
+  } else if (data?.session) {
+    window.closeAuthPopup?.()
+    void resumeBookingAfterAuth()
   } else {
     if (sentEl) sentEl.style.display = 'block'
   }
