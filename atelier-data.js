@@ -2406,16 +2406,17 @@ window.confirmBooking = async () => {
       return
     }
   } else if (bundleLessons) {
-    const bookable = bundleLessons.filter(l => {
+    const workshopSpots = Number(bundleLessons[0]?.available_spots ?? 0)
+    const allSessionsOpen = bundleLessons.every(l => {
       const lid = String(l.lesson_id ?? l.id)
-      return l.available_spots > 0 && !isEnrolled(lid)
+      return !isEnrolled(lid)
     })
-    if (bookable.length !== bundleLessons.length) {
+    if (workshopSpots <= 0 || !allSessionsOpen) {
       window.showToast?.(_tp('booking.toast.workshopFull'), 'error')
       resetBtn()
       return
     }
-    lessonIds = bookable.map(l => String(l.lesson_id ?? l.id))
+    lessonIds = bundleLessons.map(l => String(l.lesson_id ?? l.id))
   } else {
     const lessonId = document.getElementById('bk-lesson-select')?.value
     if (!lessonId) {
@@ -3121,26 +3122,28 @@ export async function buildStaffLessonsSectionHtml({
     } else {
       const missingWorkshopLessons = (workshopLessons ?? [])
         .filter(l => !seenLessonIds.has(String(l.id)))
-      const missingLessonIds = missingWorkshopLessons.map(l => l.id)
-      let bookedByLessonId = {}
-      if (missingLessonIds.length) {
+      const missingCourseIds = [...new Set(missingWorkshopLessons.map(l => l.course_id))]
+      const participantsByCourse = {}
+      if (missingCourseIds.length) {
         const { data: bookingRows, error: bookingErr } = await sb.from('bookings')
-          .select('lesson_id')
-          .in('lesson_id', missingLessonIds)
+          .select('user_id, lessons!inner(course_id)')
+          .in('lessons.course_id', missingCourseIds)
           .in('status', BLOCKING_PARTICIPATION_STATUSES)
         if (bookingErr) {
           console.warn('[Moje lekce] Obsazenost workshopů se nepodařilo načíst:', bookingErr)
         } else {
-          bookedByLessonId = (bookingRows ?? []).reduce((acc, row) => {
-            const id = String(row.lesson_id)
-            acc[id] = (acc[id] ?? 0) + 1
-            return acc
-          }, {})
+          for (const row of bookingRows ?? []) {
+            const cid = row.lessons?.course_id
+            if (!cid) continue
+            if (!participantsByCourse[cid]) participantsByCourse[cid] = new Set()
+            participantsByCourse[cid].add(String(row.user_id))
+          }
         }
       }
       allTerms = allTerms.concat(missingWorkshopLessons.map(l => {
-        const booked = bookedByLessonId[String(l.id)] ?? 0
         const cap = Number(l.capacity ?? 0)
+        const booked = participantsByCourse[l.course_id]?.size ?? 0
+        const available = Math.max(0, cap - booked)
         return {
           lesson_id: l.id,
           course_id: l.course_id,
@@ -3148,7 +3151,7 @@ export async function buildStaffLessonsSectionHtml({
           end_time: l.end_time,
           capacity: cap,
           booked_count: booked,
-          available_spots: Math.max(0, cap - booked),
+          available_spots: available,
           status: l.status ?? 'active',
         }
       }))
