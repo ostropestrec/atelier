@@ -1462,7 +1462,7 @@ function buildPassPurchaseCards(passRows, courseId, color, compact = false, sele
     const pc = passThemeHex(p.color_code)
     const selected = String(selectedTemplateId ?? '') === String(p.id)
     const compactPad = compact ? 'padding:10px 12px;' : ''
-    const wrapStyle = `${compactPad}border-radius:12px;${passCardSurfaceCss(pc)}${
+    const wrapStyle = `${compactPad}${passCardSurfaceCss(pc)}${
       selected ? `border-width:1.5px;border-color:${pc};` : ''
     }`
     return `
