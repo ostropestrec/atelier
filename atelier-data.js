@@ -19,7 +19,7 @@ import {
   saveBookingReturn,
   resumeBookingAfterAuth,
 } from './atelier_auth.js'
-import { participantsWord, t, UI_LANG_STORAGE_KEY } from './translations.js'
+import { entriesWord, entriesWordFrom, participantsWord, t, tWithEntries, UI_LANG_STORAGE_KEY } from './translations.js'
 import { EVENTS, emit } from './atelier-events.js'
 import {
   BLOCKING_PARTICIPATION_STATUSES,
@@ -132,8 +132,18 @@ function _multiSessionsWord(cap) {
   return _tp('booking.multiHintSessionsMany')
 }
 
-function _entriesWordPick(cap) {
-  return Number(cap) === 1 ? _tp('booking.payment.perEntry') : _tp('booking.payment.entriesLabel')
+function _tpEntries(path, n, extra = {}) {
+  return tWithEntries(_locale(), path, n, extra)
+}
+
+function _tpEntriesFrom(path, cap, extra = {}) {
+  const loc = _locale()
+  return t(loc, path, {
+    ...extra,
+    entriesWordFrom: entriesWordFrom(loc, cap),
+    entriesWord: entriesWord(loc, cap),
+    entriesWordOne: entriesWord(loc, 1),
+  })
 }
 
 /** Platnost permanentky po zakoupení (uživ. katalog). */
@@ -250,11 +260,7 @@ function _refreshPopupPassSlotsCounter() {
   const cap = _remainingEntriesOnUserPass(passId)
   const n = document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked').length
   slotEl.style.display = 'block'
-  slotEl.textContent = _tp('booking.passPickerCountSelected', {
-    n,
-    cap,
-    entriesWord: _entriesWordPick(cap),
-  })
+  slotEl.textContent = _tpEntriesFrom('booking.passPickerCountSelected', cap, { n, cap })
 }
 
 function _refreshCardPassSlotsRow(courseId) {
@@ -269,11 +275,7 @@ function _refreshCardPassSlotsRow(courseId) {
   const cap = _remainingEntriesOnUserPass(st.passId)
   const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
   el.style.display = 'block'
-  el.textContent = _tp('booking.passPickerCountSelected', {
-    n,
-    cap,
-    entriesWord: _entriesWordPick(cap),
-  })
+  el.textContent = _tpEntriesFrom('booking.passPickerCountSelected', cap, { n, cap })
   })
 }
 
@@ -2078,7 +2080,7 @@ function buildPassPurchaseCards(passRows, courseId, color, compact = false, sele
           <span style="font-size:11px;font-weight:500;color:${pc};">${fmtPrice(p.price)}</span>
         </div>
         <div class="bsb" style="margin-top:4px;">
-          ${p.entries_total} ${_tp('booking.payment.entriesLabel')} · ${perEntry}/${_tp('booking.payment.perEntry')}
+          ${p.entries_total} ${entriesWord(_locale(), p.entries_total)} · ${perEntry}/${entriesWord(_locale(), 1)}
           <span style="display:block;margin-top:3px;color:${pc};font-weight:500;">
             ${_tp('booking.payment.passAvailableToBuy')}
           </span>
@@ -2140,7 +2142,7 @@ async function loadPassesForCourse(courseId, payScope = null) {
           onclick="window.selectPayment(this,'${courseId}','pass','${up.id}')">
           <div class="brow">
             <span class="bnm">${name}</span>
-            <span style="font-size:11px;font-weight:600;color:${pc};">${up.entries_remaining} ${_tp('booking.payment.entriesLabel')}</span>
+            <span style="font-size:11px;font-weight:600;color:${pc};">${up.entries_remaining} ${entriesWord(_locale(), up.entries_remaining)}</span>
           </div>
           <div class="bsb">${exp ? _tp('payment.validUntil', { date: exp }) : ''}</div>
         </div>`
@@ -2827,7 +2829,7 @@ function _bookingSummaryPaymentLine(course, defaultPay, activePasses, purchasabl
   if (defaultPay.startsWith('up-')) {
     const up = activePasses.find(p => String(p.id) === defaultPay.replace(/^up-/, ''))
     const name = _escHtml(loc(up?.pass?.name ?? {}) || _tp('common.pass'))
-    const left = up ? _escHtml(_tp('booking.payment.entriesLeft', { n: up.entries_remaining })) : ''
+    const left = up ? _escHtml(_tpEntries('booking.payment.entriesLeft', up.entries_remaining)) : ''
     return left ? `${name} · ${left}` : name
   }
   if (defaultPay.startsWith('tpl-')) {
@@ -3115,7 +3117,7 @@ window.openBookingPopup = async (
                  style="border-color:${color};${sel ? `background:${color};` : ''}"></div>
             <div style="flex:1;">
               <div class="bnm">${loc(up.pass?.name ?? {})}</div>
-              <div class="bsb">${_tp('booking.payment.entriesLeft', { n: up.entries_remaining })}</div>
+              <div class="bsb">${_escHtml(_tpEntries('booking.payment.entriesLeft', up.entries_remaining))}</div>
             </div>
           </label>`
       }).join('')}
@@ -3136,7 +3138,7 @@ window.openBookingPopup = async (
             <div style="flex:1;">
               <div class="bnm">${loc(p.name)}</div>
               <div class="bsb">
-                ${p.entries_total} ${_tp('booking.payment.entriesLabel')} · ${perEntry}/${_tp('booking.payment.perEntry')}
+                ${p.entries_total} ${entriesWord(_locale(), p.entries_total)} · ${perEntry}/${entriesWord(_locale(), 1)}
                 <span style="display:block;margin-top:3px;color:${pc};font-weight:500;">
                   ${_tp('booking.payment.passAvailableToBuy')}
                 </span>
@@ -4341,10 +4343,8 @@ async function renderPermanentkyShop() {
       const refCourseId = ids.length ? ids[0] : ''
       const priceEsc = fmtPrice(priceNum)
       const buyLabel = _tp('booking.btn.buyPass')
-      const entriesLabel = _tp('booking.payment.entriesLabel')
-      const perSlash = _tp('booking.payment.perEntry')
       const chipPer = total > 0
-        ? `${_escHtml(perEntryRaw)}/${_escHtml(perSlash)}`
+        ? `${_escHtml(perEntryRaw)}/${_escHtml(entriesWord(_locale(), 1))}`
         : '—'
 
       const passIdAttr = _escHtml(String(p.id))
@@ -4359,7 +4359,7 @@ async function renderPermanentkyShop() {
             <div class="pass-shop-price" style="color:${pc};">${priceEsc}</div>
           </div>
           <div class="pass-shop-stats">
-            <span class="pass-shop-chip" style="background:${pc}26;color:${pc};"><strong>${total}</strong> ${_escHtml(entriesLabel)}</span>
+            <span class="pass-shop-chip" style="background:${pc}26;color:${pc};"><strong>${total}</strong> ${_escHtml(entriesWord(_locale(), total))}</span>
             <span class="pass-shop-chip pass-shop-chip--neutral" style="background:${pc}12;color:var(--anno);">${chipPer}</span>
           </div>
           ${validityBlock}

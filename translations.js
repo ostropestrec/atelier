@@ -302,7 +302,7 @@ export const UI_TRANSLATIONS = {
         singleSession: 'Jednorázový vstup',
         /** Popisek pod jednorázovou platbou v modalu */
         singleSessionValidity: 'Platí pro jednu lekci',
-        entriesLeft: '{{n}} vstupů zbývá',
+        entriesLeft: '{{n}} {{entriesWord}} zbývá',
         entriesLabel: 'vstupů',
         perEntry: 'vstup',
         passAvailableToBuy: 'Permanentka ke koupi',
@@ -324,7 +324,7 @@ export const UI_TRANSLATIONS = {
       multiHintSessionsOne: 'termín',
       multiHintSessionsFew: 'termíny',
       multiHintSessionsMany: 'termínů',
-      passPickerCountSelected: 'Vybráno {{n}} z {{cap}} vstupů',
+      passPickerCountSelected: 'Vybráno {{n}} z {{cap}} {{entriesWordFrom}}',
       toast: {
         selectSession: 'Vyberte prosím termín.',
         selectAtLeastOne: 'Vyberte alespoň jeden termín.',
@@ -451,7 +451,7 @@ export const UI_TRANSLATIONS = {
         'Přihlaste se pro přehled rezervací a permanentek. Nastavení účtu je pod avatarem. Mezitím můžete procházet kurzy a kalendář.',
       hello: 'Dobrý den, {{name}}',
       userYou: 'uživateli',
-      passMeta: '{{remaining}} z {{total}} vstupů · platí do {{date}}',
+      passMeta: '{{remaining}} z {{total}} {{entriesWordFrom}} · platí do {{date}}',
       passCancellations: 'Storna: {{used}}/{{limit}}',
       sectionPasses: 'Aktivní permanentky',
       emptyPasses: 'Nemáte žádné aktivní permanentky.',
@@ -635,7 +635,7 @@ export const UI_TRANSLATIONS = {
         btnPasses: 'Permanentky',
         passesEmpty: 'Tento zákazník nemá žádnou permanentku.',
         noPassTypes: 'Nejsou k dispozici žádné aktivní typy permanentek.',
-        passLine: '{{name}} · {{entries}} vstupů · {{price}}',
+        passLine: '{{name}} · {{entries}} {{entriesWord}} · {{price}}',
         grantMissingUser: 'Chybí zákazník pro připsání permanentky. Zavřete okno a otevřete ho znovu.',
         grantPickType: 'Vyberte typ permanentky.',
         grantSaving: 'Připisuji…',
@@ -711,8 +711,8 @@ export const UI_TRANSLATIONS = {
         modalTitleNew: 'Nová permanentka',
         modalTitleEdit: 'Upravit permanentku',
         empty: 'Žádné permanentky. Vytvořte první kliknutím na tlačítko výše.',
-        cardEntries: '{{n}} vstupů',
-        cardPerEntryPrice: '{{price}} / vstup',
+        cardEntries: '{{n}} {{entriesWord}}',
+        cardPerEntryPrice: '{{price}} / {{entriesWordOne}}',
         cardWeeksLine: 'Platnost: {{weeks}} týdnů',
         notLinked: 'Není přiřazena k žádnému kurzu',
         modalCoursesEmpty: 'Žádné kurzy nenalezeny. Nejprve vytvořte kurzy.',
@@ -1161,7 +1161,7 @@ export const UI_TRANSLATIONS = {
       payment: {
         singleSession: 'Single session',
         singleSessionValidity: 'Valid for one session',
-        entriesLeft: '{{n}} entries left',
+        entriesLeft: '{{n}} {{entriesWord}} left',
         entriesLabel: 'entries',
         perEntry: 'entry',
         passAvailableToBuy: 'Pass available to buy',
@@ -1183,7 +1183,7 @@ export const UI_TRANSLATIONS = {
       multiHintSessionsOne: 'session',
       multiHintSessionsFew: 'sessions',
       multiHintSessionsMany: 'sessions',
-      passPickerCountSelected: 'Selected {{n}} of {{cap}} {{entriesWord}}',
+      passPickerCountSelected: 'Selected {{n}} of {{cap}} {{entriesWordFrom}}',
       toast: {
         selectSession: 'Please choose a session.',
         selectAtLeastOne: 'Select at least one session.',
@@ -1310,7 +1310,7 @@ export const UI_TRANSLATIONS = {
         'Sign in to see your bookings and passes. Account settings are under your avatar. You can still browse courses and the calendar.',
       hello: 'Hello, {{name}}',
       userYou: 'there',
-      passMeta: '{{remaining}} of {{total}} entries · valid until {{date}}',
+      passMeta: '{{remaining}} of {{total}} {{entriesWordFrom}} · valid until {{date}}',
       passCancellations: 'Cancellations: {{used}}/{{limit}}',
       sectionPasses: 'Active passes',
       emptyPasses: 'You have no active passes.',
@@ -1495,7 +1495,7 @@ export const UI_TRANSLATIONS = {
         btnPasses: 'Passes',
         passesEmpty: 'This customer has no passes.',
         noPassTypes: 'No active pass types are available.',
-        passLine: '{{name}} · {{entries}} entries · {{price}}',
+        passLine: '{{name}} · {{entries}} {{entriesWord}} · {{price}}',
         grantMissingUser:
           'Missing customer for granting a pass. Close the window and open it again.',
         grantPickType: 'Choose a pass type.',
@@ -1572,8 +1572,8 @@ export const UI_TRANSLATIONS = {
         modalTitleNew: 'New pass',
         modalTitleEdit: 'Edit pass',
         empty: 'No passes yet. Create the first one with the button above.',
-        cardEntries: '{{n}} entries',
-        cardPerEntryPrice: '{{price}} / entry',
+        cardEntries: '{{n}} {{entriesWord}}',
+        cardPerEntryPrice: '{{price}} / {{entriesWordOne}}',
         cardWeeksLine: 'Valid: {{weeks}} weeks',
         notLinked: 'Not linked to any course',
         modalCoursesEmpty: 'No courses found. Create courses first.',
@@ -1758,6 +1758,30 @@ export function participantsWord(locale, n) {
 }
 
 /**
+ * Čeština: 1 vstup · 2–4 vstupy · 5+ (a 12–14) vstupů.
+ * @param {'cs' | 'en'} locale
+ * @param {number} n
+ */
+export function entriesWord(locale, n) {
+  const loc = locale === 'en' ? 'en' : 'cs'
+  const num = Math.abs(Math.trunc(Number(n))) || 0
+  if (loc === 'en') return num === 1 ? 'entry' : 'entries'
+  if (num === 1) return 'vstup'
+  const mod10 = num % 10
+  const mod100 = num % 100
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'vstupy'
+  return 'vstupů'
+}
+
+/** Po předložce „z“: 1 z 1 vstupu, 2+ z N vstupů. */
+export function entriesWordFrom(locale, n) {
+  const loc = locale === 'en' ? 'en' : 'cs'
+  const num = Math.abs(Math.trunc(Number(n))) || 0
+  if (loc === 'en') return num === 1 ? 'entry' : 'entries'
+  return num === 1 ? 'vstupu' : 'vstupů'
+}
+
+/**
  * Překlad s {{n}} a automatickým {{participantsWord}} (skloňování účastník/účastníci/účastníků).
  */
 export function tWithParticipants(locale, path, n, params = {}) {
@@ -1766,6 +1790,21 @@ export function tWithParticipants(locale, path, n, params = {}) {
     ...params,
     n,
     participantsWord: participantsWord(loc, n),
+  })
+}
+
+/**
+ * Překlad s {{n}}, {{entriesWord}} a volitelně {{entriesWordFrom}} (stejné číslo jako n).
+ */
+export function tWithEntries(locale, path, n, params = {}) {
+  const loc = locale === 'en' ? 'en' : 'cs'
+  const num = Math.abs(Math.trunc(Number(n))) || 0
+  return t(loc, path, {
+    ...params,
+    n: params.n !== undefined ? params.n : num,
+    entriesWord: entriesWord(loc, num),
+    entriesWordOne: entriesWord(loc, 1),
+    entriesWordFrom: entriesWordFrom(loc, num),
   })
 }
 

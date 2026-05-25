@@ -6,7 +6,7 @@ import { sb } from './atelier-supabase.js'
 import { currentUser, userPasses, myBookings, canUserCancelBooking } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 import { normalizeCourseRecord, courseImageUrls } from './atelier-data.js'
-import { t, tWithParticipants } from './translations.js'
+import { entriesWord, entriesWordFrom, t, tWithEntries, tWithParticipants } from './translations.js'
 import {
   BLOCKING_PARTICIPATION_STATUSES,
   PARTICIPATION_STATUS,
@@ -416,7 +416,12 @@ function _adminAccountPassCard(up) {
       <div class="pass-top">
         <div>
           <div class="pass-name">${esc(name)}</div>
-          <div class="pass-meta">${esc(t(_adminLocale(), 'dashboard.passMeta', { remaining, total, date: exp }))}</div>
+          <div class="pass-meta">${esc(t(_adminLocale(), 'dashboard.passMeta', {
+            remaining,
+            total,
+            date: exp,
+            entriesWordFrom: entriesWordFrom(_adminLocale(), total),
+          }))}</div>
         </div>
         <div class="pass-count" style="color:${ph};">${remaining}</div>
       </div>
@@ -1567,10 +1572,11 @@ function _mupAddFormHtml() {
             <select id="mup-add-pass-id" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
               ${_mupAvailablePasses.map((p, idx) => `
                 <option value="${esc(p.id)}" ${idx === 0 ? 'selected' : ''}>
-                  ${esc(_adm('customers.passLine', {
+                  ${esc(t(_adminLocale(), 'admin.customers.passLine', {
                     name: loc(p.name) || _adm('misc.pass'),
                     entries: Number(p.entries_total) || 0,
                     price: fmtPrice(p.price),
+                    entriesWord: entriesWord(_adminLocale(), Number(p.entries_total) || 0),
                   }))}
                 </option>`).join('')}
             </select>
@@ -2530,8 +2536,11 @@ function _passCard(pass, courseMap) {
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(name)}</div>
           <div style="font-size:11px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
-            <span>${_adm('passesPage.cardEntries', { n: pass.entries_total })}</span>
-            <span>${_adm('passesPage.cardPerEntryPrice', { price: fmtPrice(pass.price / pass.entries_total) })}</span>
+            <span>${tWithEntries(_adminLocale(), 'admin.passesPage.cardEntries', pass.entries_total)}</span>
+            <span>${t(_adminLocale(), 'admin.passesPage.cardPerEntryPrice', {
+              price: fmtPrice(pass.price / pass.entries_total),
+              entriesWordOne: entriesWord(_adminLocale(), 1),
+            })}</span>
             <span>${_adm('passesPage.cardWeeksLine', { weeks: pass.validity_weeks })}</span>
           </div>
           ${courseNames.length ? `
@@ -3828,7 +3837,12 @@ async function _openCourseModal(courseId = null) {
             style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;" />
           <div style="flex:1;">
             <div style="font-size:13px;font-weight:500;">${esc(name)}</div>
-            <div style="font-size:11px;color:#6b6b6b;">${_adm('customers.passLine', { name, entries: p.entries_total, price: fmtPrice(p.price) })}</div>
+            <div style="font-size:11px;color:#6b6b6b;">${esc(t(_adminLocale(), 'admin.customers.passLine', {
+              name,
+              entries: p.entries_total,
+              price: fmtPrice(p.price),
+              entriesWord: entriesWord(_adminLocale(), Number(p.entries_total) || 0),
+            }))}</div>
           </div>
         </label>`
       }).join('')

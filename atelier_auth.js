@@ -5,7 +5,7 @@
 // ============================================================
 
 import { sb } from './atelier-supabase.js'
-import { t } from './translations.js'
+import { entriesWordFrom, t } from './translations.js'
 import {
   PARTICIPATION_STATUS,
   VISIBLE_USER_PARTICIPATION_STATUSES,
@@ -1684,7 +1684,12 @@ export function buildUserOverviewHtml(user) {
             <div class="pass-top">
               <div>
                 <div class="pass-name">${escapeHtml(name)}</div>
-                <div class="pass-meta">${escapeHtml(t(locale, 'dashboard.passMeta', { remaining, total, date: exp }))}</div>
+                <div class="pass-meta">${escapeHtml(t(locale, 'dashboard.passMeta', {
+                  remaining,
+                  total,
+                  date: exp,
+                  entriesWordFrom: entriesWordFrom(locale, total),
+                }))}</div>
                 ${cancellationHtml}
               </div>
               <div class="pass-count" style="color:${ph};">${remaining}</div>
