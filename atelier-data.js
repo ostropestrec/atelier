@@ -1127,7 +1127,7 @@ function _paintCalEvents(lessons, min, max, PH, colSelector) {
     ].filter(Boolean).join(';')
 
     const wsBadge = !isPast && course?.is_workshop
-      ? `<div class="evb" style="color:${evColor};opacity:.7;">WORKSHOP${sessionMeta && sessionMeta.index > 1 ? ` (${sessionMeta.index})` : ''}</div>`
+      ? `<div class="evb" style="color:${evColor};opacity:.7;">WORKSHOP</div>`
       : ''
     const restrictedBadge = !isPast && course?.is_restricted
       ? `<div class="evb" style="color:#2854B9;opacity:.85;">${_escHtml(_tp('courses.badgeRestricted').toUpperCase())}</div>`
