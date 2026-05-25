@@ -244,32 +244,35 @@ function _refreshPopupPassSlotsCounter() {
 }
 
 function _refreshCardPassSlotsRow(courseId) {
-  const el = document.getElementById(`card-pass-count-${courseId}`)
   const st = window._cardState?.[courseId]
-  if (!el) return
-  if (!st || st.paymentType !== 'pass' || !st.passId) {
-    el.style.display = 'none'
-    return
-  }
-  const cap = _remainingEntriesOnUserPass(st.passId)
-  const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
-  el.style.display = 'block'
-  el.textContent = _tp('booking.passPickerCountSelected', {
-    n,
-    cap,
-    entriesWord: _entriesWordPick(cap),
+  _eachBookingPayScope(courseId, scope => {
+    const el = _bookingPayEl('card-pass-count', courseId, scope)
+    if (!el) return
+    if (!st || st.paymentType !== 'pass' || !st.passId) {
+      el.style.display = 'none'
+      return
+    }
+    const cap = _remainingEntriesOnUserPass(st.passId)
+    const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
+    el.style.display = 'block'
+    el.textContent = _tp('booking.passPickerCountSelected', {
+      n,
+      cap,
+      entriesWord: _entriesWordPick(cap),
+    })
   })
 }
 
 function _syncCardPrimaryButton(courseId) {
-  const btn = document.getElementById(`res-btn-${courseId}`)
   const st = window._cardState?.[courseId] ?? {}
-  if (!btn) return
-  if (st.paymentType === 'buy-pass') {
-    btn.textContent = _tp('booking.btn.buyPass')
-    return
-  }
-  btn.textContent = _tp('booking.btn.continueToBooking')
+  const label = st.paymentType === 'buy-pass'
+    ? _tp('booking.btn.buyPass')
+    : _tp('booking.btn.continueToBooking')
+  _eachBookingPayScope(courseId, scope => {
+    const btn = _bookingPayEl('res-btn', courseId, scope)
+    if (!btn) return
+    btn.textContent = label
+  })
 }
 
 function _bkSelectedLessonForPopupSingleSelect() {
@@ -325,6 +328,27 @@ Object.assign(window.AppState, {
 
 // Per-karta stav: { lessonId, lessonIds, paymentType, passId, buyPassTemplateId, buyPassEntriesTotal, buyPassPrice }
 window._cardState = {}
+
+/** Akordeon Kurzy vs. detail kurzu — stejné courseId, jiné DOM id (oba screeny jsou v DOM najednou). */
+function _bookingPayId(kind, courseId, scope = 'card') {
+  return scope === 'detail' ? `${kind}-detail-${courseId}` : `${kind}-${courseId}`
+}
+
+function _bookingPayEl(kind, courseId, scope = 'card') {
+  return document.getElementById(_bookingPayId(kind, courseId, scope))
+}
+
+function _activeBookingPayScope(courseId) {
+  const detail = document.getElementById('screen-detail-kurzu')
+  if (detail?.classList.contains('active') && String(window._detailCourseId) === String(courseId)) {
+    return 'detail'
+  }
+  return 'card'
+}
+
+function _eachBookingPayScope(courseId, fn) {
+  for (const scope of ['detail', 'card']) fn(scope)
+}
 
 /** Zapněte až po ověření stability. Nyní: data jen z prvního načtení, žádný další sync při návratu na tab. */
 const ENABLE_TAB_RESUME_SYNC = false
@@ -1283,7 +1307,7 @@ function buildCourseImage(c) {
        </div>`
 }
 
-function buildTermPills(upcoming, color, courseId, interactive = true, large = false) {
+function buildTermPills(upcoming, color, courseId, interactive = true, large = false, forDetail = false) {
   if (!upcoming.length) {
     return `<span style="font-size:10px;color:#9b9b9b;">${_tp('courses.noDates')}</span>`
   }
@@ -1294,39 +1318,43 @@ function buildTermPills(upcoming, color, courseId, interactive = true, large = f
     const label = fmtLessonPill(l.start_time)
     const full  = l.available_spots <= 0
     const lid   = String(l.lesson_id ?? l.id)
-    const selByPass = interactive && selectedPassIds.length > 0 && selectedPassIds.includes(lid)
-    const selSingle = interactive && st?.paymentType === 'single' && st.lessonId != null && String(st.lessonId) === lid
-    const selBuyPass = interactive && st?.paymentType === 'buy-pass' && st.lessonId != null && String(st.lessonId) === lid
-    const selDefault = interactive
+    const clickable = interactive && !full
+    const selByPass = clickable && selectedPassIds.length > 0 && selectedPassIds.includes(lid)
+    const selSingle = clickable && st?.paymentType === 'single' && st.lessonId != null && String(st.lessonId) === lid
+    const selBuyPass = clickable && st?.paymentType === 'buy-pass' && st.lessonId != null && String(st.lessonId) === lid
+    const selDefault = clickable
       && (!st || st.paymentType === 'single')
       && st?.lessonId == null
       && !selectedPassIds.length
       && i === firstAvailIdx
     const sel   = selByPass || selSingle || selBuyPass || selDefault
-    const borderColor = interactive
+    const borderColor = clickable
       ? (sel ? color : 'rgba(0,0,0,.08)')
-      : color
-    const textColor = interactive
+      : (full && forDetail ? 'rgba(0,0,0,.06)' : color)
+    const textColor = clickable
       ? (sel ? color : '#6b6b6b')
-      : color
-    const bgColor = interactive
+      : (full && forDetail ? '#9b9b9b' : color)
+    const bgColor = clickable
       ? 'transparent'
-      : `${color}14`
+      : (full && forDetail ? 'var(--muted-surface,#f5f5f5)' : `${color}14`)
     const padding = (large || !interactive) ? '6px 12px' : '3px 9px'
     const fontSize = (large || !interactive) ? '11px' : '10px'
+    const fullClass = full ? ' term-pill--full' : ''
+    const fullSuffix = full && !forDetail ? ` (${_tp('courses.optionFullSuffix')})` : ''
     return `<span
-      class="term-pill"
+      class="term-pill${fullClass}"
       data-lesson-id="${lid}"
       data-course-id="${courseId}"
-      data-full="${full ? '1' : ''}"
+      data-full="${full ? '1' : '0'}"
+      ${full ? 'aria-disabled="true"' : ''}
       style="font-size:${fontSize};padding:${padding};border-radius:var(--btn-radius);
              background:${bgColor};
-             border:${interactive && sel ? `1.5px solid ${color}` : `0.5px solid ${borderColor}`};
+             border:${clickable && sel ? `1.5px solid ${color}` : `0.5px solid ${borderColor}`};
              color:${textColor};
-             cursor:${interactive && !full ? 'pointer' : 'default'};
-             ${full ? 'opacity:.5;' : ''}"
-      ${interactive && !full ? `onclick="window.pickTerm(this,'${color}','${courseId}')"` : ''}
-    >${label}${full ? ` (${_tp('courses.optionFullSuffix')})` : ''}</span>`
+             cursor:${clickable ? 'pointer' : 'default'};
+             ${full ? 'opacity:.55;pointer-events:none;user-select:none;' : ''}"
+      ${clickable ? `onclick="window.pickTerm(this,'${color}','${courseId}')"` : ''}
+    >${label}${fullSuffix}</span>`
   }).join('')
 }
 
@@ -1356,12 +1384,17 @@ function _ensureCardStateForCourse(courseId, upcoming) {
       }
     }
   } else {
-    if (prevCard.lessonId != null && !validLessonIds.has(String(prevCard.lessonId))) {
+    const lessonById = id => upcoming.find(l => String(l.lesson_id ?? l.id) === String(id))
+    const isBookableLesson = id => {
+      const les = lessonById(id)
+      return !!les && les.available_spots > 0
+    }
+    if (prevCard.lessonId != null && (!validLessonIds.has(String(prevCard.lessonId)) || !isBookableLesson(prevCard.lessonId))) {
       const firstAvail = upcoming.find(l => l.available_spots > 0)
       prevCard.lessonId = firstAvail ? (firstAvail.lesson_id ?? firstAvail.id) : null
     }
     if (Array.isArray(prevCard.lessonIds) && prevCard.lessonIds.length) {
-      prevCard.lessonIds = prevCard.lessonIds.filter(id => validLessonIds.has(String(id)))
+      prevCard.lessonIds = prevCard.lessonIds.filter(id => isBookableLesson(id))
     }
     window._cardState[courseId] = prevCard
   }
@@ -1384,13 +1417,15 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
   }
 
   const termsInteractive = !isWorkshopBundle
-  const pillsHtml = buildTermPills(upcoming, color, courseId, termsInteractive, true)
+  const forDetail = !!wrapSection
+  const pillsHtml = buildTermPills(upcoming, color, courseId, termsInteractive, true, forDetail)
 
   let paymentHtml = ''
   if (!currentUser) {
     paymentHtml = `<p style="font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>`
   } else if (!isWorkshopBundle) {
-    paymentHtml = `<div style="margin-top:10px;">${buildBuyPanel(course, color, false)}</div>`
+    const payScope = opts.payScope ?? (wrapSection ? 'detail' : 'card')
+    paymentHtml = `<div style="margin-top:10px;">${buildBuyPanel(course, color, false, payScope)}</div>`
   }
 
   const btnOnclick = isWorkshopBundle
@@ -1408,7 +1443,7 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
     ${isWorkshopBundle ? `<p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>` : ''}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">${pillsHtml}</div>
     ${paymentHtml}
-    <button type="button" class="btn-res" id="res-btn-${courseId}" style="${btnStyle}"
+    <button type="button" class="btn-res" id="${_bookingPayId('res-btn', courseId, opts.payScope ?? (wrapSection ? 'detail' : 'card'))}" style="${btnStyle}"
       onclick="${btnOnclick}">
       ${_escHtml(btnLabel)}
     </button>`
@@ -1438,12 +1473,17 @@ function _buildKurzyAccordionBooking(course, color, upcoming, bookable) {
   return _buildCourseBookingInline(course, course.id, color, upcoming, bookable, { sectionLabel })
 }
 
-function buildBuyPanel(c, color, includeReserveButton = true) {
+function buildBuyPanel(c, color, includeReserveButton = true, payScope = 'card') {
   if (_isStaffUser()) return ''
+  const singleId = _bookingPayId('buy-single', c.id, payScope)
+  const panelId = _bookingPayId('pass-panel', c.id, payScope)
+  const countId = _bookingPayId('card-pass-count', c.id, payScope)
+  const msgId = _bookingPayId('card-msg', c.id, payScope)
+  const resId = _bookingPayId('res-btn', c.id, payScope)
   return `
     <div class="pay-opts-stack">
     <div class="bo bo-pay"
-      id="buy-single-${c.id}"
+      id="${singleId}"
       style="border-color:${color};border-width:1.5px;"
       data-pay-type="single" data-color="${color}" data-course-id="${c.id}"
       onclick="window.selectPayment(this,'${c.id}','single',null)">
@@ -1453,11 +1493,11 @@ function buildBuyPanel(c, color, includeReserveButton = true) {
       </div>
       <div class="bsb">${_tp('booking.payment.singleSessionValidity')}</div>
     </div>
-    <div id="pass-panel-${c.id}" class="pay-opts-pass-list"></div>
-    <div id="card-pass-count-${c.id}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
-    <div id="card-msg-${c.id}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
+    <div id="${panelId}" class="pay-opts-pass-list"></div>
+    <div id="${countId}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
+    <div id="${msgId}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
     ${includeReserveButton ? `
-    <button class="btn-res" id="res-btn-${c.id}" style="background:${color};"
+    <button class="btn-res" id="${resId}" style="background:${color};"
       onclick="window.reserveFromCard('${c.id}')">
       ${_tp('booking.btn.continueToBooking')}
     </button>` : ''}
@@ -1510,9 +1550,10 @@ function buildPassPurchaseCards(passRows, courseId, color, compact = false, sele
 }
 
 // Lazy load platebních možností při rozbalení kurzu
-async function loadPassesForCourse(courseId) {
-  const panel     = document.getElementById(`pass-panel-${courseId}`)
-  const singleDiv = document.getElementById(`buy-single-${courseId}`)
+async function loadPassesForCourse(courseId, payScope = null) {
+  const scope = payScope ?? _activeBookingPayScope(courseId)
+  const panel     = _bookingPayEl('pass-panel', courseId, scope)
+  const singleDiv = _bookingPayEl('buy-single', courseId, scope)
   if (!panel) return
 
   const c     = window.AppState.courses.find(x => x.id === courseId)
@@ -1899,7 +1940,7 @@ async function _loadPassesForExpandedKurzyCard(courseId) {
     return
   }
   try {
-    await loadPassesForCourse(courseId)
+    await loadPassesForCourse(courseId, 'card')
   } catch (e) {
     console.warn('[Kurzy] loadPassesForCourse:', e)
   }
@@ -2739,8 +2780,6 @@ async function renderCourseDetail(courseId) {
 
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
         ${durMin ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${durMin} min</span>` : ''}
-        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${course.capacity_default} ${_tp('courses.capacitySpots')}</span>
-        ${upcoming.length ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:#eaf5ea;color:#085041;">${upcoming[0].available_spots} ${_tp('courses.spotsFree')}</span>` : ''}
         <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${priceSuffix}</span>
       </div>
 
@@ -2786,7 +2825,7 @@ async function renderCourseDetail(courseId) {
     const bundle = !!course.is_workshop && upcoming.length > 1
     if (currentUser && !bundle) {
       try {
-        await loadPassesForCourse(courseId)
+        await loadPassesForCourse(courseId, 'detail')
       } catch (e) {
         console.warn('[renderCourseDetail] loadPassesForCourse:', e)
       }
@@ -2796,6 +2835,7 @@ async function renderCourseDetail(courseId) {
 }
 
 window.pickTerm = (el, color, courseId) => {
+  if (el?.dataset?.full === '1') return
   const st = window._cardState[courseId] ?? {}
   const lid = el.dataset.lessonId
 
@@ -2821,11 +2861,12 @@ window.pickTerm = (el, color, courseId) => {
       p.style.borderWidth = sel ? '1.5px' : '0.5px'
       p.style.color = sel ? color : '#6b6b6b'
     })
-    const btn = document.getElementById(`res-btn-${courseId}`)
     const n = arr.length
-    if (btn) {
-      btn.textContent = n ? _tp('booking.btn.bookSelected', { n }) : _tp('booking.btn.book')
-    }
+    const bookLabel = n ? _tp('booking.btn.bookSelected', { n }) : _tp('booking.btn.book')
+    _eachBookingPayScope(courseId, scope => {
+      const btn = _bookingPayEl('res-btn', courseId, scope)
+      if (btn) btn.textContent = bookLabel
+    })
     _refreshCardPassSlotsRow(courseId)
     _refreshCardPassSlotsRow(courseId)
     return
@@ -2921,7 +2962,8 @@ window.reserveFromCard = async (courseId) => {
     return
   }
 
-  const btn = document.getElementById(`res-btn-${courseId}`)
+  const btn = _bookingPayEl('res-btn', courseId, _activeBookingPayScope(courseId))
+    ?? _bookingPayEl('res-btn', courseId, 'card')
   if (btn?.disabled) return  // Prevence duplicitního kliknutí
 
   const hasScheduledFutureLessons = _courseLessonsForBooking(courseId).length > 0
@@ -2952,13 +2994,15 @@ window.reserveFromCard = async (courseId) => {
 }
 
 function showCardMsg(courseId, msg, type) {
-  const el = document.getElementById(`card-msg-${courseId}`)
-  if (!el) return
-  el.textContent      = msg
-  el.style.color      = type === 'ok' ? '#085041' : '#791F1F'
-  el.style.background = type === 'ok' ? '#eaf5ea' : '#fdeaea'
-  el.style.display    = 'block'
-  if (type === 'warn') setTimeout(() => { el.style.display = 'none' }, 4000)
+  _eachBookingPayScope(courseId, scope => {
+    const el = _bookingPayEl('card-msg', courseId, scope)
+    if (!el) return
+    el.textContent      = msg
+    el.style.color      = type === 'ok' ? '#085041' : '#791F1F'
+    el.style.background = type === 'ok' ? '#eaf5ea' : '#fdeaea'
+    el.style.display    = 'block'
+    if (type === 'warn') setTimeout(() => { el.style.display = 'none' }, 4000)
+  })
 }
 
 // ── Enrolled stav na nástěnce ─────────────────────────────────
