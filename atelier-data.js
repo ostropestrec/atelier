@@ -1959,10 +1959,11 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
   let paymentHtml = ''
   if (!currentUser) {
     const guestPrice = fmtPrice(course.price_single)
+    const guestPriceKey = course.is_workshop ? 'courses.guestPriceWorkshop' : 'courses.guestPriceEntry'
     paymentHtml = `
       <p style="font-size:13px;color:var(--muted);margin:10px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>
       <p style="font-size:13px;color:var(--muted);margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestFinishAfterLogin'))}</p>
-      <p style="font-size:13px;font-weight:500;color:${color};margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestPriceFrom', { price: guestPrice }))}</p>`
+      <p style="font-size:13px;font-weight:500;color:${color};margin:6px 0 0;line-height:1.55;">${_escHtml(_tp(guestPriceKey, { price: guestPrice }))}</p>`
   } else if (!isWorkshopBundle) {
     const payScope = opts.payScope ?? (wrapSection ? 'detail' : 'card')
     paymentHtml = `<div style="margin-top:10px;">${buildBuyPanel(course, color, false, payScope)}</div>`
