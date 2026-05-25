@@ -103,7 +103,7 @@
       font-weight: 700;
     }
 
-    /* Oranžové nadpisy — verzálky */
+    /* Oranžové nadpisy — Vend Sans 700, 40px, normální velikost písmen */
     :is(
       .sec-title,
       .section-h,
@@ -113,7 +113,12 @@
       .blbl,
       .side-section-label
     ) {
-      text-transform: uppercase;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 1.08;
+      text-transform: none;
+      letter-spacing: normal;
     }
 
     body {
@@ -420,7 +425,6 @@
 
     /* ── Sekce nadpis ── */
     .sec-title {
-      font-size: 17px; font-weight: 700; letter-spacing: .08em;
       color: var(--section-heading-accent);
       margin-bottom: 12px;
     }
@@ -663,7 +667,7 @@
       max-width: 100%;
       word-break: break-word;
     }
-    .blbl { font-size: 15px; font-weight: 700; letter-spacing: .06em; color: var(--section-heading-accent); margin-bottom: 6px; }
+    .blbl { color: var(--section-heading-accent); margin-bottom: 6px; }
     .blbl-sm { font-size: 10px; letter-spacing: .06em; margin-bottom: 2px; }
     .pay-opts-stack {
       display: flex;
@@ -1242,15 +1246,12 @@
       display: block;
     }
     .manual-kicker {
-      font-size: 16px;
-      letter-spacing: .14em;
       color: var(--section-heading-accent);
-      font-weight: 700;
       margin-bottom: 8px;
     }
     .manual-title {
-      font-size: 25px;
-      line-height: 1.2;
+      font-size: 50px;
+      line-height: 1.08;
       font-weight: 700;
       margin-bottom: 8px;
     }
@@ -1343,7 +1344,6 @@
       .manual-grid {
         grid-template-columns: 1fr;
       }
-      .manual-title { font-size: 22px; }
     }
 
     /* ── Profile + passes + bookings (design podle screenshotů) ─ */
@@ -1364,14 +1364,11 @@
       margin-right: -12px;
       flex: 0 0 auto;
     }
-    .hello{ font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+    .hello{ font-size: 50px; line-height: 1.08; font-weight: 700; margin-bottom: 4px; }
     .subtle{ font-size: 14px; color: var(--muted); }
     .section-h{
-      font-size: 16px;
-      letter-spacing: .14em;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
-      font-weight: 700;
     }
     #screen-nastenka > .sec-title{
       margin-bottom: 24px;
@@ -1598,12 +1595,11 @@
     .btn-small.danger{ color:#7A1F1F; border-color: rgba(122,31,31,.25); background: rgba(122,31,31,.06); }
 
     /* ── Nastavení (form + modal) ─────────────────────────────── */
-    .page-title{ font-size: 23px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .page-title{ font-size: 50px; line-height: 1.08; font-weight: 700; margin-bottom: 4px; color: var(--text); }
     .page-sub{ font-size: 14px; color: var(--muted); margin-bottom: 18px; }
     .block-label{
-      font-size: 16px;
-      letter-spacing: .14em;
-      color: var(--section-heading-accent); font-weight: 700; margin: 18px 0 8px;
+      color: var(--section-heading-accent);
+      margin: 18px 0 8px;
     }
     .field{ margin-bottom: 14px; }
     .field label{ display:block; font-size: 13px; color: var(--text); margin-bottom: 6px; }
@@ -1716,7 +1712,6 @@
 
     /* ── Admin sidebar sekce ── */
     .side-section-label {
-      font-size: 14px; font-weight: 700; letter-spacing: .14em;
       color: var(--section-heading-accent);
       padding: 2px 12px 0;
       margin: 0;
@@ -1757,7 +1752,6 @@
 
     /* ── Admin sekce nadpis (přehled, platby, sekce z buildStaffLessonsSectionHtml …) ── */
     .admin-section-title {
-      font-size: 16px; font-weight: 700; letter-spacing: .14em;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
     }
