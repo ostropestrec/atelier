@@ -221,7 +221,7 @@ export const UI_TRANSLATIONS = {
         'Doporučení: před větší změnou nejdřív zkontrolujte, zda na kurz nebo lekci nejsou aktivní přihlášky. Při zrušení lekce nebo změně termínu se účastníkům automaticky odešle e-mailové upozornění. Odeslání může mít krátké zpoždění.',
     },
     pages: {
-      signIn: 'Přihlásit se',
+      signIn: 'Přihlásit',
       avatarGuestTitle: 'Přihlásit se',
       settingsTitle: 'Nastavení',
       settingsSub: 'Správa účtu',

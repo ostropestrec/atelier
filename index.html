@@ -187,12 +187,16 @@
     }
     .sbtn.primary{ background: var(--primary); color:#fff; border-color: var(--primary); }
     @media (max-width: 1023px) {
+      .ham-btn {
+        background: #fff;
+      }
       .top-actions .sbtn {
         font-size: 12px;
         padding: 6px 11px;
         border-radius: 999px;
         line-height: 1.2;
         white-space: nowrap;
+        background: #fff;
       }
       .top-actions { gap: 8px; }
     }
@@ -1455,7 +1459,7 @@
         onclick="window.__toggleLang?.()"
         aria-label="English">English</button>
     </div>
-    <button class="sbtn" id="sbtn" onclick="window.openAuthPopup?.()" data-i18n="pages.signIn">Přihlásit se</button>
+    <button class="sbtn" id="sbtn" onclick="window.openAuthPopup?.()" data-i18n="pages.signIn">Přihlásit</button>
     <div class="avatar g" id="av" data-i18n-title="pages.avatarGuestTitle" title="Přihlásit se" style="display:none;">?</div>
   </div>
 </div>
