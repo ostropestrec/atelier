@@ -105,8 +105,8 @@
       font-weight: 700;
     }
 
-    /* Nadpis 1 — hlavní + sidebar */
-    :is(.page-title, .hello, .manual-title, .side-section-label) {
+    /* Nadpis 1 — hlavní */
+    :is(.page-title, .hello, .manual-title) {
       font-family: var(--font-heading);
       font-weight: 700;
       font-size: var(--heading-1-size);
@@ -131,8 +131,8 @@
       color: var(--section-heading-accent);
     }
 
-    /* Nadpis 3 — oranžový podnadpis */
-    :is(.manual-kicker, .blbl:not(.blbl-sm)) {
+    /* Nadpis 3 — oranžový podnadpis + sidebar */
+    :is(.manual-kicker, .blbl:not(.blbl-sm), .side-section-label) {
       font-family: var(--font-heading);
       font-weight: 700;
       font-size: var(--heading-3-size);
@@ -192,38 +192,35 @@
     @media (max-width: 1023px) {
       html,
       body {
-        height: 100%;
-        overflow: hidden;
-        overscroll-behavior: none;
+        height: auto;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
       body {
         background: var(--bg);
         padding: 0;
-        min-height: 0;
       }
       .layout-shell {
         border-radius: 0;
         box-shadow: none;
-        height: 100vh;
-        height: 100dvh;
-        max-height: 100dvh;
-        min-height: 0;
-        overflow: hidden;
+        min-height: 100dvh;
+        height: auto;
+        max-height: none;
+        overflow: visible;
         display: flex;
         flex-direction: column;
       }
-      .app {
-        flex: 1;
+      .layout-shell > .app {
+        flex: 1 0 auto;
         min-height: 0;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
+        overflow: visible;
+        display: block;
       }
-      .content {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+      .layout-shell > .content,
+      .app > .content {
+        overflow: visible;
       }
     }
 
