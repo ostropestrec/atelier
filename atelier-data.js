@@ -596,7 +596,16 @@ function _workshopBadgeHtml() {
 function _kurzyCardCapacityMetaHtml(course) {
   const n = Number(course?.capacity_default) || 0
   if (n < 1) return ''
-  return `<span class="cmi">${_escHtml(_tp('courses.capacityAccordion', { n }))}</span>`
+  const key = course?.is_workshop ? 'courses.capacityAccordionWorkshop' : 'courses.capacityAccordion'
+  return `<span class="cmi">${_escHtml(_tp(key, { n }))}</span>`
+}
+
+function _detailInfoTableRow(label, value, valStyle = '') {
+  const valAttr = valStyle ? ` style="${valStyle}"` : ''
+  return `<tr class="detail-info-row">
+    <td class="lbl">${label}</td>
+    <td class="val"${valAttr}>${_escHtml(String(value ?? '—'))}</td>
+  </tr>`
 }
 
 function _isPastLesson(lesson) {
@@ -2737,22 +2746,25 @@ async function renderCourseDetail(courseId) {
     ? `${fmtPrice(course.price_single)} · ${_tp('courses.perWorkshop')}`
     : fmtPrice(course.price_single)
 
+  const passRowsHtml = (passes ?? []).map(p => {
+    const pc = passThemeHex(p.color_code)
+    const passLabel = `${_tp('common.pass')} ${loc(p.name) || ''}`.trim()
+    return _detailInfoTableRow(passLabel, fmtPrice(p.price), `color:${pc};`)
+  }).join('')
+
   const detailInfoTableHtml = `
-      <div class="detail-info-table" style="margin-top:12px;margin-bottom:16px;">
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
-        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
-        <div class="detail-info-row"><span class="lbl">${_tp('kal.duration')}</span><span class="val">${durationVal}</span></div>
-        <div class="detail-info-row"><span class="lbl">${_tp('booking.payment.singleSession')}</span><span class="val" style="color:${color};">${singleEntryVal}</span></div>
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.lessonCapacity')}</span><span class="val">${Number(course.capacity_default) || '—'}</span></div>
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.minParticipants')}</span><span class="val">${Math.max(1, Number(course.min_participants ?? 1))}</span></div>
-        ${(passes ?? []).map(p => {
-          const pc = passThemeHex(p.color_code)
-          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
-            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
-          </div>`
-        }).join('')}
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
-      </div>`
+      <table class="detail-info-table" style="margin-top:12px;margin-bottom:16px;">
+        <tbody>
+          ${_detailInfoTableRow(_tp('courses.instructor'), ownerName ?? '—')}
+          ${scheduleDays ? _detailInfoTableRow(_tp('courses.scheduleLabel'), scheduleDays) : ''}
+          ${_detailInfoTableRow(_tp('kal.duration'), durationVal)}
+          ${_detailInfoTableRow(_tp('courses.lessonCapacity'), String(Number(course.capacity_default) || '—'))}
+          ${_detailInfoTableRow(_tp('courses.minParticipants'), String(Math.max(1, Number(course.min_participants ?? 1))))}
+          ${_detailInfoTableRow(_tp('booking.payment.singleSession'), singleEntryVal, `color:${color};`)}
+          ${passRowsHtml}
+          ${_detailInfoTableRow(_tp('courses.freeCancellation'), `${course.cancellation_hours}h ${_tp('courses.ahead')}`)}
+        </tbody>
+      </table>`
 
   el.innerHTML = `
     <div style="max-width:760px;">
@@ -2761,17 +2773,17 @@ async function renderCourseDetail(courseId) {
       </button>
       <div style="height:4px;background:${color};border-radius:99px;margin-bottom:16px;"></div>
 
-      <div style="font-size:22px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
+
+      ${heroImg
+        ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`
+        : `<div class="detail-hero-ph">${_escHtml(_tp('courses.photoAlt'))}</div>`}
 
       ${detailInfoTableHtml}
 
       ${restricted && !bookable && !_isStaffUser()
         ? `<div style="font-size:13px;color:#2854B9;background:#E8EEF8;padding:12px 14px;border-radius:10px;margin-bottom:16px;line-height:1.55;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
         : ''}
-
-      ${heroImg
-        ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`
-        : `<div class="detail-hero-ph">${_escHtml(_tp('courses.photoAlt'))}</div>`}
 
       ${isWorkshopBundle && !(!_isStaffUser() && bookable && upcoming.length)
         ? `<p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>`
