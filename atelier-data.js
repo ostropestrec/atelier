@@ -608,22 +608,28 @@ function _detailInfoTableRow(label, value, valStyle = '') {
   </div>`
 }
 
-function _detailMetaBadge(label, value) {
+function _detailMetaBadge(label, value, color) {
   const v = value != null && String(value).trim() !== '' ? String(value).trim() : ''
   if (!v || v === '—') return ''
-  if (!label) return `<span class="detail-meta-pill">${_escHtml(v)}</span>`
-  return `<span class="detail-meta-pill"><span class="dml">${_escHtml(label)}:</span> <span class="dmv">${_escHtml(v)}</span></span>`
+  const pillStyle = `background:${color}1a;border:1.5px solid ${color}45;`
+  if (!label) {
+    return `<span class="detail-meta-pill detail-meta-pill--solo" style="${pillStyle}color:${color};">${_escHtml(v)}</span>`
+  }
+  return `<span class="detail-meta-pill" style="${pillStyle}">
+    <span class="dml">${_escHtml(label)}:</span> <span class="dmv" style="color:${color};">${_escHtml(v)}</span>
+  </span>`
 }
 
-function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capacity, minParticipants }) {
+function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capacity, minParticipants, color }) {
   const cap = Number(capacity) || 0
   const minP = Math.max(1, Number(minParticipants ?? 1))
+  const c = color || '#2854B9'
   const pills = [
-    _detailMetaBadge(null, ownerName),
-    scheduleDays ? _detailMetaBadge(_tp('courses.detailBadgeSchedule'), scheduleDays) : '',
-    durationVal && durationVal !== '—' ? _detailMetaBadge(_tp('courses.detailBadgeDuration'), durationVal) : '',
-    cap > 0 ? _detailMetaBadge(null, _tp('courses.detailBadgeMaxParticipants', { n: cap })) : '',
-    _detailMetaBadge(null, _tp('courses.detailBadgeMinParticipants', { n: minP })),
+    _detailMetaBadge(null, ownerName, c),
+    scheduleDays ? _detailMetaBadge(_tp('courses.detailBadgeSchedule'), scheduleDays, c) : '',
+    durationVal && durationVal !== '—' ? _detailMetaBadge(_tp('courses.detailBadgeDuration'), durationVal, c) : '',
+    cap > 0 ? _detailMetaBadge(null, _tp('courses.detailBadgeMaxParticipants', { n: cap }), c) : '',
+    _detailMetaBadge(null, _tp('courses.detailBadgeMinParticipants', { n: minP }), c),
   ].filter(Boolean)
   if (!pills.length) return ''
   return `<div class="detail-meta-pills">${pills.join('')}</div>`
@@ -2779,6 +2785,7 @@ async function renderCourseDetail(courseId) {
     durationVal,
     capacity: course.capacity_default,
     minParticipants: course.min_participants,
+    color,
   })
 
   const detailInfoTableHtml = `
