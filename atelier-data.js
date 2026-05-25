@@ -1852,6 +1852,7 @@ function _userOwnsActivePassTemplate(templatePassId) {
   if (templatePassId == null || templatePassId === '') return false
   const want = String(templatePassId)
   return (userPasses ?? []).some(up => {
+    if (up.status !== 'active') return false
     const tid = up.pass?.id ?? up.pass_id
     return tid != null && String(tid) === want
   })

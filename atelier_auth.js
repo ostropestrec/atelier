@@ -528,7 +528,7 @@ export async function loadUserPasses(userId) {
       pass:passes ( id, name, entries_total, price, validity_weeks, allowed_course_ids, color_code )
     `)
     .eq('user_id', userId)
-    .eq('status', 'active')
+    .in('status', ['active', 'depleted'])
     .order('expires_at', { ascending: true })
 
   if (error) { console.error('loadUserPasses:', error); userPasses = []; return }
@@ -1661,6 +1661,7 @@ export function buildUserOverviewHtml(user) {
   }
 
   const passHtml = (userPasses ?? [])
+      .filter(up => up.status !== 'depleted')
       .map(up => {
         const p = up.pass
         const name = locJson(p?.name) || t(locale, 'dashboard.passFallback')
