@@ -257,19 +257,19 @@ function _refreshCardPassSlotsRow(courseId) {
   const st = window._cardState?.[courseId]
   _eachBookingPayScope(courseId, scope => {
     const el = _bookingPayEl('card-pass-count', courseId, scope)
-    if (!el) return
-    if (!st || st.paymentType !== 'pass' || !st.passId) {
-      el.style.display = 'none'
-      return
-    }
-    const cap = _remainingEntriesOnUserPass(st.passId)
-    const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
-    el.style.display = 'block'
-    el.textContent = _tp('booking.passPickerCountSelected', {
-      n,
-      cap,
-      entriesWord: _entriesWordPick(cap),
-    })
+  if (!el) return
+  if (!st || st.paymentType !== 'pass' || !st.passId) {
+    el.style.display = 'none'
+    return
+  }
+  const cap = _remainingEntriesOnUserPass(st.passId)
+  const n = Array.isArray(st.lessonIds) ? st.lessonIds.length : 0
+  el.style.display = 'block'
+  el.textContent = _tp('booking.passPickerCountSelected', {
+    n,
+    cap,
+    entriesWord: _entriesWordPick(cap),
+  })
   })
 }
 
@@ -280,7 +280,7 @@ function _syncCardPrimaryButton(courseId) {
     : _tp('booking.btn.continueToBooking')
   _eachBookingPayScope(courseId, scope => {
     const btn = _bookingPayEl('res-btn', courseId, scope)
-    if (!btn) return
+  if (!btn) return
     btn.textContent = label
   })
 }
@@ -395,15 +395,15 @@ async function init() {
       })
       await fetchCourseBookingAccess().catch(() => {})
       await Promise.all([
-        fetchLessons().catch(e => {
-          console.warn('[Debug] Init: fetchLessons:', e?.message ?? e)
-          console.dir(e, { depth: null })
-        }),
-        fetchUpcomingLessons().catch(e => {
-          console.warn('[Debug] Init: fetchUpcomingLessons:', e?.message ?? e)
-          console.dir(e, { depth: null })
-        }),
-      ])
+      fetchLessons().catch(e => {
+        console.warn('[Debug] Init: fetchLessons:', e?.message ?? e)
+        console.dir(e, { depth: null })
+      }),
+      fetchUpcomingLessons().catch(e => {
+        console.warn('[Debug] Init: fetchUpcomingLessons:', e?.message ?? e)
+        console.dir(e, { depth: null })
+      }),
+    ])
     })()
 
     // 2) Admin modul (~135 KB) jen pro staff (admin nebo lektor) — lazy import paralelně s daty.
@@ -436,7 +436,7 @@ async function init() {
       : (_role === 'lektor' ? 'moje-lekce' : (currentUser ? 'nastenka' : 'kalendar'))
     const resumedBooking = await resumeBookingAfterAuth()
     if (!resumedBooking) {
-      window.nav?.(defaultPage)
+    window.nav?.(defaultPage)
     }
 
     subscribeToLessons()
@@ -869,7 +869,13 @@ function renderAll() {
   renderKalendar()
   renderKurzy()
   if (document.getElementById('screen-permanentky')?.classList.contains('active')) void renderPermanentkyShop()
-  if (document.getElementById('pop-booking')?.style.display === 'flex') _syncPopupPrimaryButton()
+  const detailScreen = document.getElementById('screen-detail-kurzu')
+  if (detailScreen?.classList.contains('active') && window._detailCourseId) {
+    void renderCourseDetail(window._detailCourseId)
+  }
+  if (document.getElementById('pop-booking')?.style.display === 'flex') {
+    void _refreshOpenBookingPopupIfVisible()
+  }
 }
 
 async function refreshPublicData() {
@@ -1068,11 +1074,18 @@ export function renderKalendar() {
   })
 }
 
+const SCHEDULE_DAY_LABELS = {
+  cs: ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+}
+
+function _formatScheduleDays(scheduleDays) {
+  const labels = SCHEDULE_DAY_LABELS[lang] ?? SCHEDULE_DAY_LABELS.cs
+  return (scheduleDays ?? []).map(d => labels[d]).filter(Boolean).join(', ')
+}
+
 function renderWeekHeader() {
-  const dayNames = {
-    cs: ['Po','Út','St','Čt','Pá','So','Ne'],
-    en: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-  }
+  const dayNames = SCHEDULE_DAY_LABELS
   const today = new Date()
   document.querySelectorAll('.dh').forEach((dh, i) => {
     const d = new Date(window.AppState.weekStart)
@@ -1510,7 +1523,7 @@ function _buildKurzyAccordionBooking(course, color, upcoming, bookable) {
   if (_isStaffUser()) return ''
   const sectionLabel = _tp('courses.lessonListTitle')
   if (!bookable) {
-    return `
+  return `
       <div class="blbl" style="margin-bottom:8px;">${_escHtml(sectionLabel)}</div>
       <div style="font-size:12px;color:#6b6b6b;line-height:1.5;margin-top:4px;padding:10px 12px;background:#f5f5f5;border-radius:10px;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
   }
@@ -1804,6 +1817,7 @@ window.confirmExternalStripePayment = () => {
   document.getElementById('pop-external-pay').style.display = 'none'
   const pb = document.getElementById('pop-booking')
   if (pb) pb.style.display = 'none'
+  window._bookingPopupCtx = null
   window.showToast?.(_tp('payment.stripeOpenedToast'), 'ok')
   window._externalPayCtx = null
 }
@@ -2195,6 +2209,31 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId, presele
 }
 
 // ── Booking popup ─────────────────────────────────────────────
+window._bookingPopupCtx = null
+
+async function _refreshOpenBookingPopupIfVisible() {
+  const ctx = window._bookingPopupCtx
+  const popup = document.getElementById('pop-booking')
+  if (!ctx || popup?.style.display !== 'flex') return
+  const payEl = document.getElementById('bk-payment-opts')
+  const lessonSel = document.getElementById('bk-lesson-select')
+  const preferredPayValue = payEl?.dataset.selected ?? ctx.preferredPayValue
+  const preselectedLessonId = lessonSel?.value || ctx.preselectedLessonId
+  let preselectedLessonIds = null
+  if (String(preferredPayValue ?? '').startsWith('up-')) {
+    preselectedLessonIds = [...document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked')]
+      .map(cb => cb.value)
+  }
+  await window.openBookingPopup?.(
+    ctx.courseId,
+    ctx.passId,
+    preselectedLessonId || null,
+    preferredPayValue,
+    preselectedLessonIds?.length ? preselectedLessonIds : ctx.preselectedLessonIds,
+  )
+  _syncPopupPrimaryButton()
+}
+
 window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferredPayValue = null, preselectedLessonIds = null) => {
   const cardSt = window._cardState?.[courseId]
   if (preselectedLessonId == null && cardSt) {
@@ -2404,6 +2443,13 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
     preselectedLessonIds,
   )
 
+  window._bookingPopupCtx = {
+    courseId,
+    passId: passId ?? null,
+    preselectedLessonId: preselectedLessonId ?? null,
+    preferredPayValue: preferredPayValue ?? null,
+    preselectedLessonIds: preselectedLessonIds ?? null,
+  }
   popup.style.display = 'flex'
 }
 
@@ -2418,7 +2464,7 @@ window._bkSelectPayment = (el, value) => {
     if (pc) {
       const h = passThemeHex(pc)
       o.style.borderColor = `${h}44`
-      o.style.borderWidth = '1px'
+    o.style.borderWidth = '1px'
     } else {
       o.style.borderColor = 'rgba(0,0,0,.12)'
       o.style.borderWidth = '0.5px'
@@ -2552,20 +2598,20 @@ window.confirmBooking = async () => {
   if (!isPass && !isBuyPass && priceNum > 0) {
     if (!_confirmUserWantsToCompletePurchase({ pilot: PILOT_FREE_CHECKOUT })) return
     if (!PILOT_FREE_CHECKOUT) {
-      const courseTitle = loc(course?.title) || ''
+    const courseTitle = loc(course?.title) || ''
       const lessonWhen = selectedLessons.length > 1
         ? selectedLessons.map(l => l.start_time ? fmtLessonPill(l.start_time) : '').filter(Boolean).join(', ')
         : (selectedLessons[0]?.start_time ? fmtLessonPill(selectedLessons[0].start_time) : '')
-      window.openExternalStripePaymentModal?.({
-        kind: 'lesson-single',
-        courseId,
-        courseTitle,
-        price: priceNum,
-        lessonWhen,
+    window.openExternalStripePaymentModal?.({
+      kind: 'lesson-single',
+      courseId,
+      courseTitle,
+      price: priceNum,
+      lessonWhen,
         lessonIds,
-        reopenBookingPopup: true,
-      })
-      return
+      reopenBookingPopup: true,
+    })
+    return
     }
   }
 
@@ -2612,19 +2658,21 @@ window.confirmBooking = async () => {
         const paid = isWorkshopBundle
           ? (i === 0 ? (PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : pricePaid) : 0)
           : (PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : pricePaid)
-        const { error } = await sb.from('bookings').insert({
-          user_id:      currentUser.id,
-          lesson_id,
-          payment_type: 'single',
+      const { error } = await sb.from('bookings').insert({
+        user_id:      currentUser.id,
+        lesson_id,
+        payment_type: 'single',
           price_paid:   paid,
           status:       PARTICIPATION_STATUS.CONFIRMED,
-        })
-        if (error) throw error
+      })
+      if (error) throw error
       }
     }
 
     console.log('[Booking] Popup rezervace úspěšná', lessonIds)
-    document.getElementById('pop-booking').style.display = 'none'
+    const bkDone = document.getElementById('pop-booking')
+    if (bkDone) bkDone.style.display = 'none'
+    window._bookingPopupCtx = null
     const n = lessonIds.length
     const isWorkshopBundleDone = !!bundleLessons && n > 1 && !isPass
     window.showToast?.(
@@ -2782,8 +2830,7 @@ async function renderCourseDetail(courseId) {
 
   _ensureCardStateForCourse(courseId, upcoming)
 
-  const DAYS_CS = ['Po','Út','St','Čt','Pá','So','Ne']
-  const scheduleDays = (course.schedule_days ?? []).map(d => DAYS_CS[d]).join(', ')
+  const scheduleDays = _formatScheduleDays(course.schedule_days)
   const durMin = _calcDurMin(course.schedule_time_start, course.schedule_time_end)
 
   let passes = []
@@ -2875,7 +2922,7 @@ async function renderCourseDetail(courseId) {
         </div>` : ''}
 
       ${_buildDetailBookingSection(course, courseId, color, upcoming, bookable)}
-    </div>`
+          </div>`
 
   _refreshCardPassSlotsRow(courseId)
   if (!_isStaffUser() && bookable && upcoming.length && upcoming.some(l => l.available_spots > 0)) {
@@ -3053,12 +3100,12 @@ window.reserveFromCard = async (courseId) => {
 function showCardMsg(courseId, msg, type) {
   _eachBookingPayScope(courseId, scope => {
     const el = _bookingPayEl('card-msg', courseId, scope)
-    if (!el) return
-    el.textContent      = msg
-    el.style.color      = type === 'ok' ? '#085041' : '#791F1F'
-    el.style.background = type === 'ok' ? '#eaf5ea' : '#fdeaea'
-    el.style.display    = 'block'
-    if (type === 'warn') setTimeout(() => { el.style.display = 'none' }, 4000)
+  if (!el) return
+  el.textContent      = msg
+  el.style.color      = type === 'ok' ? '#085041' : '#791F1F'
+  el.style.background = type === 'ok' ? '#eaf5ea' : '#fdeaea'
+  el.style.display    = 'block'
+  if (type === 'warn') setTimeout(() => { el.style.display = 'none' }, 4000)
   })
 }
 
