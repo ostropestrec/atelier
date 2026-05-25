@@ -966,15 +966,20 @@
         overscroll-behavior: none;
       }
       html.cal-mobile-lock .layout-shell {
+        position: fixed;
+        inset: 0;
+        width: 100%;
         height: 100dvh;
         max-height: 100dvh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        z-index: 1;
       }
       html.cal-mobile-lock .topbar {
-        position: relative;
-        top: auto;
+        position: sticky;
+        top: 0;
+        z-index: 110;
         flex-shrink: 0;
         background: #fff;
         padding-top: env(safe-area-inset-top, 0);
@@ -2453,7 +2458,13 @@
   function syncCalMobileViewportLock() {
     const lock = window.matchMedia('(max-width: 640px)').matches
       && document.getElementById('screen-kalendar')?.classList.contains('active')
+    const wasLocked = document.documentElement.classList.contains('cal-mobile-lock')
     document.documentElement.classList.toggle('cal-mobile-lock', !!lock)
+    if (lock && !wasLocked) {
+      window.scrollTo(0, 0)
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+    }
   }
   window.syncCalMobileViewportLock = syncCalMobileViewportLock
   window.matchMedia('(max-width: 640px)').addEventListener('change', syncCalMobileViewportLock)
