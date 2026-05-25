@@ -38,6 +38,13 @@ export const UI_TRANSLATIONS = {
       ariaSwitchToEnglish: 'Přepnout na angličtinu',
       ariaSwitchToCzech: 'Přepnout do češtiny',
     },
+    calendar: {
+      prevWeek: 'Předchozí týden',
+      nextWeek: 'Další týden',
+      prevMonth: 'Předchozí měsíc',
+      nextMonth: 'Další měsíc',
+      pickWeek: 'Vyberte týden',
+    },
     nav: {
       overview: 'Přehled',
       calendar: 'Kalendář',
@@ -891,6 +898,13 @@ export const UI_TRANSLATIONS = {
       ariaChangeLanguage: 'Change language',
       ariaSwitchToEnglish: 'Switch to English',
       ariaSwitchToCzech: 'Switch to Czech',
+    },
+    calendar: {
+      prevWeek: 'Previous week',
+      nextWeek: 'Next week',
+      prevMonth: 'Previous month',
+      nextMonth: 'Next month',
+      pickWeek: 'Choose a week',
     },
     nav: {
       overview: 'Overview',

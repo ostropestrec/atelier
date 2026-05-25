@@ -114,6 +114,10 @@ function refreshStaticI18n() {
     rem.options[2].textContent = _tp('pages.reminder48h')
     rem.options[3].textContent = _tp('pages.reminderOff')
   }
+  document.querySelector('.cal-nav-prev')?.setAttribute('aria-label', _tp('calendar.prevWeek'))
+  document.querySelector('.cal-nav-next')?.setAttribute('aria-label', _tp('calendar.nextWeek'))
+  document.getElementById('cal-picker-prev-m')?.setAttribute('aria-label', _tp('calendar.prevMonth'))
+  document.getElementById('cal-picker-next-m')?.setAttribute('aria-label', _tp('calendar.nextMonth'))
 }
 
 window.refreshStaticI18n = refreshStaticI18n
@@ -428,6 +432,7 @@ async function init() {
     window.AppState.initialized = true
     renderAll()
     window.syncLangUI?.(lang)
+    window.initCalWeekPicker?.()
     window.refreshStaticI18n?.()
 
     // Defaultní obrazovka podle role: admin → přehled, lektor → vlastní lekce, přihlášený uživatel → přehled, host → kalendář.
@@ -1089,6 +1094,137 @@ function _formatScheduleDays(scheduleDays) {
   return (scheduleDays ?? []).map(d => labels[d]).filter(Boolean).join(', ')
 }
 
+function fmtWeekRangeBtn(monday) {
+  const sunday = new Date(monday)
+  sunday.setDate(sunday.getDate() + 6)
+  const lc = lang === 'cs' ? 'cs-CZ' : 'en-GB'
+  const start = monday.toLocaleDateString(lc, { day: 'numeric', month: 'numeric' })
+  const end = sunday.toLocaleDateString(lc, { day: 'numeric', month: 'numeric', year: 'numeric' })
+  return `${start} — ${end}`
+}
+
+const CAL_PICKER_WD = {
+  cs: ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'],
+  en: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+}
+
+let _calPickerMonth = null
+
+function _calPickerMonthStart() {
+  if (_calPickerMonth) return new Date(_calPickerMonth)
+  const ws = window.AppState?.weekStart ?? new Date()
+  return new Date(ws.getFullYear(), ws.getMonth(), 1)
+}
+
+function renderCalWeekPicker() {
+  const weeksEl = document.getElementById('cal-picker-weeks')
+  const wdEl = document.getElementById('cal-picker-wd')
+  const titleEl = document.getElementById('cal-picker-title')
+  if (!weeksEl || !wdEl || !titleEl) return
+
+  const monthStart = _calPickerMonthStart()
+  monthStart.setHours(0, 0, 0, 0)
+  const lc = lang === 'cs' ? 'cs-CZ' : 'en-GB'
+  titleEl.textContent = monthStart.toLocaleDateString(lc, { month: 'long', year: 'numeric' })
+
+  const wdLabels = CAL_PICKER_WD[lang] ?? CAL_PICKER_WD.cs
+  wdEl.innerHTML = wdLabels.map(d => `<span>${d}</span>`).join('')
+
+  const gridStart = getMondayOf(new Date(monthStart.getFullYear(), monthStart.getMonth(), 1))
+  const selectedMon = getMondayOf(window.AppState.weekStart).getTime()
+  const month = monthStart.getMonth()
+  const year = monthStart.getFullYear()
+
+  let html = ''
+  const d = new Date(gridStart)
+  for (let w = 0; w < 6; w++) {
+    const weekMon = getMondayOf(d).getTime()
+    const selected = weekMon === selectedMon
+    html += `<button type="button" class="cal-picker__row${selected ? ' selected' : ''}" data-week="${weekMon}">`
+    for (let i = 0; i < 7; i++) {
+      const outside = d.getMonth() !== month || d.getFullYear() !== year
+      html += `<span class="cal-picker__day${outside ? ' outside' : ''}">${d.getDate()}</span>`
+      d.setDate(d.getDate() + 1)
+    }
+    html += '</button>'
+  }
+  weeksEl.innerHTML = html
+}
+
+function openCalWeekPicker() {
+  const picker = document.getElementById('cal-picker')
+  const backdrop = document.getElementById('cal-picker-backdrop')
+  const btn = document.getElementById('cal-week-btn')
+  if (!picker || !backdrop) return
+  const ws = window.AppState?.weekStart ?? new Date()
+  _calPickerMonth = new Date(ws.getFullYear(), ws.getMonth(), 1)
+  renderCalWeekPicker()
+  picker.hidden = false
+  picker.classList.add('on')
+  backdrop.classList.add('on')
+  backdrop.setAttribute('aria-hidden', 'false')
+  btn?.setAttribute('aria-expanded', 'true')
+}
+
+function closeCalWeekPicker() {
+  const picker = document.getElementById('cal-picker')
+  const backdrop = document.getElementById('cal-picker-backdrop')
+  const btn = document.getElementById('cal-week-btn')
+  picker?.classList.remove('on')
+  backdrop?.classList.remove('on')
+  if (picker) picker.hidden = true
+  backdrop?.setAttribute('aria-hidden', 'true')
+  btn?.setAttribute('aria-expanded', 'false')
+}
+
+function shiftCalPickerMonth(delta) {
+  const m = _calPickerMonthStart()
+  m.setMonth(m.getMonth() + delta)
+  _calPickerMonth = m
+  renderCalWeekPicker()
+}
+
+export async function calGoToWeek(anyDayInWeek) {
+  window.AppState.weekStart = getMondayOf(anyDayInWeek)
+  await fetchLessons()
+  renderKalendar()
+  closeCalWeekPicker()
+}
+
+export function initCalWeekPicker() {
+  if (document.body.dataset.calPickerInited === '1') return
+  document.body.dataset.calPickerInited = '1'
+
+  document.getElementById('cal-week-btn')?.addEventListener('click', e => {
+    e.stopPropagation()
+    const open = document.getElementById('cal-picker')?.classList.contains('on')
+    if (open) closeCalWeekPicker()
+    else openCalWeekPicker()
+  })
+  document.getElementById('cal-picker-backdrop')?.addEventListener('click', closeCalWeekPicker)
+  document.getElementById('cal-picker-prev-m')?.addEventListener('click', e => {
+    e.stopPropagation()
+    shiftCalPickerMonth(-1)
+  })
+  document.getElementById('cal-picker-next-m')?.addEventListener('click', e => {
+    e.stopPropagation()
+    shiftCalPickerMonth(1)
+  })
+  document.getElementById('cal-picker-weeks')?.addEventListener('click', async e => {
+    const row = e.target.closest('.cal-picker__row')
+    if (!row) return
+    const ts = Number(row.dataset.week)
+    if (!Number.isFinite(ts)) return
+    await calGoToWeek(new Date(ts))
+  })
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeCalWeekPicker()
+  })
+}
+
+window.initCalWeekPicker = initCalWeekPicker
+window.closeCalWeekPicker = closeCalWeekPicker
+
 function renderWeekHeader() {
   const dayNames = SCHEDULE_DAY_LABELS
   const today = new Date()
@@ -1100,8 +1236,9 @@ function renderWeekHeader() {
     if (numEl)  { numEl.textContent = d.getDate(); numEl.classList.toggle('td', isSameDay(d, today)) }
     if (nameEl)   nameEl.textContent = dayNames[lang][i]
   })
-  const calTitle = document.querySelector('.cal-title, .cal-ctrl .pt')
-  if (calTitle) calTitle.textContent = fmtWeekRange(window.AppState.weekStart)
+  const calTitle = document.getElementById('cal-week-label')
+  if (calTitle) calTitle.textContent = fmtWeekRangeBtn(window.AppState.weekStart)
+  if (document.getElementById('cal-picker')?.classList.contains('on')) renderCalWeekPicker()
 }
 
 function calMinMax() {

@@ -692,9 +692,10 @@
     :root{ --cal-hour: 56px; }
     .cal-ctrl {
       display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
       margin-bottom: 12px;
     }
-    .cal-ctrl button {
+    .cal-nav-btn {
       border: 1px solid var(--border);
       background: #fff;
       font-size: 16px;
@@ -702,8 +703,125 @@
       padding: 6px 10px;
       color: var(--muted);
       border-radius: var(--btn-radius);
+      flex-shrink: 0;
     }
-    .pt { font-size: 13px; font-weight: 600; color: var(--text); }
+    .cal-week-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+      max-width: 100%;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      line-height: 1.25;
+    }
+    .cal-week-btn__icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: var(--muted);
+    }
+    .cal-week-btn__label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cal-picker-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .32);
+      z-index: 190;
+    }
+    .cal-picker-backdrop.on { display: block; }
+    .cal-picker {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 200;
+      width: min(340px, calc(100vw - 28px));
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 16px 14px 14px;
+    }
+    .cal-picker.on { display: block; }
+    .cal-picker__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 10px;
+    }
+    .cal-picker__title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      text-transform: capitalize;
+    }
+    .cal-picker__nav {
+      display: flex;
+      gap: 6px;
+    }
+    .cal-picker__nav button {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 16px;
+      line-height: 1;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0;
+    }
+    .cal-picker__wd {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      margin-bottom: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .cal-picker__weeks { display: flex; flex-direction: column; gap: 2px; }
+    .cal-picker__row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      border-radius: 999px;
+      padding: 4px 2px;
+      cursor: pointer;
+      font: inherit;
+    }
+    .cal-picker__row:hover { background: var(--muted-surface); }
+    .cal-picker__row.selected { background: var(--primary-100); }
+    .cal-picker__day {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      text-align: center;
+      line-height: 1.3;
+      padding: 2px 0;
+    }
+    .cal-picker__day.outside { color: #b0b5bf; font-weight: 400; }
 
     .cal-wrap{
       background: #fff;
@@ -717,11 +835,11 @@
       display:grid;
       grid-template-columns: 64px repeat(7, 1fr);
       border-bottom: 1px solid var(--border);
-      background: #E8EEF9;
+      background: #fff;
     }
     .cal-head .corner{
       border-right: 1px solid var(--border);
-      background: #E8EEF9;
+      background: #fff;
     }
     .dh {
       text-align: center;
@@ -739,7 +857,7 @@
     }
     .time-col{
       border-right: 1px solid var(--border);
-      background: #E8EEF9;
+      background: #fff;
     }
     .time-slot{
       height: var(--cal-hour);
@@ -776,8 +894,22 @@
     .evb { font-size: 8px; font-weight: 600; margin-top: 1px; }
     @media (max-width: 640px) {
       :root { --cal-hour: 64px; }
-      .cal-ctrl button { display: none; }
-      .cal-ctrl { justify-content: center; }
+      #screen-kalendar {
+        padding-left: 0;
+        padding-right: 0;
+      }
+      #screen-kalendar .cal-ctrl {
+        padding-left: max(14px, env(safe-area-inset-left));
+        padding-right: max(14px, env(safe-area-inset-right));
+        margin-bottom: 10px;
+      }
+      #screen-kalendar .cal-nav-btn { display: none; }
+      #screen-kalendar .cal-week-btn { flex: 1; max-width: none; }
+      #screen-kalendar .cal-wrap {
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+      }
       .cal-scroll {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -796,7 +928,7 @@
         position: sticky;
         left: 0;
         z-index: 2;
-        background: #E8EEF9;
+        background: #fff;
         box-shadow: 2px 0 6px rgba(17, 24, 39, .06);
       }
       .cal-scroll .cal-head .corner { z-index: 3; }
@@ -1861,9 +1993,27 @@
   <div id="calendar-root"></div>
 
   <div class="cal-ctrl">
-    <button onclick="calPrev()">‹</button>
-    <span class="pt" id="cal-week-label"></span>
-    <button onclick="calNext()">›</button>
+    <button type="button" class="cal-nav-btn cal-nav-prev" onclick="calPrev()" aria-label="Předchozí týden">‹</button>
+    <button type="button" class="cal-week-btn" id="cal-week-btn" aria-expanded="false" aria-haspopup="dialog" aria-controls="cal-picker">
+      <svg class="cal-week-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="17" rx="2"/>
+        <path d="M3 9h18M8 2v4M16 2v4"/>
+      </svg>
+      <span class="cal-week-btn__label" id="cal-week-label"></span>
+    </button>
+    <button type="button" class="cal-nav-btn cal-nav-next" onclick="calNext()" aria-label="Další týden">›</button>
+  </div>
+  <div class="cal-picker-backdrop" id="cal-picker-backdrop" aria-hidden="true"></div>
+  <div class="cal-picker" id="cal-picker" role="dialog" aria-modal="true" aria-labelledby="cal-picker-title" hidden>
+    <div class="cal-picker__head">
+      <span class="cal-picker__title" id="cal-picker-title"></span>
+      <div class="cal-picker__nav">
+        <button type="button" id="cal-picker-prev-m" aria-label="Předchozí měsíc">‹</button>
+        <button type="button" id="cal-picker-next-m" aria-label="Další měsíc">›</button>
+      </div>
+    </div>
+    <div class="cal-picker__wd" id="cal-picker-wd"></div>
+    <div class="cal-picker__weeks" id="cal-picker-weeks"></div>
   </div>
   <div class="cal-wrap" id="cal-wrap">
     <div class="cal-scroll" id="cal-scroll">
