@@ -1373,14 +1373,16 @@ function buildTermPills(upcoming, color, courseId, interactive = true, large = f
   if (!upcoming.length) {
     return `<span style="font-size:10px;color:#9b9b9b;">${_tp('courses.noDates')}</span>`
   }
-  const firstAvailIdx = upcoming.findIndex(l => l.available_spots > 0)
+  const firstAvailIdx = upcoming.findIndex(l => l.available_spots > 0 && !isEnrolled(String(l.lesson_id ?? l.id)))
   const st = window._cardState?.[courseId]
   const selectedPassIds = st?.paymentType === 'pass' && Array.isArray(st.lessonIds) ? st.lessonIds.map(String) : []
   return upcoming.map((l, i) => {
     const label = fmtLessonPill(l.start_time)
-    const full  = l.available_spots <= 0
     const lid   = String(l.lesson_id ?? l.id)
-    const clickable = interactive && !full
+    const enrolled = isEnrolled(lid)
+    const full  = l.available_spots <= 0 && !enrolled
+    const disabled = enrolled || full
+    const clickable = interactive && !disabled
     const selByPass = clickable && selectedPassIds.length > 0 && selectedPassIds.includes(lid)
     const selSingle = clickable && st?.paymentType === 'single' && st.lessonId != null && String(st.lessonId) === lid
     const selBuyPass = clickable && st?.paymentType === 'buy-pass' && st.lessonId != null && String(st.lessonId) === lid
@@ -1392,36 +1394,43 @@ function buildTermPills(upcoming, color, courseId, interactive = true, large = f
     const sel   = selByPass || selSingle || selBuyPass || selDefault
     const borderColor = clickable
       ? (sel ? color : 'rgba(0,0,0,.08)')
-      : (full && forDetail ? 'rgba(0,0,0,.06)' : color)
+      : (disabled && forDetail ? 'rgba(0,0,0,.06)' : color)
     const textColor = clickable
       ? (sel ? color : '#6b6b6b')
-      : (full && forDetail ? '#9b9b9b' : color)
+      : (disabled && forDetail ? '#9b9b9b' : color)
     const bgColor = clickable
       ? 'transparent'
       : (full && forDetail ? 'var(--muted-surface,#f5f5f5)' : `${color}14`)
     const padding = (large || !interactive) ? '6px 12px' : '3px 9px'
     const fontSize = (large || !interactive) ? '11px' : '10px'
-    const fullClass = full ? ' term-pill--full' : ''
-    const fullSuffix = full ? ` (${_tp('courses.optionFullSuffix')})` : ''
+    const stateClass = enrolled ? ' term-pill--enrolled' : (full ? ' term-pill--full' : '')
+    const suffix = enrolled
+      ? ` (${_tp('booking.option.enrolled')})`
+      : (full ? ` (${_tp('courses.optionFullSuffix')})` : '')
     return `<span
-      class="term-pill${fullClass}"
+      class="term-pill${stateClass}"
       data-lesson-id="${lid}"
       data-course-id="${courseId}"
       data-full="${full ? '1' : '0'}"
-      ${full ? 'aria-disabled="true"' : ''}
+      data-enrolled="${enrolled ? '1' : '0'}"
+      ${disabled ? 'aria-disabled="true"' : ''}
       style="font-size:${fontSize};padding:${padding};border-radius:var(--btn-radius);
              background:${bgColor};
              border:${clickable && sel ? `1.5px solid ${color}` : `0.5px solid ${borderColor}`};
              color:${textColor};
              cursor:${clickable ? 'pointer' : 'default'};
-             ${full ? 'opacity:.55;pointer-events:none;user-select:none;' : ''}"
+             ${disabled ? 'opacity:.55;pointer-events:none;user-select:none;' : ''}"
       ${clickable ? `onclick="window.pickTerm(this,'${color}','${courseId}')"` : ''}
-    >${label}${fullSuffix}</span>`
+    >${label}${suffix}</span>`
   }).join('')
 }
 
 function _ensureCardStateForCourse(courseId, upcoming) {
   const validLessonIds = new Set(upcoming.map(l => String(l.lesson_id ?? l.id)))
+  const firstFreeUnenrolled = upcoming.find(l => {
+    const lid = String(l.lesson_id ?? l.id)
+    return l.available_spots > 0 && !isEnrolled(lid)
+  })
   const prevCard = window._cardState?.[courseId]
   if (!prevCard) {
     const owned = userPasses.filter(up => {
@@ -1437,9 +1446,8 @@ function _ensureCardStateForCourse(courseId, upcoming) {
         passId: owned[0].id,
       }
     } else {
-      const firstAvail = upcoming.find(l => l.available_spots > 0)
       window._cardState[courseId] = {
-        lessonId: firstAvail ? (firstAvail.lesson_id ?? firstAvail.id) : null,
+        lessonId: firstFreeUnenrolled ? (firstFreeUnenrolled.lesson_id ?? firstFreeUnenrolled.id) : null,
         lessonIds: [],
         paymentType: 'single',
         passId: null,
@@ -1449,11 +1457,10 @@ function _ensureCardStateForCourse(courseId, upcoming) {
     const lessonById = id => upcoming.find(l => String(l.lesson_id ?? l.id) === String(id))
     const isBookableLesson = id => {
       const les = lessonById(id)
-      return !!les && les.available_spots > 0
+      return !!les && les.available_spots > 0 && !isEnrolled(String(id))
     }
     if (prevCard.lessonId != null && (!validLessonIds.has(String(prevCard.lessonId)) || !isBookableLesson(prevCard.lessonId))) {
-      const firstAvail = upcoming.find(l => l.available_spots > 0)
-      prevCard.lessonId = firstAvail ? (firstAvail.lesson_id ?? firstAvail.id) : null
+      prevCard.lessonId = firstFreeUnenrolled ? (firstFreeUnenrolled.lesson_id ?? firstFreeUnenrolled.id) : null
     }
     if (Array.isArray(prevCard.lessonIds) && prevCard.lessonIds.length) {
       prevCard.lessonIds = prevCard.lessonIds.filter(id => isBookableLesson(id))

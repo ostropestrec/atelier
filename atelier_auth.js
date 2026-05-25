@@ -541,7 +541,7 @@ export async function loadMyBookings(userId) {
   const { data, error } = await sb
     .from('bookings')
     .select(`
-      id, status, payment_type, user_pass_id, created_at,
+      id, status, payment_type, user_pass_id, lesson_id, created_at,
       user_pass:user_passes ( id, entries_total, cancellation_count ),
       lesson:lessons (
         id, start_time, end_time,
@@ -552,7 +552,22 @@ export async function loadMyBookings(userId) {
     .in('status', VISIBLE_USER_PARTICIPATION_STATUSES)
     .order('created_at', { ascending: false })
 
-  if (error) { console.error('loadMyBookings:', error); myBookings = []; return }
+  if (error) {
+    console.error('loadMyBookings:', error)
+    const fb = await sb
+      .from('bookings')
+      .select('id, status, payment_type, user_pass_id, lesson_id, created_at')
+      .eq('user_id', userId)
+      .in('status', VISIBLE_USER_PARTICIPATION_STATUSES)
+      .order('created_at', { ascending: false })
+    if (fb.error) {
+      console.error('loadMyBookings fallback:', fb.error)
+      myBookings = []
+      return
+    }
+    myBookings = fb.data ?? []
+    return
+  }
   myBookings = data ?? []
 }
 
