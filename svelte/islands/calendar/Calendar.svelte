@@ -112,7 +112,7 @@
     align-items: center;
     justify-content: space-between;
     font-family: 'Syne', sans-serif;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
   }
 

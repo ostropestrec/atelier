@@ -603,11 +603,11 @@ function canBookCourse(course) {
 }
 
 function _restrictedBadgeHtml() {
-  return `<span class="badge" style="background:#E8EEF8;color:#2854B9;font-size:10px;font-weight:600;">${_escHtml(_tp('courses.badgeRestricted'))}</span>`
+  return `<span class="badge" style="background:#E8EEF8;color:#2854B9;font-size:12px;font-weight:600;">${_escHtml(_tp('courses.badgeRestricted'))}</span>`
 }
 
 function _workshopBadgeHtml() {
-  return `<span class="badge" style="background:#FFF4E0;color:#8B5C00;font-size:10px;font-weight:600;">${_escHtml(_tp('courses.badgeWorkshop'))}</span>`
+  return `<span class="badge" style="background:#FFF4E0;color:#8B5C00;font-size:12px;font-weight:600;">${_escHtml(_tp('courses.badgeWorkshop'))}</span>`
 }
 
 /** Štítek kapacity v hlavičce karty Kurzy (bez volných míst). */
@@ -1764,7 +1764,7 @@ export function renderKurzy() {
 
   if (!window.AppState.courses.length) {
     container.insertAdjacentHTML('beforeend', `
-      <div style="padding:40px;text-align:center;font-size:12px;color:#9b9b9b;">
+      <div style="padding:40px;text-align:center;font-size:14px;color:#9b9b9b;">
         ${_tp('courses.noActiveCourses')}
       </div>`)
     return
@@ -1803,7 +1803,7 @@ export function renderKurzy() {
         </div>
         <div class="cr">
           <span class="cpr">${fmtPrice(pricePerEntry)}</span>
-          <span style="font-size:11px;color:#6b6b6b;" id="cv-${c.id}">›</span>
+          <span style="font-size:13px;color:#6b6b6b;" id="cv-${c.id}">›</span>
         </div>
       </div>
 
@@ -1811,7 +1811,7 @@ export function renderKurzy() {
         <div class="cxi">
           <div class="cxi-left">
             ${buildCourseImage(c)}
-            <div style="font-size:11px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
+            <div style="font-size:13px;color:#6b6b6b;line-height:1.6;margin-bottom:10px;">${desc}</div>
             <button type="button" class="btn-detail" onclick="event.stopPropagation();openDetail('${c.id}')">
               ${_tp('courses.detailLink')}
             </button>
@@ -1831,14 +1831,14 @@ function buildCourseImage(c) {
   const url = courseImageUrls(c)[0] ?? null
   return url
     ? `<img src="${url}" style="width:100%;height:78px;object-fit:cover;border-radius:8px;margin-bottom:10px;" alt="" />`
-    : `<div style="background:#F8F8F8;border-radius:8px;height:78px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:10px;color:#9b9b9b;">
+    : `<div style="background:#F8F8F8;border-radius:8px;height:78px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:12px;color:#9b9b9b;">
          ${_tp('courses.photoAlt')}
        </div>`
 }
 
 function buildTermPills(upcoming, color, courseId, interactive = true, large = false, forDetail = false) {
   if (!upcoming.length) {
-    return `<span style="font-size:10px;color:#9b9b9b;">${_tp('courses.noDates')}</span>`
+    return `<span style="font-size:12px;color:#9b9b9b;">${_tp('courses.noDates')}</span>`
   }
   const firstAvailIdx = upcoming.findIndex(l => l.available_spots > 0 && !isEnrolled(String(l.lesson_id ?? l.id)))
   const st = window._cardState?.[courseId]
@@ -1947,7 +1947,7 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
   const isWorkshopBundle = !!course.is_workshop && upcoming.length > 1
   const hasSpots = upcoming.some(l => l.available_spots > 0)
   if (!hasSpots) {
-    return `<div style="margin-top:8px;text-align:center;font-size:12px;color:#791F1F;background:#fdeaea;padding:10px;border-radius:10px;">
+    return `<div style="margin-top:8px;text-align:center;font-size:14px;color:#791F1F;background:#fdeaea;padding:10px;border-radius:10px;">
       ${_escHtml(_tp('courses.allSessionsFull'))}
     </div>`
   }
@@ -1960,9 +1960,9 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
   if (!currentUser) {
     const guestPrice = fmtPrice(course.price_single)
     paymentHtml = `
-      <p style="font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>
-      <p style="font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestFinishAfterLogin'))}</p>
-      <p style="font-size:12px;font-weight:500;color:${color};margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestPriceFrom', { price: guestPrice }))}</p>`
+      <p style="font-size:14px;color:var(--muted);margin:10px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>
+      <p style="font-size:14px;color:var(--muted);margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestFinishAfterLogin'))}</p>
+      <p style="font-size:14px;font-weight:500;color:${color};margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestPriceFrom', { price: guestPrice }))}</p>`
   } else if (!isWorkshopBundle) {
     const payScope = opts.payScope ?? (wrapSection ? 'detail' : 'card')
     paymentHtml = `<div style="margin-top:10px;">${buildBuyPanel(course, color, false, payScope)}</div>`
@@ -1975,12 +1975,12 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
     ? _tp('booking.btn.continueToBooking')
     : _tp('booking.btn.book')
   const btnStyle = btnFullWidth
-    ? `background:${color};width:100%;padding:14px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px;`
+    ? `background:${color};width:100%;padding:14px;border:none;font-size:17px;font-weight:600;cursor:pointer;margin-top:14px;`
     : `background:${color};margin-top:8px;`
 
   const inner = `
     <div class="blbl" style="margin-bottom:8px;">${_escHtml(sectionLabel)}</div>
-    ${isWorkshopBundle ? `<p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>` : ''}
+    ${isWorkshopBundle ? `<p style="font-size:14px;color:var(--muted);margin:0 0 10px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>` : ''}
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">${pillsHtml}</div>
     ${paymentHtml}
     <button type="button" class="btn-res" id="${_bookingPayId('res-btn', courseId, opts.payScope ?? (wrapSection ? 'detail' : 'card'))}" style="${btnStyle}"
@@ -2003,12 +2003,12 @@ function _buildKurzyAccordionBooking(course, color, upcoming, bookable) {
   if (!bookable) {
   return `
       <div class="blbl" style="margin-bottom:8px;">${_escHtml(sectionLabel)}</div>
-      <div style="font-size:12px;color:#6b6b6b;line-height:1.5;margin-top:4px;padding:10px 12px;background:#f5f5f5;border-radius:10px;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
+      <div style="font-size:14px;color:#6b6b6b;line-height:1.5;margin-top:4px;padding:10px 12px;background:#f5f5f5;border-radius:10px;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
   }
   if (!upcoming.length) {
     return `
       <div class="blbl" style="margin-bottom:8px;">${_escHtml(sectionLabel)}</div>
-      <span style="font-size:10px;color:#9b9b9b;">${_tp('courses.noDates')}</span>`
+      <span style="font-size:12px;color:#9b9b9b;">${_tp('courses.noDates')}</span>`
   }
   return _buildCourseBookingInline(course, course.id, color, upcoming, bookable, { sectionLabel })
 }
@@ -2029,13 +2029,13 @@ function buildBuyPanel(c, color, includeReserveButton = true, payScope = 'card')
       onclick="window.selectPayment(this,'${c.id}','single',null)">
       <div class="brow">
         <span class="bnm">${_singlePaymentLabelForCourse(c)}</span>
-        <span style="font-size:11px;font-weight:500;color:${color};">${fmtPrice(c.price_single)}</span>
+        <span style="font-size:13px;font-weight:500;color:${color};">${fmtPrice(c.price_single)}</span>
       </div>
       <div class="bsb">${c.is_workshop ? '' : _tp('booking.payment.singleSessionValidity')}</div>
     </div>
     <div id="${panelId}" class="pay-opts-pass-list"></div>
-    <div id="${countId}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
-    <div id="${msgId}" style="display:none;border-radius:8px;padding:8px 12px;font-size:11px;text-align:center;margin-top:4px;"></div>
+    <div id="${countId}" style="display:none;font-size:13px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
+    <div id="${msgId}" style="display:none;border-radius:8px;padding:8px 12px;font-size:13px;text-align:center;margin-top:4px;"></div>
     ${includeReserveButton ? `
     <button class="btn-res" id="${resId}" style="background:${color};"
       onclick="window.reserveFromCard('${c.id}')">
@@ -2077,7 +2077,7 @@ function buildPassPurchaseCards(passRows, courseId, color, compact = false, sele
         onclick="window.selectPayment(this,'${courseId}','buy-pass','${p.id}','${p.entries_total}','${p.price}')">
         <div class="brow">
           <span class="bnm">${name}</span>
-          <span style="font-size:11px;font-weight:500;color:${pc};">${fmtPrice(p.price)}</span>
+          <span style="font-size:13px;font-weight:500;color:${pc};">${fmtPrice(p.price)}</span>
         </div>
         <div class="bsb" style="margin-top:4px;">
           ${p.entries_total} ${entriesWord(_locale(), p.entries_total)} · ${perEntry}/${entriesWord(_locale(), 1)}
@@ -2142,7 +2142,7 @@ async function loadPassesForCourse(courseId, payScope = null) {
           onclick="window.selectPayment(this,'${courseId}','pass','${up.id}')">
           <div class="brow">
             <span class="bnm">${name}</span>
-            <span style="font-size:11px;font-weight:600;color:${pc};">${up.entries_remaining} ${entriesWord(_locale(), up.entries_remaining)}</span>
+            <span style="font-size:13px;font-weight:600;color:${pc};">${up.entries_remaining} ${entriesWord(_locale(), up.entries_remaining)}</span>
           </div>
           <div class="bsb">${exp ? _tp('payment.validUntil', { date: exp }) : ''}</div>
         </div>`
@@ -2662,13 +2662,13 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId, presele
         if (enrolled || full) {
           const tag = enrolled ? _tp('booking.option.enrolled') : _tp('booking.option.full')
           return `<div class="bk-lesson-enrolled" style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);opacity:.55;color:#9b9b9b;">
-            <span style="font-size:12px;flex:1;">${_escHtml(line)}</span>
-            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${_escHtml(tag)}</span>
+            <span style="font-size:14px;flex:1;">${_escHtml(line)}</span>
+            <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${_escHtml(tag)}</span>
           </div>`
         }
         return `<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);opacity:.85;">
           <input type="checkbox" name="bk-lesson-cb" value="${lid}" checked disabled style="margin-top:3px;accent-color:${color};"/>
-          <span style="font-size:12px;">${_escHtml(line)}</span>
+          <span style="font-size:14px;">${_escHtml(line)}</span>
         </label>`
       }).join('')
     }
@@ -2714,17 +2714,17 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId, presele
           const enrolled = isEnrolled(lid)
           if (enrolled) {
             return `<div class="bk-lesson-enrolled" style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);opacity:.55;color:#9b9b9b;">
-              <span style="font-size:12px;flex:1;">${_fmtBkLessonLine(l)}</span>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${_escHtml(_tp('common.enrolled'))}</span>
+              <span style="font-size:14px;flex:1;">${_fmtBkLessonLine(l)}</span>
+              <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;background:#E8EEF9;color:#2854B9;white-space:nowrap;">${_escHtml(_tp('common.enrolled'))}</span>
             </div>`
           }
           const checked = preSet.has(lid) ? ' checked' : ''
           return `<label style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);cursor:pointer;">
             <input type="checkbox" name="bk-lesson-cb" value="${lid}"${checked} style="margin-top:3px;accent-color:${color};"/>
-            <span style="font-size:12px;">${_fmtBkLessonLine(l)} <span style="color:#6b6b6b;">(${_tp('booking.option.spotsSuffix', { n: l.available_spots })})</span></span>
+            <span style="font-size:14px;">${_fmtBkLessonLine(l)} <span style="color:#6b6b6b;">(${_tp('booking.option.spotsSuffix', { n: l.available_spots })})</span></span>
           </label>`
         }).join('')
-      : `<div style="font-size:12px;color:#9b9b9b;">${_escHtml(_tp('booking.empty.noScheduledSessions'))}</div>`
+      : `<div style="font-size:14px;color:#9b9b9b;">${_escHtml(_tp('booking.empty.noScheduledSessions'))}</div>`
   }
 
   if (hint) {
@@ -3653,11 +3653,11 @@ async function renderCourseDetail(courseId) {
       ${detailInfoTableHtml}
 
       ${restricted && !bookable && !_isStaffUser()
-        ? `<div style="font-size:13px;color:#2854B9;background:#E8EEF8;padding:12px 14px;border-radius:10px;margin-bottom:16px;line-height:1.55;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
+        ? `<div style="font-size:15px;color:#2854B9;background:#E8EEF8;padding:12px 14px;border-radius:10px;margin-bottom:16px;line-height:1.55;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
         : ''}
 
       ${isWorkshopBundle && !(!_isStaffUser() && bookable && upcoming.length)
-        ? `<p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>`
+        ? `<p style="font-size:15px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>`
         : ''}
       ${descShort ? `<p class="detail-course-annotation${descLongBlock ? ' is-before-long-desc' : ''}">${descShort}</p>` : ''}
       ${descLongBlock ? `<div class="detail-long-desc-wrap">${descLongBlock}</div>` : ''}
@@ -3945,7 +3945,7 @@ function _staffScopeSwitchHtml() {
     'border:1px solid var(--section-heading-accent)',
     `background:${isActive ? 'var(--section-heading-accent)' : '#fff'}`,
     `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
-    'font-size:11px',
+    'font-size:13px',
     'font-weight:700',
     'letter-spacing:.08em',
     'cursor:pointer',
@@ -4111,14 +4111,14 @@ export async function buildStaffLessonsSectionHtml({
               <div style="flex:1;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;">
                 <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
                 <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
-                  <div style="font-size:13px;font-weight:600;line-height:1.35;">
-                    ${title}${course?.is_workshop ? ' <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">WORKSHOP</span>' : ''}
-                    ${isOff ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:6px;">DEAKTIVOVÁNO</span>' : ''}
+                  <div style="font-size:15px;font-weight:600;line-height:1.35;">
+                    ${title}${course?.is_workshop ? ' <span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">WORKSHOP</span>' : ''}
+                    ${isOff ? '<span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:6px;">DEAKTIVOVÁNO</span>' : ''}
                   </div>
-                  <div style="font-size:11px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
+                  <div style="font-size:13px;color:#6b6b6b;">${dateStr} · ${timeStr}</div>
                   <div style="margin-top:2px;">
-                    <div style="font-size:13px;font-weight:600;">${booked}/${cap}</div>
-                    <div style="font-size:10px;color:#9b9b9b;margin-bottom:4px;">${_tp('courses.occupied')}</div>
+                    <div style="font-size:15px;font-weight:600;">${booked}/${cap}</div>
+                    <div style="font-size:12px;color:#9b9b9b;margin-bottom:4px;">${_tp('courses.occupied')}</div>
                     <div style="width:100%;height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
                       <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
                     </div>
@@ -4133,7 +4133,7 @@ export async function buildStaffLessonsSectionHtml({
             </div>
             <div class="ml-cx" id="ml-cx-${lid}">
               <div style="padding:0 14px 14px 14px;">
-                <div style="font-size:12px;color:#6b6b6b;line-height:1.65;overflow:hidden;margin-bottom:10px;">
+                <div style="font-size:14px;color:#6b6b6b;line-height:1.65;overflow:hidden;margin-bottom:10px;">
                   ${imgUrl ? `<img src="${imgUrl}" style="float:left;width:108px;height:108px;object-fit:cover;border-radius:8px;margin:0 12px 8px 0;" alt="" />` : ''}
                   ${desc || ''}
                 </div>
@@ -4164,11 +4164,11 @@ export async function buildStaffLessonsSectionHtml({
         <div style="min-width:0;display:flex;align-items:flex-start;gap:12px;">
           <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
           <div style="min-width:0;">
-            <div style="font-size:13px;font-weight:600;line-height:1.35;">${_escHtml(title)}</div>
-            <div style="font-size:11px;color:#6b6b6b;margin-top:4px;">${_escHtml(dateStr)} · ${_escHtml(timeStr)}</div>
+            <div style="font-size:15px;font-weight:600;line-height:1.35;">${_escHtml(title)}</div>
+            <div style="font-size:13px;color:#6b6b6b;margin-top:4px;">${_escHtml(dateStr)} · ${_escHtml(timeStr)}</div>
           </div>
         </div>
-        <button type="button" class="btn-small" style="font-size:11px;padding:6px 10px;flex-shrink:0;"
+        <button type="button" class="btn-small" style="font-size:13px;padding:6px 10px;flex-shrink:0;"
           onclick="window.adminOpenLessonDetail?.('${lid}')">${_escHtml(_tp('admin.btn.attendees'))}</button>
       </div>`
   }
@@ -4178,10 +4178,10 @@ export async function buildStaffLessonsSectionHtml({
       <button type="button"
         onclick="window.toggleStaffArchiveSection?.('${id}')"
         style="width:100%;border:0;background:transparent;padding:0;margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;text-align:left;">
-        <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;">${_escHtml(title)}</span>
-        <span style="display:flex;align-items:center;gap:8px;font-size:11px;color:#9b9b9b;">
+        <span style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;">${_escHtml(title)}</span>
+        <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#9b9b9b;">
           ${Number.isFinite(Number(count)) ? `<span>${Number(count)}</span>` : ''}
-          <span id="staff-archive-chev-${id}" style="font-size:18px;line-height:1;">›</span>
+          <span id="staff-archive-chev-${id}" style="font-size:20px;line-height:1;">›</span>
         </span>
       </button>
       <div id="staff-archive-${id}" style="display:none;">
@@ -4206,12 +4206,12 @@ export async function buildStaffLessonsSectionHtml({
     const btns = []
     for (const n of pages) {
       if (last && n - last > 1) {
-        btns.push(`<span style="font-size:12px;color:#9b9b9b;padding:0 2px;">…</span>`)
+        btns.push(`<span style="font-size:14px;color:#9b9b9b;padding:0 2px;">…</span>`)
       }
       const activePage = n === current
       btns.push(`
         <button type="button"
-          style="min-width:30px;height:30px;border-radius:999px;border:1px solid ${activePage ? 'var(--primary)' : 'var(--section-heading-accent)'};background:${activePage ? 'var(--primary)' : '#fff'};color:${activePage ? '#fff' : 'var(--section-heading-accent)'};font-size:11px;font-weight:700;cursor:pointer;"
+          style="min-width:30px;height:30px;border-radius:999px;border:1px solid ${activePage ? 'var(--primary)' : 'var(--section-heading-accent)'};background:${activePage ? 'var(--primary)' : '#fff'};color:${activePage ? '#fff' : 'var(--section-heading-accent)'};font-size:13px;font-weight:700;cursor:pointer;"
           onclick="window.setStaffPastLessonsPage?.(${n})">${n}</button>`)
       last = n
     }
@@ -4220,14 +4220,14 @@ export async function buildStaffLessonsSectionHtml({
 
   const sections = []
   if (active.length) {
-    sections.push(`<div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${active.length} aktivních termínů</div>`)
+    sections.push(`<div style="font-size:14px;color:#6b6b6b;margin-bottom:12px;">${active.length} aktivních termínů</div>`)
     sections.push(`<div class="nastenka-cards-2col">${active.map(renderTermCard).join('')}</div>`)
   } else if (!deactivated.length) {
     sections.push(`<div class="empty">Žádné nadcházející termíny.</div>`)
   }
   const pastBulkDeleteHtml = Number(pastDeactivatedLessonsCount ?? 0) > 0
     ? `<div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-        <button type="button" class="btn-small danger" style="font-size:11px;padding:6px 10px;"
+        <button type="button" class="btn-small danger" style="font-size:13px;padding:6px 10px;"
           onclick="window.adminDeleteAllPastDeactivatedLessons?.('${_escHtml(_staffLessonsScope)}')">${_escHtml(_tp('admin.lessonActions.deleteAllPastDeactivated'))}</button>
       </div>`
     : ''
@@ -4242,7 +4242,7 @@ export async function buildStaffLessonsSectionHtml({
   ))
   if (deactivated.length) {
     const deactivatedBodyHtml = `
-      <div style="font-size:12px;color:#6b6b6b;margin-bottom:12px;">${_escHtml(_tp('admin.lessonActions.futureDeactivatedHint', { n: deactivated.length }))}</div>
+      <div style="font-size:14px;color:#6b6b6b;margin-bottom:12px;">${_escHtml(_tp('admin.lessonActions.futureDeactivatedHint', { n: deactivated.length }))}</div>
       <div class="nastenka-cards-2col">${deactivated.map(renderTermCard).join('')}</div>`
     sections.push(renderArchiveAccordion('deactivated', _tp('admin.lessonActions.sectionDeactivated'), deactivated.length, deactivatedBodyHtml))
   }
@@ -4364,7 +4364,7 @@ async function renderPermanentkyShop() {
           </div>
           ${validityBlock}
           <div class="pass-shop-scope">${coursesHtml}</div>
-          <button type="button" class="btn-res" style="width:100%;padding:11px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:${pc};"
+          <button type="button" class="btn-res" style="width:100%;padding:11px;border:none;font-size:15px;font-weight:600;cursor:pointer;background:${pc};"
             onclick="window._buyPassShopClick?.(this)"
             data-buy-pass-id="${passIdAttr}"
             data-buy-pass-entries="${total}"

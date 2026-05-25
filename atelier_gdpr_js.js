@@ -76,10 +76,10 @@ export function openDeleteAccountDialog(lang = 'cs') {
               <circle cx="10" cy="10" r="8.5" stroke="#791F1F" stroke-width="1"/>
             </svg>
           </div>
-          <div style="font-size:15px;font-weight:500;color:#1a1a1a;margin-bottom:6px;">
+          <div style="font-size:17px;font-weight:500;color:#1a1a1a;margin-bottom:6px;">
             ${t('Smazat účet', 'Delete account')}
           </div>
-          <div style="font-size:12px;color:#6b6b6b;line-height:1.6;margin-bottom:14px;">
+          <div style="font-size:14px;color:#6b6b6b;line-height:1.6;margin-bottom:14px;">
             ${t(
               'Tato akce je nevratná. Před pokračováním si přečti, co se stane:',
               'This action is irreversible. Read what will happen before continuing:'
@@ -100,7 +100,7 @@ export function openDeleteAccountDialog(lang = 'cs') {
               [t('Přihlašování', 'Login'),
                t('Přístup do systému bude okamžitě zrušen.', 'Access will be immediately revoked.')],
             ].map(([label, desc]) => `
-              <div style="display:flex;gap:10px;margin-bottom:10px;font-size:12px;">
+              <div style="display:flex;gap:10px;margin-bottom:10px;font-size:14px;">
                 <div style="
                   width:16px;height:16px;border-radius:50%;background:#FCEBEB;
                   display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
@@ -128,7 +128,7 @@ export function openDeleteAccountDialog(lang = 'cs') {
               <path d="M8 6v3.5M8 11.5v.5" stroke="#C0392B" stroke-width="1.2"
                 stroke-linecap="round"/>
             </svg>
-            <div style="font-size:11px;color:#791F1F;line-height:1.6;">
+            <div style="font-size:13px;color:#791F1F;line-height:1.6;">
               Smazáním účtu zanikají vaše aktivní permanentky <strong>bez nároku na automatickou refundaci</strong>.
               Pokud máte nevyčerpané vstupy a přejete si žádat o vrácení peněz,
               kontaktujte nás před smazáním na
@@ -138,12 +138,12 @@ export function openDeleteAccountDialog(lang = 'cs') {
 
           <!-- Volitelný důvod -->
           <div style="margin-bottom:16px;">
-            <label style="font-size:11px;color:#6b6b6b;display:block;margin-bottom:4px;">
+            <label style="font-size:13px;color:#6b6b6b;display:block;margin-bottom:4px;">
               ${t('Důvod smazání (volitelné)', 'Reason for deletion (optional)')}
             </label>
             <select id="gdpr-reason" style="
               width:100%;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.18);
-              border-radius:8px;font-size:12px;color:#1a1a1a;background:#fff;
+              border-radius:8px;font-size:14px;color:#1a1a1a;background:#fff;
             ">
               <option value="">${t('Nevyplňovat', 'Prefer not to say')}</option>
               <option value="privacy">${t('Ochrana soukromí', 'Privacy concerns')}</option>
@@ -162,14 +162,14 @@ export function openDeleteAccountDialog(lang = 'cs') {
             padding:10px;border-radius:8px;
             border:0.5px solid rgba(0,0,0,0.18);
             background:transparent;color:#1a1a1a;
-            font-size:12px;cursor:pointer;
+            font-size:14px;cursor:pointer;
           ">
             ${t('Zrušit', 'Cancel')}
           </button>
           <button onclick="gdprStep2()" style="
             padding:10px;border-radius:8px;border:none;
             background:#FCEBEB;color:#791F1F;
-            font-size:12px;font-weight:500;cursor:pointer;
+            font-size:14px;font-weight:500;cursor:pointer;
           ">
             ${t('Pokračovat →', 'Continue →')}
           </button>
@@ -179,11 +179,11 @@ export function openDeleteAccountDialog(lang = 'cs') {
       <!-- KROK 2: Finální potvrzení -->
       <div id="gdpr-step-2" style="display:none;">
         <div style="padding:20px 20px 0;">
-          <div style="font-size:15px;font-weight:500;color:#791F1F;margin-bottom:8px;">
+          <div style="font-size:17px;font-weight:500;color:#791F1F;margin-bottom:8px;">
             ${t('Opravdu smazat účet?', 'Really delete account?')}
           </div>
           <div style="
-            font-size:12px;color:#6b6b6b;line-height:1.6;
+            font-size:14px;color:#6b6b6b;line-height:1.6;
             background:#FCEBEB;border-radius:8px;padding:12px;margin-bottom:16px;
           ">
             ${t(
@@ -195,7 +195,7 @@ export function openDeleteAccountDialog(lang = 'cs') {
           <!-- Potvrzovací checkbox -->
           <label style="
             display:flex;align-items:flex-start;gap:10px;
-            font-size:12px;color:#1a1a1a;margin-bottom:16px;cursor:pointer;
+            font-size:14px;color:#1a1a1a;margin-bottom:16px;cursor:pointer;
           ">
             <input type="checkbox" id="gdpr-confirm-check"
               onchange="document.getElementById('gdpr-delete-btn').disabled=!this.checked"
@@ -210,14 +210,14 @@ export function openDeleteAccountDialog(lang = 'cs') {
         <div id="gdpr-error" style="
           display:none;margin:0 20px 12px;padding:10px 12px;
           background:#FCEBEB;border-radius:8px;
-          font-size:12px;color:#791F1F;
+          font-size:14px;color:#791F1F;
         "></div>
 
         <div style="padding:0 20px 18px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <button onclick="gdprStep1()" style="
             padding:10px;border-radius:8px;
             border:0.5px solid rgba(0,0,0,0.18);
-            background:transparent;color:#1a1a1a;font-size:12px;cursor:pointer;
+            background:transparent;color:#1a1a1a;font-size:14px;cursor:pointer;
           ">
             ← ${t('Zpět', 'Back')}
           </button>
@@ -226,7 +226,7 @@ export function openDeleteAccountDialog(lang = 'cs') {
             style="
               padding:10px;border-radius:8px;border:none;
               background:#E24B4A;color:#fff;
-              font-size:12px;font-weight:500;cursor:pointer;
+              font-size:14px;font-weight:500;cursor:pointer;
               opacity:0.4;transition:opacity .15s;
             "
             onmouseenter="if(!this.disabled)this.style.background='#c03a39'"
@@ -250,11 +250,11 @@ export function openDeleteAccountDialog(lang = 'cs') {
           "></div>
         </div>
         <div id="gdpr-progress-title" style="
-          font-size:14px;font-weight:500;color:#1a1a1a;margin-bottom:6px;
+          font-size:16px;font-weight:500;color:#1a1a1a;margin-bottom:6px;
         ">
           ${t('Mažu účet…', 'Deleting account…')}
         </div>
-        <div id="gdpr-progress-sub" style="font-size:12px;color:#6b6b6b;">
+        <div id="gdpr-progress-sub" style="font-size:14px;color:#6b6b6b;">
           ${t('Prosím čekej, nezavírej stránku.', 'Please wait, do not close this page.')}
         </div>
       </div>
@@ -354,7 +354,7 @@ export function injectDeleteButton(lang = 'cs') {
   `
   section.innerHTML = `
     <div style="
-      font-size:10px;font-weight:500;letter-spacing:.08em;
+      font-size:12px;font-weight:500;letter-spacing:.08em;
       text-transform:uppercase;color:var(--section-heading-accent);margin-bottom:8px;
     ">
       ${t('Nebezpečná zóna', 'Danger zone')}
@@ -362,12 +362,12 @@ export function injectDeleteButton(lang = 'cs') {
     <button id="gdpr-open-btn" style="
       width:100%;padding:8px 12px;border-radius:8px;
       border:0.5px solid #E24B4A;background:transparent;
-      color:#791F1F;font-size:12px;font-weight:500;
+      color:#791F1F;font-size:14px;font-weight:500;
       cursor:pointer;text-align:left;
     ">
       ${t('Smazat můj účet', 'Delete my account')}
     </button>
-    <div style="font-size:10px;color:#9b9b9b;margin-top:6px;line-height:1.5;">
+    <div style="font-size:12px;color:#9b9b9b;margin-top:6px;line-height:1.5;">
       ${t(
         'Trvalé smazání — data budou anonymizována.',
         'Permanent deletion — data will be anonymized.'
