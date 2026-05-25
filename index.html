@@ -897,7 +897,9 @@
     }
     .time-slot:last-child{ border-bottom:none; }
 
-    .day-col {
+    .cal-head--strip { display: none; }
+    .cal-days { display: contents; }
+    .day-col, .cal-day-col {
       position: relative;
       min-height: calc(var(--cal-hour) * 9);
       border-right: 1px solid var(--border);
@@ -941,33 +943,29 @@
         max-height: calc(100dvh - var(--topbar-h) - var(--cal-ctrl-h) - 12px);
         overflow: hidden;
       }
-      #screen-kalendar .cal-head {
-        position: static;
-        top: auto;
-      }
-      .cal-hscroll {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-x: contain;
-        scrollbar-width: none;
-      }
-      .cal-hscroll::-webkit-scrollbar { display: none; }
-      .cal-hscroll .cal-head {
-        width: max-content;
-        min-width: 100%;
-        grid-template-columns: var(--cal-time-col) repeat(7, 76px);
+      #screen-kalendar .cal-head-pane { display: none !important; }
+      #screen-kalendar .cal-head--strip {
+        display: grid;
+        position: sticky;
+        top: 0;
+        z-index: 4;
+        background: #fff;
       }
       .cal-scroll {
         overflow: auto;
         -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-        scroll-behavior: smooth;
-        touch-action: pan-x pan-y;
+        overscroll-behavior: auto;
+        scroll-behavior: auto;
+        touch-action: manipulation;
       }
-      .cal-scroll .cal-body {
+      .cal-strip-stack {
         width: max-content;
         min-width: 100%;
-        grid-template-columns: var(--cal-time-col) repeat(7, 76px);
+      }
+      .cal-scroll .cal-body,
+      #screen-kalendar .cal-head--strip {
+        width: max-content;
+        min-width: 100%;
       }
       .cal-scroll .time-col {
         position: sticky;
@@ -2059,9 +2057,9 @@
     <div class="cal-picker__weeks" id="cal-picker-weeks"></div>
   </div>
   <div class="cal-wrap" id="cal-wrap">
-    <div class="cal-head-pane">
+    <div class="cal-head-pane" id="cal-head-pane">
       <div class="cal-hscroll" id="cal-head-scroll">
-        <div class="cal-head">
+        <div class="cal-head" id="cal-head-week">
           <div class="corner"></div>
           <div class="dh"><span class="dd" id="dd0"></span><span class="dn" id="dn0"></span></div>
           <div class="dh"><span class="dd" id="dd1"></span><span class="dn" id="dn1"></span></div>
@@ -2074,15 +2072,20 @@
       </div>
     </div>
     <div class="cal-scroll" id="cal-scroll">
-      <div class="cal-body">
-        <div class="time-col" id="cal-times"></div>
-        <div class="day-col" id="col-po"></div>
-        <div class="day-col" id="col-ut"></div>
-        <div class="day-col" id="col-st"></div>
-        <div class="day-col" id="col-ct"></div>
-        <div class="day-col" id="col-pa"></div>
-        <div class="day-col" id="col-so"></div>
-        <div class="day-col" id="col-ne"></div>
+      <div class="cal-strip-stack" id="cal-strip-stack">
+        <div class="cal-head cal-head--strip" id="cal-head-strip" hidden></div>
+        <div class="cal-body" id="cal-body">
+          <div class="time-col" id="cal-times"></div>
+          <div class="cal-days" id="cal-days">
+            <div class="day-col" id="col-po"></div>
+            <div class="day-col" id="col-ut"></div>
+            <div class="day-col" id="col-st"></div>
+            <div class="day-col" id="col-ct"></div>
+            <div class="day-col" id="col-pa"></div>
+            <div class="day-col" id="col-so"></div>
+            <div class="day-col" id="col-ne"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2382,94 +2385,8 @@
 
   ensureCalendarSkeleton()
 
-  // Mobilní kalendář: horizontální scroll dnů + přejetí pro předchozí/další týden
-  ;(function initCalMobileNav() {
-    const wrap = document.getElementById('cal-wrap')
-    const scroll = document.getElementById('cal-scroll')
-    const headScroll = document.getElementById('cal-head-scroll')
-    if (!wrap || !scroll || wrap.dataset.calTouch === '1') return
-    wrap.dataset.calTouch = '1'
-
-    const mq = window.matchMedia('(max-width: 640px)')
-    const SWIPE_MIN = 48
-    const SWIPE_RATIO = 1.35
-    let startX = 0
-    let startY = 0
-    let active = false
-    let swipeLock = false
-    let syncScroll = false
-
-    function setHScrollLeft(left) {
-      scroll.scrollLeft = left
-      if (headScroll) headScroll.scrollLeft = left
-    }
-
-    function syncHScrollFrom(source) {
-      if (syncScroll) return
-      syncScroll = true
-      const left = source.scrollLeft
-      if (source !== scroll) scroll.scrollLeft = left
-      if (headScroll && source !== headScroll) headScroll.scrollLeft = left
-      syncScroll = false
-    }
-
-    headScroll?.addEventListener('scroll', () => syncHScrollFrom(headScroll), { passive: true })
-    scroll.addEventListener('scroll', () => {
-      if (mq.matches && headScroll) syncHScrollFrom(scroll)
-    }, { passive: true })
-
-    function hasHOverflow() {
-      return scroll.scrollWidth > scroll.clientWidth + 2
-    }
-
-    window.scrollCalMobileToToday = () => {
-      if (!mq.matches) return
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const ws = new Date(window.AppState?.weekStart ?? today)
-      ws.setHours(0, 0, 0, 0)
-      const we = new Date(ws)
-      we.setDate(we.getDate() + 6)
-      if (today < ws || today > we) {
-        setHScrollLeft(0)
-        return
-      }
-      const dayIdx = (today.getDay() + 6) % 7
-      const dh = document.querySelector('.cal-head .dh:nth-child(' + (dayIdx + 2) + ')')
-      if (!dh) return
-      const corner = document.querySelector('.cal-head .corner')
-      const stickyW = corner?.offsetWidth ?? 48
-      setHScrollLeft(Math.max(0, dh.offsetLeft - stickyW - 6))
-    }
-
-    scroll.addEventListener('touchstart', e => {
-      if (!mq.matches || e.touches.length !== 1) return
-      startX = e.touches[0].clientX
-      startY = e.touches[0].clientY
-      active = true
-    }, { passive: true })
-
-    scroll.addEventListener('touchend', async e => {
-      if (!active || !mq.matches || swipeLock) return
-      active = false
-      const t = e.changedTouches[0]
-      const dx = t.clientX - startX
-      const dy = t.clientY - startY
-      if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO) return
-
-      const overflow = hasHOverflow()
-      const atStart = scroll.scrollLeft <= 2
-      const atEnd = scroll.scrollLeft >= scroll.scrollWidth - scroll.clientWidth - 2
-
-      if (dx < 0 && (!overflow || atEnd)) {
-        swipeLock = true
-        try { await window.calNext?.() } finally { setTimeout(() => { swipeLock = false }, 400) }
-      } else if (dx > 0 && (!overflow || atStart)) {
-        swipeLock = true
-        try { await window.calPrev?.() } finally { setTimeout(() => { swipeLock = false }, 400) }
-      }
-    }, { passive: true })
-  })()
+  // Mobilní kalendář: pás dnů — scroll řídí initCalStripScroll v atelier-data.js
+  window.initCalStripScroll?.()
 
   // Zavřít všechny popupy
   window.closeAll = () => {

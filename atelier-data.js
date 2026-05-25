@@ -433,6 +433,7 @@ async function init() {
     renderAll()
     window.syncLangUI?.(lang)
     window.initCalWeekPicker?.()
+    window.initCalStripScroll?.()
     window.refreshStaticI18n?.()
 
     // Defaultní obrazovka podle role: admin → přehled, lektor → vlastní lekce, přihlášený uživatel → přehled, host → kalendář.
@@ -981,70 +982,134 @@ function _workshopEventTitle(courseTitle, sessionMeta) {
   return `${courseTitle} (${sessionMeta.index})`
 }
 
-export function renderKalendar() {
-  const colIds = ['col-po','col-ut','col-st','col-ct','col-pa','col-so','col-ne']
+const CAL_STRIP_PAST = 14
+const CAL_STRIP_FUTURE = 90
+const CAL_STRIP_EXTEND = 28
+const CAL_DAY_W = 76
 
-  // Vyčistíme eventy, ne strukturu sloupců
-  colIds.forEach(id => {
-    const col = document.getElementById(id)
-    if (col) col.querySelectorAll('.ev').forEach(e => e.remove())
-  })
+function isCalMobileStrip() {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+}
 
-  renderWeekHeader()
+function toCalISODate(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
 
-  // Rozsah hodin — dynamický dle lekcí
-  const { min, max } = calMinMax()
-  const PH = (() => {
-    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cal-hour'))
-    return Number.isFinite(v) && v > 0 ? v : 56
-  })()
+const _calStrip = {
+  start: null,
+  end: null,
+  lessons: null,
+  extending: false,
+  scrollRaf: 0,
+}
 
-  // Regenerate time column and column heights to match actual lesson range
-  const tc = document.getElementById('cal-times')
-  if (tc) {
-    tc.innerHTML = ''
-    for (let h = min; h <= max; h++) {
-      const div = document.createElement('div')
-      div.className = 'time-slot'
-      div.textContent = `${h}:00`
-      tc.appendChild(div)
-    }
+async function fetchLessonsRange(fromDay, toDayInclusive) {
+  const from = new Date(fromDay)
+  from.setHours(0, 0, 0, 0)
+  const to = new Date(toDayInclusive)
+  to.setHours(0, 0, 0, 0)
+  to.setDate(to.getDate() + 1)
+  const { data, error } = await sb
+    .from('lesson_availability')
+    .select(LESSONS_SELECT)
+    .eq('status', 'active')
+    .gte('start_time', from.toISOString())
+    .lt('start_time', to.toISOString())
+    .order('start_time')
+  await _refreshWorkshopSessionMeta()
+  if (error) {
+    console.error('fetchLessonsRange:', error)
+    return []
   }
-  const colHeight = (max - min + 1) * PH
-  colIds.forEach(id => {
-    const col = document.getElementById(id)
-    if (col) col.style.minHeight = `${colHeight}px`
+  return _filterLessonsByVisibleCourses(data ?? [])
+}
+
+function _mergeStripLessons(incoming) {
+  const map = new Map()
+  ;(_calStrip.lessons ?? []).forEach(l => map.set(String(l.lesson_id ?? l.id), l))
+  incoming.forEach(l => map.set(String(l.lesson_id ?? l.id), l))
+  _calStrip.lessons = [...map.values()]
+}
+
+async function _ensureCalStripBounds() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (!_calStrip.start || !_calStrip.end) {
+    _calStrip.start = new Date(today)
+    _calStrip.start.setDate(_calStrip.start.getDate() - CAL_STRIP_PAST)
+    _calStrip.end = new Date(today)
+    _calStrip.end.setDate(_calStrip.end.getDate() + CAL_STRIP_FUTURE)
+  }
+}
+
+function _calStripDayCount() {
+  const a = new Date(_calStrip.start)
+  const b = new Date(_calStrip.end)
+  a.setHours(0, 0, 0, 0)
+  b.setHours(0, 0, 0, 0)
+  return Math.round((b - a) / 86400000) + 1
+}
+
+function _setCalGridColumns(dayCount) {
+  const cols = `var(--cal-time-col) repeat(${dayCount}, ${CAL_DAY_W}px)`
+  const body = document.getElementById('cal-body')
+  const headStrip = document.getElementById('cal-head-strip')
+  if (body) body.style.gridTemplateColumns = cols
+  if (headStrip) headStrip.style.gridTemplateColumns = cols
+}
+
+function _resetCalWeekLayout() {
+  const headPane = document.getElementById('cal-head-pane')
+  const headStrip = document.getElementById('cal-head-strip')
+  if (headPane) headPane.style.display = ''
+  if (headStrip) headStrip.hidden = true
+  const body = document.getElementById('cal-body')
+  if (headStrip) headStrip.style.gridTemplateColumns = ''
+  if (body) body.style.gridTemplateColumns = ''
+}
+
+function _calMinMaxFromLessons(lessons) {
+  let mn = 9, mx = 18
+  ;(lessons ?? []).forEach(l => {
+    const s = new Date(l.start_time)
+    const e = new Date(l.end_time)
+    mn = Math.min(mn, s.getHours())
+    mx = Math.max(mx, e.getHours() + (e.getMinutes() > 0 ? 1 : 0))
   })
+  return { min: Math.floor(mn), max: Math.ceil(mx) }
+}
 
+function _paintCalEvents(lessons, min, max, PH, colSelector) {
   const wsMeta = _workshopSessionMetaByLessonId()
-
-  window.AppState.lessons.forEach(l => {
-    const course  = window.AppState.courses.find(c => c.id === l.course_id)
+  lessons.forEach(l => {
+    const course = window.AppState.courses.find(c => c.id === l.course_id)
     if (!course) return
-    const color   = courseThemeHex(course.color_code)
-    const start   = new Date(l.start_time)
-    const end     = new Date(l.end_time)
-    const dayIdx  = (start.getDay() + 6) % 7  // 0=Po … 6=Ne
-    const startH  = start.getHours() + start.getMinutes() / 60
-    const endH    = end.getHours()   + end.getMinutes()   / 60
-    const topPx   = (startH - min) * PH
+    const color = courseThemeHex(course.color_code)
+    const start = new Date(l.start_time)
+    const end = new Date(l.end_time)
+    const startH = start.getHours() + start.getMinutes() / 60
+    const endH = end.getHours() + end.getMinutes() / 60
+    const topPx = (startH - min) * PH
     const heightPx = (endH - startH) * PH - 3
-
     if (topPx < 0) return
 
-    const col = document.getElementById(colIds[dayIdx])
+    const iso = toCalISODate(start)
+    const col = document.querySelector(`${colSelector}[data-date="${iso}"]`)
     if (!col) return
 
     const lid = String(l.lesson_id ?? l.id)
     const sessionMeta = wsMeta.get(lid)
     const isFollowUpSession = sessionMeta && sessionMeta.index > 1
     const enrolled = isEnrolled(lid)
-    const full     = l.available_spots <= 0 && !enrolled
-    const isPast   = _isPastLesson(l)
+    const full = l.available_spots <= 0 && !enrolled
+    const isPast = _isPastLesson(l)
     const baseName = course ? loc(course.title) : '—'
-    const name     = _workshopEventTitle(baseName, sessionMeta)
-    const timeStr  = `${fmtTime(start)}–${fmtTime(end)}`
-    const evColor  = isPast ? '#9b9b9b' : color
+    const name = _workshopEventTitle(baseName, sessionMeta)
+    const timeStr = `${fmtTime(start)}–${fmtTime(end)}`
+    const evColor = isPast ? '#9b9b9b' : color
     const bgAlpha = isPast ? '18' : (enrolled ? '33' : (isFollowUpSession ? '0c' : '18'))
 
     const el = document.createElement('div')
@@ -1080,8 +1145,227 @@ export function renderKalendar() {
     }
     col.appendChild(el)
   })
+}
 
-  window.scrollCalMobileToToday?.()
+function _updateCalWeekLabelFromScroll() {
+  const scroll = document.getElementById('cal-scroll')
+  if (!scroll || !isCalMobileStrip()) return
+  const cols = scroll.querySelectorAll('.cal-day-col[data-date]')
+  if (!cols.length) return
+  const timeW = scroll.querySelector('.cal-body .time-col')?.offsetWidth ?? 48
+  const anchorX = scroll.scrollLeft + timeW + 8
+  let pick = cols[0]
+  for (const col of cols) {
+    if (col.offsetLeft <= anchorX + 1) pick = col
+    else break
+  }
+  const d = new Date(pick.dataset.date + 'T12:00:00')
+  const mon = getMondayOf(d)
+  const cur = getMondayOf(window.AppState.weekStart)
+  if (mon.getTime() !== cur.getTime()) {
+    window.AppState.weekStart = mon
+    const lbl = document.getElementById('cal-week-label')
+    if (lbl) lbl.textContent = fmtWeekRangeBtn(mon)
+  }
+  const edge = 320
+  const last = cols[cols.length - 1]
+  if (last && last.offsetLeft + last.offsetWidth < scroll.scrollLeft + scroll.clientWidth + edge) {
+    void _extendCalStrip('future')
+  }
+  if (cols[0] && cols[0].offsetLeft > scroll.scrollLeft - edge) {
+    void _extendCalStrip('past')
+  }
+}
+
+async function _extendCalStrip(direction) {
+  if (_calStrip.extending || !isCalMobileStrip()) return
+  _calStrip.extending = true
+  const scroll = document.getElementById('cal-scroll')
+  const prevLeft = scroll?.scrollLeft ?? 0
+  const prevWidth = scroll?.scrollWidth ?? 0
+  try {
+    if (direction === 'past') {
+      const newStart = new Date(_calStrip.start)
+      newStart.setDate(newStart.getDate() - CAL_STRIP_EXTEND)
+      const bridge = new Date(_calStrip.start)
+      bridge.setDate(bridge.getDate() - 1)
+      const chunk = await fetchLessonsRange(newStart, bridge)
+      _mergeStripLessons(chunk)
+      _calStrip.start = newStart
+      await renderKalendarStrip(true)
+      if (scroll) {
+        scroll.scrollLeft = prevLeft + (scroll.scrollWidth - prevWidth)
+      }
+    } else {
+      const newEnd = new Date(_calStrip.end)
+      newEnd.setDate(newEnd.getDate() + CAL_STRIP_EXTEND)
+      const chunkStart = new Date(_calStrip.end)
+      chunkStart.setDate(chunkStart.getDate() + 1)
+      const chunk = await fetchLessonsRange(chunkStart, newEnd)
+      _mergeStripLessons(chunk)
+      _calStrip.end = newEnd
+      await renderKalendarStrip(true)
+      if (scroll) scroll.scrollLeft = prevLeft
+    }
+  } finally {
+    _calStrip.extending = false
+  }
+}
+
+async function renderKalendarStrip(preserveScroll = false) {
+  await _ensureCalStripBounds()
+  if (!preserveScroll) {
+    _calStrip.lessons = await fetchLessonsRange(_calStrip.start, _calStrip.end)
+  }
+  const headPane = document.getElementById('cal-head-pane')
+  const headStrip = document.getElementById('cal-head-strip')
+  const daysRoot = document.getElementById('cal-days')
+  const scroll = document.getElementById('cal-scroll')
+  if (!headStrip || !daysRoot || !scroll) return
+
+  const prevLeft = preserveScroll ? scroll.scrollLeft : null
+
+  if (headPane) headPane.style.display = 'none'
+  headStrip.hidden = false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const dayNames = SCHEDULE_DAY_LABELS[lang] ?? SCHEDULE_DAY_LABELS.cs
+
+  let headHtml = '<div class="corner"></div>'
+  let daysHtml = ''
+  const d = new Date(_calStrip.start)
+  d.setHours(0, 0, 0, 0)
+  const end = new Date(_calStrip.end)
+  end.setHours(0, 0, 0, 0)
+
+  while (d <= end) {
+    const iso = toCalISODate(d)
+    const isToday = isSameDay(d, today)
+    const dn = dayNames[(d.getDay() + 6) % 7]
+    headHtml += `<div class="dh" data-date="${iso}"><span class="dd${isToday ? ' td' : ''}">${d.getDate()}</span><span class="dn">${_escHtml(dn)}</span></div>`
+    daysHtml += `<div class="cal-day-col day-col" data-date="${iso}"></div>`
+    d.setDate(d.getDate() + 1)
+  }
+
+  headStrip.innerHTML = headHtml
+  daysRoot.innerHTML = daysHtml
+
+  _setCalGridColumns(_calStripDayCount())
+
+  const { min, max } = _calMinMaxFromLessons(_calStrip.lessons)
+  const PH = (() => {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cal-hour'))
+    return Number.isFinite(v) && v > 0 ? v : 56
+  })()
+
+  const tc = document.getElementById('cal-times')
+  if (tc) {
+    tc.innerHTML = ''
+    for (let h = min; h <= max; h++) {
+      const div = document.createElement('div')
+      div.className = 'time-slot'
+      div.textContent = `${h}:00`
+      tc.appendChild(div)
+    }
+  }
+
+  const colHeight = (max - min + 1) * PH
+  daysRoot.querySelectorAll('.cal-day-col').forEach(col => {
+    col.style.minHeight = `${colHeight}px`
+  })
+
+  _paintCalEvents(_calStrip.lessons, min, max, PH, '.cal-day-col')
+
+  const lbl = document.getElementById('cal-week-label')
+  if (lbl) lbl.textContent = fmtWeekRangeBtn(window.AppState.weekStart)
+
+  if (preserveScroll && prevLeft != null) {
+    scroll.scrollLeft = prevLeft
+  } else {
+    window.scrollCalMobileToToday?.()
+  }
+}
+
+export function initCalStripScroll() {
+  if (document.body.dataset.calStripScroll === '1') return
+  document.body.dataset.calStripScroll = '1'
+  const scroll = document.getElementById('cal-scroll')
+  if (!scroll) return
+
+  window.scrollCalMobileToToday = () => {
+    if (!isCalMobileStrip()) return
+    const today = toCalISODate(new Date())
+    const col = document.querySelector(`.cal-day-col[data-date="${today}"]`)
+    if (!col) return
+    const timeW = scroll.querySelector('.cal-body .time-col')?.offsetWidth ?? 48
+    scroll.scrollTo({ left: Math.max(0, col.offsetLeft - timeW - 4), behavior: 'auto' })
+    _updateCalWeekLabelFromScroll()
+  }
+
+  scroll.addEventListener('scroll', () => {
+    if (!isCalMobileStrip()) return
+    cancelAnimationFrame(_calStrip.scrollRaf)
+    _calStrip.scrollRaf = requestAnimationFrame(_updateCalWeekLabelFromScroll)
+  }, { passive: true })
+
+  window.matchMedia('(max-width: 640px)').addEventListener('change', () => {
+    _calStrip.lessons = null
+    renderKalendar()
+  })
+}
+
+window.initCalStripScroll = initCalStripScroll
+
+export function renderKalendar() {
+  if (isCalMobileStrip()) {
+    void renderKalendarStrip()
+    return
+  }
+  _resetCalWeekLayout()
+  _renderKalendarWeek()
+}
+
+function _renderKalendarWeek() {
+  const colIds = ['col-po','col-ut','col-st','col-ct','col-pa','col-so','col-ne']
+
+  const daysRoot = document.getElementById('cal-days')
+  if (daysRoot && !document.getElementById('col-po')) {
+    daysRoot.innerHTML = colIds.map(id => `<div class="day-col" id="${id}"></div>`).join('')
+  }
+
+  colIds.forEach(id => {
+    const col = document.getElementById(id)
+    if (col) col.querySelectorAll('.ev').forEach(e => e.remove())
+  })
+
+  renderWeekHeader()
+
+  // Rozsah hodin — dynamický dle lekcí
+  const { min, max } = calMinMax()
+  const PH = (() => {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cal-hour'))
+    return Number.isFinite(v) && v > 0 ? v : 56
+  })()
+
+  // Regenerate time column and column heights to match actual lesson range
+  const tc = document.getElementById('cal-times')
+  if (tc) {
+    tc.innerHTML = ''
+    for (let h = min; h <= max; h++) {
+      const div = document.createElement('div')
+      div.className = 'time-slot'
+      div.textContent = `${h}:00`
+      tc.appendChild(div)
+    }
+  }
+  const colHeight = (max - min + 1) * PH
+  colIds.forEach(id => {
+    const col = document.getElementById(id)
+    if (col) col.style.minHeight = `${colHeight}px`
+  })
+
+  _paintCalEvents(window.AppState.lessons, min, max, PH, '.day-col')
 }
 
 const SCHEDULE_DAY_LABELS = {
@@ -1185,7 +1469,30 @@ function shiftCalPickerMonth(delta) {
 }
 
 export async function calGoToWeek(anyDayInWeek) {
-  window.AppState.weekStart = getMondayOf(anyDayInWeek)
+  const mon = getMondayOf(anyDayInWeek)
+  window.AppState.weekStart = mon
+  if (isCalMobileStrip()) {
+    const iso = toCalISODate(mon)
+    let col = document.querySelector(`.cal-day-col[data-date="${iso}"]`)
+    if (!col) {
+      _calStrip.start = new Date(mon)
+      _calStrip.start.setDate(_calStrip.start.getDate() - 7)
+      _calStrip.end = new Date(mon)
+      _calStrip.end.setDate(_calStrip.end.getDate() + CAL_STRIP_FUTURE)
+      _calStrip.lessons = null
+      await renderKalendarStrip()
+      col = document.querySelector(`.cal-day-col[data-date="${iso}"]`)
+    }
+    closeCalWeekPicker()
+    const lbl = document.getElementById('cal-week-label')
+    if (lbl) lbl.textContent = fmtWeekRangeBtn(mon)
+    if (col) {
+      const scroll = document.getElementById('cal-scroll')
+      const timeW = scroll?.querySelector('.cal-body .time-col')?.offsetWidth ?? 48
+      scroll?.scrollTo({ left: Math.max(0, col.offsetLeft - timeW - 4), behavior: 'auto' })
+    }
+    return
+  }
   await fetchLessons()
   renderKalendar()
   closeCalWeekPicker()
@@ -1228,9 +1535,15 @@ window.closeCalWeekPicker = closeCalWeekPicker
 function renderWeekHeader() {
   const dayNames = SCHEDULE_DAY_LABELS
   const today = new Date()
-  document.querySelectorAll('.dh').forEach((dh, i) => {
+  const colIds = ['col-po','col-ut','col-st','col-ct','col-pa','col-so','col-ne']
+  document.querySelectorAll('#cal-head-week .dh').forEach((dh, i) => {
     const d = new Date(window.AppState.weekStart)
     d.setDate(d.getDate() + i)
+    d.setHours(0, 0, 0, 0)
+    const iso = toCalISODate(d)
+    dh.dataset.date = iso
+    const col = document.getElementById(colIds[i])
+    if (col) col.dataset.date = iso
     const numEl  = dh.querySelector('.dd')
     const nameEl = dh.querySelector('.dn')
     if (numEl)  { numEl.textContent = d.getDate(); numEl.classList.toggle('td', isSameDay(d, today)) }
