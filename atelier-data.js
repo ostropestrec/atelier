@@ -4178,7 +4178,7 @@ export async function buildStaffLessonsSectionHtml({
       <button type="button"
         onclick="window.toggleStaffArchiveSection?.('${id}')"
         style="width:100%;border:0;background:transparent;padding:0;margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;text-align:left;">
-        <span style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;">${_escHtml(title)}</span>
+        <span class="section-h" style="margin:0;">${_escHtml(title)}</span>
         <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:#9b9b9b;">
           ${Number.isFinite(Number(count)) ? `<span>${Number(count)}</span>` : ''}
           <span id="staff-archive-chev-${id}" style="font-size:19px;line-height:1;">›</span>

@@ -353,10 +353,7 @@ export function injectDeleteButton(lang = 'cs') {
     padding:16px 20px;margin-top:auto;
   `
   section.innerHTML = `
-    <div style="
-      font-size:11px;font-weight:500;letter-spacing:.08em;
-      text-transform:uppercase;color:var(--section-heading-accent);margin-bottom:8px;
-    ">
+    <div class="block-label" style="margin:0 0 8px;">
       ${t('Nebezpečná zóna', 'Danger zone')}
     </div>
     <button id="gdpr-open-btn" style="

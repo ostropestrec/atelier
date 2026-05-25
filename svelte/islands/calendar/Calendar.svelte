@@ -111,9 +111,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'Wittgenstein', serif;
+    font-family: 'Gideon Roman', serif;
     font-size: 19px;
-    font-weight: 500;
+    font-weight: 400;
   }
 
   .cal-island__days {
