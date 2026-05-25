@@ -608,6 +608,27 @@ function _detailInfoTableRow(label, value, valStyle = '') {
   </div>`
 }
 
+function _detailMetaBadge(label, value) {
+  const v = value != null && String(value).trim() !== '' ? String(value).trim() : ''
+  if (!v || v === '—') return ''
+  if (!label) return `<span class="detail-meta-pill">${_escHtml(v)}</span>`
+  return `<span class="detail-meta-pill"><span class="dml">${_escHtml(label)}:</span> <span class="dmv">${_escHtml(v)}</span></span>`
+}
+
+function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capacity, minParticipants }) {
+  const cap = Number(capacity) || 0
+  const minP = Math.max(1, Number(minParticipants ?? 1))
+  const pills = [
+    _detailMetaBadge(null, ownerName),
+    scheduleDays ? _detailMetaBadge(_tp('courses.detailBadgeSchedule'), scheduleDays) : '',
+    durationVal && durationVal !== '—' ? _detailMetaBadge(_tp('courses.detailBadgeDuration'), durationVal) : '',
+    cap > 0 ? _detailMetaBadge(null, _tp('courses.detailBadgeMaxParticipants', { n: cap })) : '',
+    _detailMetaBadge(null, _tp('courses.detailBadgeMinParticipants', { n: minP })),
+  ].filter(Boolean)
+  if (!pills.length) return ''
+  return `<div class="detail-meta-pills">${pills.join('')}</div>`
+}
+
 function _isPastLesson(lesson) {
   const endTs = lesson?.end_time ? new Date(lesson.end_time).getTime() : NaN
   return Number.isFinite(endTs) && endTs <= Date.now()
@@ -2752,13 +2773,16 @@ async function renderCourseDetail(courseId) {
     return _detailInfoTableRow(passLabel, fmtPrice(p.price), `color:${pc};`)
   }).join('')
 
+  const detailMetaBadgesHtml = _buildDetailMetaBadgesHtml({
+    ownerName,
+    scheduleDays,
+    durationVal,
+    capacity: course.capacity_default,
+    minParticipants: course.min_participants,
+  })
+
   const detailInfoTableHtml = `
-      <div class="detail-info-table" role="table" style="margin-top:12px;margin-bottom:16px;">
-          ${_detailInfoTableRow(_tp('courses.instructor'), ownerName ?? '—')}
-          ${scheduleDays ? _detailInfoTableRow(_tp('courses.scheduleLabel'), scheduleDays) : ''}
-          ${_detailInfoTableRow(_tp('kal.duration'), durationVal)}
-          ${_detailInfoTableRow(_tp('courses.lessonCapacity'), String(Number(course.capacity_default) || '—'))}
-          ${_detailInfoTableRow(_tp('courses.minParticipants'), String(Math.max(1, Number(course.min_participants ?? 1))))}
+      <div class="detail-info-table" role="table">
           ${_detailInfoTableRow(_tp('booking.payment.singleSession'), singleEntryVal, `color:${color};`)}
           ${passRowsHtml}
           ${_detailInfoTableRow(_tp('courses.freeCancellation'), `${course.cancellation_hours}h ${_tp('courses.ahead')}`)}
@@ -2777,6 +2801,7 @@ async function renderCourseDetail(courseId) {
         ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`
         : `<div class="detail-hero-ph">${_escHtml(_tp('courses.photoAlt'))}</div>`}
 
+      ${detailMetaBadgesHtml}
       ${detailInfoTableHtml}
 
       ${restricted && !bookable && !_isStaffUser()
