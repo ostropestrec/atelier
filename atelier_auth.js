@@ -586,9 +586,9 @@ function _resolveBookingUserPassMeta(booking) {
 export function getUserBookingCancellationState(booking) {
   if (!booking) return { allowed: false, reason: 'missing_booking' }
   if (booking.payment_type !== 'pass') return { allowed: false, reason: 'single_entry' }
-  const lessonStart = booking.lesson?.start_time
-  const cancellationHours = Number(booking.lesson?.course?.cancellation_hours)
-  const startTs = lessonStart ? new Date(lessonStart).getTime() : NaN
+  const ctx = _resolveBookingLessonContext(booking)
+  const startTs = ctx?.startTime ? new Date(ctx.startTime).getTime() : NaN
+  const cancellationHours = ctx?.cancellationHours
   if (!Number.isFinite(startTs) || !Number.isFinite(cancellationHours)) {
     return { allowed: false, reason: 'missing_window_data' }
   }
@@ -1582,6 +1582,34 @@ function _bookingLessonBoundary(booking) {
     return id === String(lid)
   })
   return fromState?.end_time ?? fromState?.start_time ?? null
+}
+
+/** Termín + kurz pro přehled / storno — embed z DB nebo AppState. */
+function _resolveBookingLessonContext(booking) {
+  const lesson = booking?.lesson
+  const course = lesson?.course
+  if (lesson?.start_time && course) {
+    return {
+      startTime: lesson.start_time,
+      cancellationHours: Number(course.cancellation_hours),
+      courseId: course.id,
+    }
+  }
+  const lid = booking?.lesson_id
+  if (!lid) return null
+  const fromState = (window.AppState?.upcomingLessons ?? []).find(l => {
+    const id = String(l.lesson_id ?? l.id)
+    return id === String(lid)
+  })
+  const c = fromState
+    ? (window.AppState?.courses ?? []).find(x => x.id === fromState.course_id)
+    : null
+  if (!fromState?.start_time || !c) return null
+  return {
+    startTime: fromState.start_time,
+    cancellationHours: Number(c.cancellation_hours),
+    courseId: c.id,
+  }
 }
 
 function _bookingLessonDisplay(booking) {
