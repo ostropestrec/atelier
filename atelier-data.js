@@ -2750,18 +2750,6 @@ async function renderCourseDetail(courseId) {
       ${descShort ? `<p class="detail-course-annotation${descLongBlock ? ' is-before-long-desc' : ''}">${descShort}</p>` : ''}
       ${descLongBlock ? `<div style="font-size:14px;line-height:1.75;margin-bottom:${descLongBlock ? '20' : '16'}px;">${descLongBlock}</div>` : ''}
 
-      <div class="detail-info-table">
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
-        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
-        ${(passes ?? []).map(p => {
-          const pc = passThemeHex(p.color_code)
-          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
-            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
-          </div>`
-        }).join('')}
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
-      </div>
-
       ${galleryThumbUrls.length ? `
         <div class="detail-gallery-section">
           <div class="blbl" style="margin-bottom:10px;">${_tp('courses.gallery')}</div>
@@ -2777,6 +2765,18 @@ async function renderCourseDetail(courseId) {
             }).join('')}
           </div>
         </div>` : ''}
+
+      <div class="detail-info-table">
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
+        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
+        ${(passes ?? []).map(p => {
+          const pc = passThemeHex(p.color_code)
+          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
+            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
+          </div>`
+        }).join('')}
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
+      </div>
 
       ${_buildDetailBookingSection(course, courseId, color, upcoming, bookable)}
     </div>`
