@@ -1270,10 +1270,7 @@ async function renderKalendarStrip(preserveScroll = false) {
     }
   }
 
-  const colHeight = (max - min + 1) * PH
-  daysRoot.querySelectorAll('.cal-day-col').forEach(col => {
-    col.style.minHeight = `${colHeight}px`
-  })
+  _applyCalColumnHeights(min, max, PH)
 
   _paintCalEvents(_calStrip.lessons, min, max, PH, '.cal-day-col')
 
@@ -1359,13 +1356,26 @@ function _renderKalendarWeek() {
       tc.appendChild(div)
     }
   }
-  const colHeight = (max - min + 1) * PH
-  colIds.forEach(id => {
-    const col = document.getElementById(id)
-    if (col) col.style.minHeight = `${colHeight}px`
-  })
+  _applyCalColumnHeights(min, max, PH)
 
   _paintCalEvents(window.AppState.lessons, min, max, PH, '.day-col')
+}
+
+function _applyCalColumnHeights(min, max, PH) {
+  const colHeight = (max - min + 1) * PH
+  const tc = document.getElementById('cal-times')
+  if (tc) {
+    tc.classList.add('cal-hour-grid')
+    tc.style.height = `${colHeight}px`
+    tc.style.minHeight = `${colHeight}px`
+    tc.style.maxHeight = `${colHeight}px`
+  }
+  document.querySelectorAll('.day-col, .cal-day-col').forEach(col => {
+    col.classList.add('cal-hour-grid')
+    col.style.height = `${colHeight}px`
+    col.style.minHeight = `${colHeight}px`
+    col.style.maxHeight = `${colHeight}px`
+  })
 }
 
 const SCHEDULE_DAY_LABELS = {

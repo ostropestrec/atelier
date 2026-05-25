@@ -24,7 +24,7 @@
   </script>
   <style>
     /* Když je flag ON: schovej legacy mřížku, ukaž island root. Když OFF: opačně. */
-    .feat-svelte-calendar #screen-kalendar > .cal-ctrl,
+    .feat-svelte-calendar #screen-kalendar > .cal-sticky-head,
     .feat-svelte-calendar #screen-kalendar > .cal-wrap { display: none !important; }
     html:not(.feat-svelte-calendar) #calendar-root { display: none !important; }
   </style>
@@ -836,16 +836,18 @@
       flex-direction: column;
       overflow: visible;
     }
-    .cal-head-pane {
+    .cal-sticky-head {
       flex-shrink: 0;
       z-index: 4;
+      background: #fff;
+    }
+    .cal-head-pane {
+      flex-shrink: 0;
     }
     @media (min-width: 641px) {
-      .cal-head-pane {
+      .cal-sticky-head {
         position: sticky;
         top: var(--topbar-h);
-        z-index: 4;
-        background: #fff;
         box-shadow: 0 1px 0 var(--border);
       }
       #cal-head-week {
@@ -895,37 +897,47 @@
       display:grid;
       grid-template-columns: var(--cal-time-col) repeat(7, 1fr);
     }
+    .cal-hour-grid {
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(17,24,39,.06) 0,
+          rgba(17,24,39,.06) 1px,
+          transparent 1px,
+          transparent var(--cal-hour)
+        );
+    }
     .time-col{
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
       border-right: 1px solid var(--border);
-      background: #fff;
+      background-color: #fff;
     }
     .time-slot{
       height: var(--cal-hour);
+      min-height: var(--cal-hour);
+      max-height: var(--cal-hour);
+      flex: 0 0 var(--cal-hour);
       display:flex;
       align-items:flex-start;
       justify-content: center;
       padding: 6px 8px 0;
       font-size: 11px;
       color: var(--muted);
-      border-bottom: 1px solid rgba(17,24,39,.06);
+      border: none;
       box-sizing: border-box;
+      background: transparent;
     }
-    .time-slot:last-child{ border-bottom:none; }
 
     .cal-head--strip { display: none; }
     .cal-days { display: contents; }
+    .cal-body { align-items: start; }
     .day-col, .cal-day-col {
       position: relative;
       min-height: calc(var(--cal-hour) * 9);
       border-right: 1px solid var(--border);
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          rgba(17,24,39,.06) 0px,
-          rgba(17,24,39,.06) 1px,
-          transparent 1px,
-          transparent var(--cal-hour)
-        );
+      background-color: #fff;
     }
     .day-col:last-child{ border-right:1px solid transparent; }
     .ev {
@@ -940,13 +952,62 @@
         --cal-hour: 64px;
         --cal-time-col: 48px;
       }
+      /* Kalendář: celá stránka bez scrollu, scroll jen uvnitř mřížky */
+      html.cal-mobile-lock,
+      html.cal-mobile-lock body {
+        overflow: hidden;
+        height: 100%;
+        overscroll-behavior: none;
+      }
+      html.cal-mobile-lock .layout-shell {
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      html.cal-mobile-lock .topbar {
+        position: relative;
+        top: auto;
+        flex-shrink: 0;
+        background: #fff;
+        padding-top: env(safe-area-inset-top, 0);
+        min-height: calc(var(--topbar-h) + env(safe-area-inset-top, 0));
+        box-sizing: border-box;
+      }
+      html.cal-mobile-lock .app {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      html.cal-mobile-lock .content {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0;
+      }
+      html.cal-mobile-lock #screen-kalendar.active {
+        display: flex !important;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0 0 env(safe-area-inset-bottom, 0);
+      }
       #screen-kalendar {
         padding-left: 0;
         padding-right: 0;
       }
-      #screen-kalendar .cal-ctrl {
+      #screen-kalendar .cal-sticky-head {
+        flex-shrink: 0;
         padding-left: max(14px, env(safe-area-inset-left));
         padding-right: max(14px, env(safe-area-inset-right));
+      }
+      #screen-kalendar .cal-ctrl {
         margin-bottom: 10px;
       }
       #screen-kalendar .cal-nav-btn { display: none; }
@@ -955,8 +1016,17 @@
         border-left: none;
         border-right: none;
         border-radius: 0;
-        max-height: calc(100dvh - var(--topbar-h) - var(--cal-ctrl-h) - 12px);
+        flex: 1;
+        min-height: 0;
+        max-height: none;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #screen-kalendar .cal-scroll {
+        flex: 1;
+        min-height: 0;
+        overscroll-behavior: contain;
       }
       #screen-kalendar .cal-head-pane { display: none !important; }
       #screen-kalendar .cal-head--strip {
@@ -2048,17 +2118,6 @@
   <!-- Svelte island mount point (viditelný jen pokud window.__features.svelteCalendar) -->
   <div id="calendar-root"></div>
 
-  <div class="cal-ctrl">
-    <button type="button" class="cal-nav-btn cal-nav-prev" onclick="calPrev()" aria-label="Předchozí týden">‹</button>
-    <button type="button" class="cal-week-btn" id="cal-week-btn" aria-expanded="false" aria-haspopup="dialog" aria-controls="cal-picker">
-      <svg class="cal-week-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-        <rect x="3" y="4" width="18" height="17" rx="2"/>
-        <path d="M3 9h18M8 2v4M16 2v4"/>
-      </svg>
-      <span class="cal-week-btn__label" id="cal-week-label"></span>
-    </button>
-    <button type="button" class="cal-nav-btn cal-nav-next" onclick="calNext()" aria-label="Další týden">›</button>
-  </div>
   <div class="cal-picker-backdrop" id="cal-picker-backdrop" aria-hidden="true"></div>
   <div class="cal-picker" id="cal-picker" role="dialog" aria-modal="true" aria-labelledby="cal-picker-title" hidden>
     <div class="cal-picker__head">
@@ -2071,7 +2130,18 @@
     <div class="cal-picker__wd" id="cal-picker-wd"></div>
     <div class="cal-picker__weeks" id="cal-picker-weeks"></div>
   </div>
-  <div class="cal-wrap" id="cal-wrap">
+  <div class="cal-sticky-head" id="cal-sticky-head">
+    <div class="cal-ctrl">
+      <button type="button" class="cal-nav-btn cal-nav-prev" onclick="calPrev()" aria-label="Předchozí týden">‹</button>
+      <button type="button" class="cal-week-btn" id="cal-week-btn" aria-expanded="false" aria-haspopup="dialog" aria-controls="cal-picker">
+        <svg class="cal-week-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="17" rx="2"/>
+          <path d="M3 9h18M8 2v4M16 2v4"/>
+        </svg>
+        <span class="cal-week-btn__label" id="cal-week-label"></span>
+      </button>
+      <button type="button" class="cal-nav-btn cal-nav-next" onclick="calNext()" aria-label="Další týden">›</button>
+    </div>
     <div class="cal-head-pane" id="cal-head-pane">
       <div class="cal-hscroll" id="cal-head-scroll">
         <div class="cal-head" id="cal-head-week">
@@ -2086,6 +2156,8 @@
         </div>
       </div>
     </div>
+  </div>
+  <div class="cal-wrap" id="cal-wrap">
     <div class="cal-scroll" id="cal-scroll">
       <div class="cal-strip-stack" id="cal-strip-stack">
         <div class="cal-head cal-head--strip" id="cal-head-strip" hidden></div>
@@ -2347,6 +2419,7 @@
     const screen = document.getElementById('screen-' + id)
     if (screen) screen.classList.add('active')
     syncActiveNavigation(id)
+    syncCalMobileViewportLock()
 
     window.closeSidebar?.()
 
@@ -2365,6 +2438,15 @@
 
   window.nav = nav
   window.syncActiveNavigation = syncActiveNavigation
+
+  function syncCalMobileViewportLock() {
+    const lock = window.matchMedia('(max-width: 640px)').matches
+      && document.getElementById('screen-kalendar')?.classList.contains('active')
+    document.documentElement.classList.toggle('cal-mobile-lock', !!lock)
+  }
+  window.syncCalMobileViewportLock = syncCalMobileViewportLock
+  window.matchMedia('(max-width: 640px)').addEventListener('change', syncCalMobileViewportLock)
+  syncCalMobileViewportLock()
 
   // Lang: jedno přepínací tlačítko zobrazuje cílový jazyk (CS → „English“, EN → „Česky“).
   window.syncLangUI = (currentLang) => {
