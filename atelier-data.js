@@ -2344,11 +2344,11 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
         const pc = passThemeHex(up.pass?.color_code)
         return `
           <label class="bk-opt ${sel ? 'bk-opt-sel' : ''}"
-                 data-accent-color="${pc}"
-                 style="${passCardSurfaceCss(pc)}${sel ? `border-color:${pc};border-width:1.5px;` : ''}"
+                 data-pass-color="${pc}"
+                 style="${passCardSurfaceCss(pc)}${sel ? `border-color:${color};border-width:1.5px;` : ''}"
                  onclick="window._bkSelectPayment(this,'up-${up.id}')">
             <div class="bk-opt-radio ${sel ? 'on' : ''}"
-                 style="border-color:${pc};${sel ? `background:${pc};` : ''}"></div>
+                 style="border-color:${color};${sel ? `background:${color};` : ''}"></div>
             <div style="flex:1;">
               <div class="bnm">${loc(up.pass?.name ?? {})}</div>
               <div class="bsb">${_tp('booking.payment.entriesLeft', { n: up.entries_remaining })}</div>
@@ -2361,14 +2361,14 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
         const pc = passThemeHex(p.color_code)
         return `
           <label class="bk-opt ${sel ? 'bk-opt-sel' : ''}"
-                 data-accent-color="${pc}"
-                 style="${passCardSurfaceCss(pc)}${sel ? `border-color:${pc};border-width:1.5px;` : ''}"
+                 data-pass-color="${pc}"
+                 style="${passCardSurfaceCss(pc)}${sel ? `border-color:${color};border-width:1.5px;` : ''}"
                  data-buy-pass-template-id="${p.id}"
                  data-buy-pass-entries="${p.entries_total}"
                  data-buy-pass-price="${p.price}"
                  onclick="window._bkSelectPayment(this,'tpl-${p.id}')">
             <div class="bk-opt-radio ${sel ? 'on' : ''}"
-                 style="border-color:${pc};${sel ? `background:${pc};` : ''}"></div>
+                 style="border-color:${color};${sel ? `background:${color};` : ''}"></div>
             <div style="flex:1;">
               <div class="bnm">${loc(p.name)}</div>
               <div class="bsb">
@@ -2410,30 +2410,33 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
 window._bkSelectPayment = (el, value) => {
   const payEl = document.getElementById('bk-payment-opts')
   if (!payEl) return
-  const courseFallback = courseThemeHex(payEl.dataset.color)
+  const courseColor = courseThemeHex(payEl.dataset.color)
   payEl.dataset.selected = value
   payEl.querySelectorAll('.bk-opt').forEach(o => {
     o.classList.remove('bk-opt-sel')
-    const accent = o.dataset.accentColor || courseFallback
-    o.style.borderColor = /^#[0-9A-Fa-f]{6}$/.test(accent) ? `${accent}55` : ''
-    o.style.borderWidth = '1px'
+    const pc = o.dataset.passColor
+    if (pc) {
+      const h = passThemeHex(pc)
+      o.style.borderColor = `${h}44`
+      o.style.borderWidth = '1px'
+    } else {
+      o.style.borderColor = 'rgba(0,0,0,.12)'
+      o.style.borderWidth = '0.5px'
+    }
   })
   payEl.querySelectorAll('.bk-opt-radio').forEach(r => {
     r.classList.remove('on')
-    const label = r.closest('.bk-opt')
-    const acc = label?.dataset.accentColor || courseFallback
-    r.style.borderColor = acc
-    r.style.background = acc && /^#[0-9A-Fa-f]{6}$/.test(acc) ? 'transparent' : ''
+    r.style.borderColor = courseColor
+    r.style.background = 'transparent'
   })
   el.classList.add('bk-opt-sel')
-  const accent = el.dataset.accentColor || courseFallback
-  el.style.borderColor = accent
+  el.style.borderColor = courseColor
   el.style.borderWidth = '1.5px'
   const radio = el.querySelector('.bk-opt-radio')
   if (radio) {
     radio.classList.add('on')
-    radio.style.borderColor = accent
-    radio.style.background = accent
+    radio.style.borderColor = courseColor
+    radio.style.background = courseColor
   }
 
   const courseId = payEl.dataset.courseid
