@@ -60,6 +60,9 @@
       --topbar-h: 64px;
       --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --font-heading: 'Vend Sans', sans-serif;
+      --heading-1-size: 50px;
+      --heading-2-size: 30px;
+      --heading-3-size: 16px;
     }
 
     html,
@@ -79,7 +82,6 @@
       .section-h,
       .admin-section-title,
       .manual-title,
-      .manual-kicker,
       .manual-step-title,
       .manual-card-title,
       .modal-title,
@@ -103,22 +105,40 @@
       font-weight: 700;
     }
 
-    /* Oranžové nadpisy — Vend Sans 700, 40px, normální velikost písmen */
+    /* Nadpis 1 — hlavní (černý) */
+    :is(.page-title, .hello, .manual-title) {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: var(--heading-1-size);
+      line-height: 1.08;
+    }
+
+    /* Nadpis 2 — oranžový sekční */
     :is(
       .sec-title,
       .section-h,
       .admin-section-title,
-      .manual-kicker,
       .block-label,
-      .blbl,
       .side-section-label
     ) {
       font-family: var(--font-heading);
       font-weight: 700;
-      font-size: 40px;
-      line-height: 1.08;
+      font-size: var(--heading-2-size);
+      line-height: 1.12;
       text-transform: none;
       letter-spacing: normal;
+      color: var(--section-heading-accent);
+    }
+
+    /* Nadpis 3 — oranžový podnadpis */
+    :is(.manual-kicker, .blbl:not(.blbl-sm)) {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: var(--heading-3-size);
+      line-height: 1.25;
+      text-transform: none;
+      letter-spacing: normal;
+      color: var(--section-heading-accent);
     }
 
     body {
@@ -169,15 +189,40 @@
     }
 
     @media (max-width: 1023px) {
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
       body {
         background: var(--bg);
         padding: 0;
-        min-height: 100vh;
+        min-height: 0;
       }
       .layout-shell {
         border-radius: 0;
         box-shadow: none;
-        min-height: 100vh;
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .app {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .content {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
     }
 
@@ -193,11 +238,15 @@
     }
     .logo {
       font-family: var(--font-body);
-      font-size: 21px;
+      font-size: 17px;
       font-weight: 600;
       letter-spacing: normal;
       text-transform: none;
       flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       color: var(--section-heading-accent);
     }
     .top-actions{display:flex;align-items:center;gap:10px;}
@@ -248,14 +297,16 @@
     }
     .sbtn.primary{ background: var(--primary); color:#fff; border-color: var(--primary); }
     @media (max-width: 1023px) {
-      :root { --topbar-h: 84px; }
       .topbar {
         z-index: 320;
-        height: auto;
+        flex-shrink: 0;
+        height: var(--topbar-h);
         min-height: var(--topbar-h);
-        padding: 10px 14px;
-        align-items: center;
+        max-height: var(--topbar-h);
+        padding: 0 12px;
+        gap: 8px;
       }
+      .logo { font-size: 14px; }
       .sidebar {
         z-index: 310;
       }
@@ -264,28 +315,29 @@
       }
       .ham-btn {
         background: #fff;
+        flex-shrink: 0;
       }
       .top-actions {
-        flex-direction: column;
-        align-items: stretch;
+        flex-shrink: 0;
         gap: 6px;
       }
-      .lang-toggle {
-        justify-content: flex-end;
+      .lang-pill {
+        padding: 5px 9px;
+        font-size: 12px;
       }
       .top-actions .sbtn {
-        font-size: 13px;
-        padding: 6px 11px;
+        font-size: 12px;
+        padding: 5px 10px;
         border-radius: 999px;
         line-height: 1.2;
         white-space: nowrap;
         background: #fff;
-        width: 100%;
-        text-align: center;
-        box-sizing: border-box;
       }
       .top-actions .avatar {
-        align-self: flex-end;
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+        flex-shrink: 0;
       }
     }
 
@@ -1263,16 +1315,8 @@
     html[data-user-role="admin"] #screen-manual .manual-role--admin {
       display: block;
     }
-    .manual-kicker {
-      color: var(--section-heading-accent);
-      margin-bottom: 8px;
-    }
-    .manual-title {
-      font-size: 50px;
-      line-height: 1.08;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
+    .manual-kicker { margin-bottom: 8px; }
+    .manual-title { margin-bottom: 8px; }
     .manual-lead {
       font-size: 15px;
       color: var(--anno);
@@ -1382,7 +1426,7 @@
       margin-right: -12px;
       flex: 0 0 auto;
     }
-    .hello{ font-size: 50px; line-height: 1.08; font-weight: 700; margin-bottom: 4px; }
+    .hello{ margin-bottom: 4px; }
     .subtle{ font-size: 14px; color: var(--muted); }
     .section-h{
       color: var(--section-heading-accent);
@@ -1613,7 +1657,7 @@
     .btn-small.danger{ color:#7A1F1F; border-color: rgba(122,31,31,.25); background: rgba(122,31,31,.06); }
 
     /* ── Nastavení (form + modal) ─────────────────────────────── */
-    .page-title{ font-size: 50px; line-height: 1.08; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .page-title{ margin-bottom: 4px; color: var(--text); }
     .page-sub{ font-size: 14px; color: var(--muted); margin-bottom: 18px; }
     .block-label{
       color: var(--section-heading-accent);
