@@ -653,6 +653,15 @@ function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capa
   return `<div class="detail-meta-pills">${pills.join('')}</div>`
 }
 
+/** Popisek jednorázové platby — u workshopu „Cena“, jinak „Jednorázový vstup“. */
+function _singlePaymentLabelForCourse(course) {
+  return course?.is_workshop ? _tp('common.price') : _tp('booking.payment.singleSession')
+}
+
+function _freeCancellationLabelForCourse(course) {
+  return course?.is_workshop ? _tp('courses.freeCancellationShort') : _tp('courses.freeCancellation')
+}
+
 function _isPastLesson(lesson) {
   const endTs = lesson?.end_time ? new Date(lesson.end_time).getTime() : NaN
   return Number.isFinite(endTs) && endTs <= Date.now()
@@ -1518,10 +1527,10 @@ function buildBuyPanel(c, color, includeReserveButton = true, payScope = 'card')
       data-pay-type="single" data-color="${color}" data-course-id="${c.id}"
       onclick="window.selectPayment(this,'${c.id}','single',null)">
       <div class="brow">
-        <span class="bnm">${_tp('booking.payment.singleSession')}</span>
+        <span class="bnm">${_singlePaymentLabelForCourse(c)}</span>
         <span style="font-size:11px;font-weight:500;color:${color};">${fmtPrice(c.price_single)}</span>
       </div>
-      <div class="bsb">${_tp('booking.payment.singleSessionValidity')}</div>
+      <div class="bsb">${c.is_workshop ? '' : _tp('booking.payment.singleSessionValidity')}</div>
     </div>
     <div id="${panelId}" class="pay-opts-pass-list"></div>
     <div id="${countId}" style="display:none;font-size:11px;color:#6b6b6b;margin:8px 0 2px;line-height:1.45;text-align:center;"></div>
@@ -2298,9 +2307,7 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
         : (preferredIsSingle ? 'single' : (defaultPass ? `up-${defaultPass.id}` : 'single')))
 
   const workshopBundlePay = _workshopBundleLessons(courseId)
-  const singlePayTitle = workshopBundlePay
-    ? loc(course.title)
-    : _tp('booking.payment.singleSession')
+  const singlePayTitle = _singlePaymentLabelForCourse(course)
 
   const payEl = document.getElementById('bk-payment-opts')
   if (payEl) {
@@ -2807,9 +2814,9 @@ async function renderCourseDetail(courseId) {
 
   const detailInfoTableHtml = `
       <div class="detail-info-table" role="table">
-          ${_detailInfoTableRow(_tp('booking.payment.singleSession'), singleEntryVal, `color:${color};`)}
+          ${_detailInfoTableRow(_singlePaymentLabelForCourse(course), singleEntryVal, `color:${color};`)}
           ${passRowsHtml}
-          ${_detailInfoTableRow(_tp('courses.freeCancellation'), `${course.cancellation_hours}h ${_tp('courses.ahead')}`)}
+          ${_detailInfoTableRow(_freeCancellationLabelForCourse(course), `${course.cancellation_hours}h ${_tp('courses.ahead')}`)}
       </div>`
 
   el.innerHTML = `
