@@ -404,10 +404,10 @@
     }
     .detail-course-annotation.is-before-long-desc { margin-bottom: 22px; }
 
-    /* Dlouhý popis (obsah / Quill) — základní barva jako hlavní text */
-    .course-rich-text { color: var(--text); }
-    .course-rich-text p { margin: 0 0 0.85em 0; line-height: 1.75; }
-    .course-rich-text p:last-child { margin-bottom: 0; }
+    /* Dlouhý popis (obsah / Quill) — stejné řádkování jako v admin editoru (.ql-editor) */
+    .course-rich-text { color: var(--text); line-height: 1.55; }
+    .course-rich-text p { margin: 0; padding: 0; line-height: 1.55; }
+    .course-rich-text p:empty { min-height: 1.55em; }
     .course-rich-text h2,
     .course-rich-text h3 {
       margin: 1.15em 0 0.45em;
@@ -419,7 +419,7 @@
     .course-rich-text h2 { font-size: 1.2rem; font-weight: 700; }
     .course-rich-text h3 { font-size: 1.05rem; font-weight: 650; }
     .course-rich-text ul,
-    .course-rich-text ol { margin: 0.4em 0 0.85em 0; padding-left: 1.35em; list-style-position: outside; }
+    .course-rich-text ol { margin: 0.35em 0 0.5em 0; padding-left: 1.35em; list-style-position: outside; }
     .course-rich-text ul { list-style-type: disc; }
     .course-rich-text ol { list-style-type: decimal; }
     .course-rich-text li { margin-bottom: 0.35em; padding-left: 0.2em; line-height: 1.65; }
@@ -428,6 +428,7 @@
     .course-rich-text em, .course-rich-text i { font-style: italic; }
     .course-rich-text u { text-decoration: underline; text-underline-offset: 2px; }
     .course-rich-text--plain { white-space: pre-line; }
+    .detail-long-desc-wrap { font-size: 14px; margin-bottom: 20px; }
 
     /* Quill v admin modálech */
     .admin-quill-wrap .ql-toolbar.ql-snow {

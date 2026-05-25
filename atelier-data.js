@@ -5,7 +5,7 @@
 // ============================================================
 
 import { sb, logSupabaseClientDebug } from './atelier-supabase.js'
-import { sanitizeCourseRichText } from './atelier-sanitize.js'
+import { normalizeCourseRichTextForDisplay, sanitizeCourseRichText } from './atelier-sanitize.js'
 import {
   isEnrolled,
   registerRerenderers,
@@ -893,7 +893,7 @@ function _formatCourseDetailLong(raw) {
   const s = String(raw ?? '').trim()
   if (!s) return ''
   if (/<[a-z][\s\S]*>/i.test(s))
-    return `<div class="course-rich-text">${sanitizeCourseRichText(s)}</div>`
+    return `<div class="course-rich-text">${normalizeCourseRichTextForDisplay(s)}</div>`
   return `<div class="course-rich-text course-rich-text--plain">${_escHtml(s)}</div>`
 }
 
@@ -2843,7 +2843,7 @@ async function renderCourseDetail(courseId) {
         ? `<p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>`
         : ''}
       ${descShort ? `<p class="detail-course-annotation${descLongBlock ? ' is-before-long-desc' : ''}">${descShort}</p>` : ''}
-      ${descLongBlock ? `<div style="font-size:14px;line-height:1.75;margin-bottom:${descLongBlock ? '20' : '16'}px;">${descLongBlock}</div>` : ''}
+      ${descLongBlock ? `<div class="detail-long-desc-wrap">${descLongBlock}</div>` : ''}
 
       ${galleryThumbUrls.length ? `
         <div class="detail-gallery-section">

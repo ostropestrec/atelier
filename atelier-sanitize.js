@@ -16,3 +16,15 @@ export function sanitizeCourseRichText(dirty) {
   const s = String(dirty)
   return DOMPurify.sanitize(s, RICH_TEXT_CONFIG)
 }
+
+/**
+ * Quill ukládá nový řádek jako <p><br></p> — bez úpravy margin u <p> v detailu vzniká dvojnásobný odstup.
+ * Sjednotí prázdné odstavce a ořízne zbytečné obalení před zobrazením (editor má line-height ~1.55, margin 0).
+ */
+export function normalizeCourseRichTextForDisplay(html) {
+  let s = sanitizeCourseRichText(html).trim()
+  if (!s) return ''
+  s = s.replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '<p><br></p>')
+  s = s.replace(/<p>\s*<\/p>/gi, '<p><br></p>')
+  return s
+}
