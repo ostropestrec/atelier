@@ -3665,7 +3665,6 @@ async function renderCourseDetail(courseId) {
 
       ${galleryThumbUrls.length ? `
         <div class="detail-gallery-section">
-          <div class="blbl" style="margin-bottom:10px;">${_tp('courses.gallery')}</div>
           <div class="detail-gallery-grid">
             ${galleryThumbUrls.map((u, thumbIdx) => {
               const fullIdx = thumbIdx + 1

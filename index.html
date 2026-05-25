@@ -115,7 +115,7 @@
       letter-spacing: normal;
     }
 
-    /* Nadpis 2 — oranžový sekční */
+    /* Nadpis 2 — modrý sekční */
     :is(
       .sec-title,
       .section-h,
@@ -128,11 +128,11 @@
       line-height: 1.12;
       text-transform: none;
       letter-spacing: normal;
-      color: var(--section-heading-accent);
+      color: var(--primary);
     }
 
-    /* Nadpis 3 — oranžový podnadpis + sidebar */
-    :is(.manual-kicker, .blbl:not(.blbl-sm), .side-section-label) {
+    /* Nadpis 3 — oranžový podnadpis */
+    :is(.manual-kicker, .blbl:not(.blbl-sm)) {
       font-family: var(--font-heading);
       font-weight: 700;
       font-size: var(--heading-3-size);
@@ -493,7 +493,6 @@
 
     /* ── Sekce nadpis ── */
     .sec-title {
-      color: var(--section-heading-accent);
       margin-bottom: 12px;
     }
 
@@ -1444,7 +1443,6 @@
     .hello{ margin-bottom: 4px; }
     .subtle{ font-size: 14px; color: var(--muted); }
     .section-h{
-      color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
     }
     #screen-nastenka > .sec-title{
@@ -1675,7 +1673,6 @@
     .page-title{ margin-bottom: 4px; color: var(--text); }
     .page-sub{ font-size: 14px; color: var(--muted); margin-bottom: 18px; }
     .block-label{
-      color: var(--section-heading-accent);
       margin: 18px 0 8px;
     }
     .field{ margin-bottom: 14px; }
@@ -1789,7 +1786,13 @@
 
     /* ── Admin sidebar sekce ── */
     .side-section-label {
-      color: var(--section-heading-accent);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--muted);
       padding: 2px 12px 0;
       margin: 0;
     }
@@ -1829,7 +1832,6 @@
 
     /* ── Admin sekce nadpis (přehled, platby, sekce z buildStaffLessonsSectionHtml …) ── */
     .admin-section-title {
-      color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
     }
     #admin-dash-content .page-title{ margin-bottom: 24px !important; }
