@@ -592,35 +592,11 @@ function _workshopBadgeHtml() {
   return `<span class="badge" style="background:#FFF4E0;color:#8B5C00;font-size:10px;font-weight:600;">${_escHtml(_tp('courses.badgeWorkshop'))}</span>`
 }
 
-/** Kapacita v hlavičce karty Kurzy — workshop = společný pool (stejné číslo na všech termínech). */
-function _kurzyCardCapacityMetaHtml(course, upcoming, restricted, bookable) {
-  const isWorkshopPool = !!course.is_workshop && upcoming.length > 1
-  if (!isWorkshopPool) {
-    const soldOut = !upcoming.some(l => l.available_spots > 0)
-    return {
-      soldOut,
-      inner: `
-            <span class="cmi">${course.capacity_default} ${_tp('courses.capacitySpots')}</span>
-            ${restricted && !bookable
-              ? ''
-              : soldOut
-                ? `<span class="badge" style="background:#fdeaea;color:#791F1F;">${_tp('courses.badgeFull')}</span>`
-                : `<span class="badge" style="background:#eaf5ea;color:#085041;">${_tp('courses.badgeSpots')}</span>`
-            }`,
-    }
-  }
-
-  const ref = upcoming[0]
-  const total = Number(ref?.capacity ?? course.capacity_default) || 0
-  const free = Math.max(0, Number(ref?.available_spots ?? 0))
-  const soldOut = free <= 0
-  const label = _tp('courses.spotsFreeOfTotal', { free, total })
-  return {
-    soldOut,
-    inner: restricted && !bookable
-      ? `<span class="cmi">${_escHtml(label)}</span>`
-      : `<span class="badge" style="background:${soldOut ? '#fdeaea' : '#eaf5ea'};color:${soldOut ? '#791F1F' : '#085041'};">${_escHtml(label)}</span>`,
-  }
+/** Štítek kapacity v hlavičce karty Kurzy (bez volných míst). */
+function _kurzyCardCapacityMetaHtml(course) {
+  const n = Number(course?.capacity_default) || 0
+  if (n < 1) return ''
+  return `<span class="cmi">${_escHtml(_tp('courses.capacityAccordion', { n }))}</span>`
 }
 
 function _isPastLesson(lesson) {
@@ -1250,7 +1226,7 @@ export function renderKurzy() {
     const pricePerEntry = c.price_single
     const restricted = !!c.is_restricted
     const bookable = canBookCourse(c)
-    const capacityMeta = _kurzyCardCapacityMetaHtml(c, upcoming, restricted, bookable)
+    const capacityMeta = _kurzyCardCapacityMetaHtml(c)
 
     _ensureCardStateForCourse(c.id, upcoming)
 
@@ -1269,7 +1245,7 @@ export function renderKurzy() {
           <div class="cname">${title}${c.is_workshop ? ` ${_workshopBadgeHtml()}` : ''}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
           <div class="cmeta">
             <span class="cmi">${ownerName ?? '—'}</span>
-            ${capacityMeta.inner}
+            ${capacityMeta}
           </div>
         </div>
         <div class="cr">
@@ -1340,7 +1316,7 @@ function buildTermPills(upcoming, color, courseId, interactive = true, large = f
     const padding = (large || !interactive) ? '6px 12px' : '3px 9px'
     const fontSize = (large || !interactive) ? '11px' : '10px'
     const fullClass = full ? ' term-pill--full' : ''
-    const fullSuffix = full && !forDetail ? ` (${_tp('courses.optionFullSuffix')})` : ''
+    const fullSuffix = full ? ` (${_tp('courses.optionFullSuffix')})` : ''
     return `<span
       class="term-pill${fullClass}"
       data-lesson-id="${lid}"
@@ -2727,7 +2703,6 @@ async function renderCourseDetail(courseId) {
   const ownerName = Array.isArray(course.owner) ? course.owner[0]?.name : course.owner?.name
   const upcoming  = window.AppState.upcomingLessons.filter(l => l.course_id === courseId)
   const isWorkshopBundle = !!course.is_workshop && upcoming.length > 1
-  const priceSuffix = isWorkshopBundle ? _tp('courses.perWorkshop') : _tp('courses.perSession')
   const bookable = canBookCourse(course)
   const restricted = !!course.is_restricted
 
@@ -2757,6 +2732,27 @@ async function renderCourseDetail(courseId) {
   const heroImg = imageUrls[0] ?? null
   const galleryThumbUrls = imageUrls.length > 1 ? imageUrls.slice(1) : []
   const backTarget = _isStaffUser() ? 'admin-kurzy' : 'kurzy'
+  const durationVal = durMin ? `${durMin} min` : '—'
+  const singleEntryVal = isWorkshopBundle
+    ? `${fmtPrice(course.price_single)} · ${_tp('courses.perWorkshop')}`
+    : fmtPrice(course.price_single)
+
+  const detailInfoTableHtml = `
+      <div class="detail-info-table" style="margin-top:12px;margin-bottom:16px;">
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
+        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
+        <div class="detail-info-row"><span class="lbl">${_tp('kal.duration')}</span><span class="val">${durationVal}</span></div>
+        <div class="detail-info-row"><span class="lbl">${_tp('booking.payment.singleSession')}</span><span class="val" style="color:${color};">${singleEntryVal}</span></div>
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.lessonCapacity')}</span><span class="val">${Number(course.capacity_default) || '—'}</span></div>
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.minParticipants')}</span><span class="val">${Math.max(1, Number(course.min_participants ?? 1))}</span></div>
+        ${(passes ?? []).map(p => {
+          const pc = passThemeHex(p.color_code)
+          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
+            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
+          </div>`
+        }).join('')}
+        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
+      </div>`
 
   el.innerHTML = `
     <div style="max-width:760px;">
@@ -2765,23 +2761,17 @@ async function renderCourseDetail(courseId) {
       </button>
       <div style="height:4px;background:${color};border-radius:99px;margin-bottom:16px;"></div>
 
-      ${heroImg
-        ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`
-        : `<div class="detail-hero-ph">${_escHtml(_tp('courses.photoAlt'))}</div>`}
-
       <div style="font-size:22px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">
-        ${ownerName ?? '—'}${scheduleDays ? ' · ' + scheduleDays : ''}
-      </div>
+
+      ${detailInfoTableHtml}
 
       ${restricted && !bookable && !_isStaffUser()
         ? `<div style="font-size:13px;color:#2854B9;background:#E8EEF8;padding:12px 14px;border-radius:10px;margin-bottom:16px;line-height:1.55;">${_escHtml(_tp('courses.restrictedBookingHint'))}</div>`
         : ''}
 
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
-        ${durMin ? `<span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--muted-surface);">${durMin} min</span>` : ''}
-        <span style="font-size:12px;padding:5px 10px;border-radius:var(--btn-radius);background:var(--primary-100);color:var(--primary);font-weight:600;">${fmtPrice(course.price_single)} / ${priceSuffix}</span>
-      </div>
+      ${heroImg
+        ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`
+        : `<div class="detail-hero-ph">${_escHtml(_tp('courses.photoAlt'))}</div>`}
 
       ${isWorkshopBundle && !(!_isStaffUser() && bookable && upcoming.length)
         ? `<p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5;">${_escHtml(_tp('courses.workshopSessionsNote', { n: upcoming.length }))}</p>`
@@ -2804,18 +2794,6 @@ async function renderCourseDetail(courseId) {
             }).join('')}
           </div>
         </div>` : ''}
-
-      <div class="detail-info-table">
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.instructor')}</span><span class="val">${ownerName ?? '—'}</span></div>
-        ${scheduleDays ? `<div class="detail-info-row"><span class="lbl">${_tp('courses.scheduleLabel')}</span><span class="val">${scheduleDays}</span></div>` : ''}
-        ${(passes ?? []).map(p => {
-          const pc = passThemeHex(p.color_code)
-          return `<div class="detail-info-row" style="border-left:4px solid ${pc};background:${pc}12;padding-left:12px;">
-            <span class="lbl">${loc(p.name)}</span><span class="val" style="color:${pc};">${fmtPrice(p.price)}</span>
-          </div>`
-        }).join('')}
-        <div class="detail-info-row"><span class="lbl">${_tp('courses.freeCancellation')}</span><span class="val">${course.cancellation_hours}h ${_tp('courses.ahead')}</span></div>
-      </div>
 
       ${_buildDetailBookingSection(course, courseId, color, upcoming, bookable)}
     </div>`
