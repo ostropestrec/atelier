@@ -619,6 +619,7 @@ export async function refreshUserBookings() {
   ])
   rerenderCalendar()
   updateEnrolledOnNastenska()
+  _refreshUserOverviewUI()
 }
 window.refreshUserBookings = refreshUserBookings
 
@@ -1553,6 +1554,50 @@ function _overviewLocale() {
   return window.__uiLang === 'en' ? 'en' : 'cs'
 }
 
+/** Časová hranice lekce pro filtr „nadcházející“ — i když embed lesson v SELECT selže. */
+function _bookingLessonBoundary(booking) {
+  const lesson = booking?.lesson
+  if (lesson?.end_time || lesson?.start_time) {
+    return lesson.end_time ?? lesson.start_time
+  }
+  const lid = booking?.lesson_id
+  if (!lid) return null
+  const fromState = (window.AppState?.upcomingLessons ?? []).find(l => {
+    const id = String(l.lesson_id ?? l.id)
+    return id === String(lid)
+  })
+  return fromState?.end_time ?? fromState?.start_time ?? null
+}
+
+function _bookingLessonDisplay(booking) {
+  const lesson = booking?.lesson
+  const course = lesson?.course
+  if (course?.title) {
+    return {
+      courseId: course.id,
+      title: locJson(course.title),
+      color: _overviewCourseHex(course.color_code),
+      owner: course.owner?.name ?? '—',
+      when: lesson?.start_time ? fmtBookingWhen(lesson.start_time) : '',
+    }
+  }
+  const lid = booking?.lesson_id
+  const fromState = (window.AppState?.upcomingLessons ?? []).find(l => {
+    const id = String(l.lesson_id ?? l.id)
+    return id === String(lid)
+  })
+  const c = fromState
+    ? (window.AppState?.courses ?? []).find(x => x.id === fromState.course_id)
+    : null
+  return {
+    courseId: fromState?.course_id ?? c?.id ?? '',
+    title: c ? locJson(c.title) : t(_overviewLocale(), 'dashboard.lessonFallback'),
+    color: _overviewCourseHex(c?.color_code),
+    owner: Array.isArray(c?.owner) ? c.owner[0]?.name : (c?.owner?.name ?? '—'),
+    when: fromState?.start_time ? fmtBookingWhen(fromState.start_time) : '',
+  }
+}
+
 // ── Chráněné sekce: profil / přehled uživatele ─────────────────
 export function buildUserGreetingHtml(user) {
   if (!user) return ''
@@ -1615,18 +1660,16 @@ export function buildUserOverviewHtml(user) {
 
   const nowMs = Date.now()
   const upcomingBookings = (myBookings ?? []).filter(b => {
-    const lesson = b.lesson
-    const boundary = lesson?.end_time ?? lesson?.start_time
+    const boundary = _bookingLessonBoundary(b)
     return boundary ? new Date(boundary).getTime() >= nowMs : false
   })
 
   const bookingsHtml = upcomingBookings.map(b => {
-    const lesson = b.lesson
-    const course = lesson?.course
-    const color = _overviewCourseHex(course?.color_code)
-    const title = locJson(course?.title)
-    const owner = course?.owner?.name ?? '—'
-    const when = lesson?.start_time ? fmtBookingWhen(lesson.start_time) : ''
+    const disp = _bookingLessonDisplay(b)
+    const color = disp.color
+    const title = disp.title
+    const owner = disp.owner
+    const when = disp.when
     const statusKey = b.status === PARTICIPATION_STATUS.PENDING_PAYMENT
       ? 'dashboard.bookingPendingPayment'
       : 'dashboard.bookingConfirmed'
@@ -1636,7 +1679,7 @@ export function buildUserOverviewHtml(user) {
           <span class="dot" style="background:${color}"></span>
           <div style="min-width:0">
             <div class="bk-title">
-              <a href="javascript:void(0)" onclick="window.openDetail?.('${lesson?.course?.id ?? ''}')"
+              <a href="javascript:void(0)" onclick="window.openDetail?.('${disp.courseId ?? ''}')"
                 style="color:inherit;text-decoration:none;">
                 ${escapeHtml(title || t(locale, 'dashboard.lessonFallback'))}
               </a>

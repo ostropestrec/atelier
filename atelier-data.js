@@ -1994,10 +1994,8 @@ window.buyPass = async (
         await loadPassesForCourse(courseId)
         renderKurzy()
         renderKalendar()
-      } else {
-        window.renderProfile?.()
       }
-      window.refreshUserBookings?.()
+      await window.refreshUserBookings?.()
       window.showToast?.(_tp('purchase.passPurchasedAndBooked'), 'ok')
       return
     }
@@ -2969,7 +2967,7 @@ window.confirmBooking = async () => {
     await Promise.all([fetchUpcomingLessons(), fetchLessons()])
     renderKurzy()
     renderKalendar()
-    window.refreshUserBookings?.()
+    await window.refreshUserBookings?.()
   } catch (err) {
     console.error('[Booking] Popup rezervace selhala:', err)
     window.showToast?.(_tp('booking.toast.errorPrefix') + (err.message ?? err), 'error')
