@@ -830,8 +830,8 @@
 
     .cal-wrap{
       background: #fff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border: none;
+      border-radius: 0;
       display: flex;
       flex-direction: column;
       overflow: visible;
@@ -839,6 +839,24 @@
     .cal-head-pane {
       flex-shrink: 0;
       z-index: 4;
+    }
+    @media (min-width: 641px) {
+      .cal-head-pane {
+        position: sticky;
+        top: var(--topbar-h);
+        z-index: 4;
+        background: #fff;
+        box-shadow: 0 1px 0 var(--border);
+      }
+      #cal-head-week {
+        position: static;
+        top: auto;
+      }
+      #cal-head-week .corner {
+        position: static;
+        left: auto;
+        box-shadow: none;
+      }
     }
     .cal-hscroll {
       overflow: visible;
@@ -854,9 +872,6 @@
       grid-template-columns: var(--cal-time-col) repeat(7, 1fr);
       border-bottom: 1px solid var(--border);
       background: #fff;
-      position: sticky;
-      top: var(--topbar-h);
-      z-index: 4;
     }
     .cal-head .corner{
       position: sticky;
