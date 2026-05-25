@@ -1869,6 +1869,45 @@ function _confirmUserWantsToCompletePurchase({ pilot = false } = {}) {
   return window.confirm(_tp(pilot ? 'purchase.confirmPilotComplete' : 'purchase.confirmComplete'))
 }
 
+function _closeBookingPopup() {
+  const bk = document.getElementById('pop-booking')
+  if (bk) bk.style.display = 'none'
+  window._bookingPopupCtx = null
+}
+
+/** Rezervace jedné lekce nově zakoupenou permanentkou (trigger v DB sníží entries_remaining). */
+async function _bookLessonWithUserPass(userPassId, lessonId) {
+  const les = _findFutureBookableLessonById(lessonId)
+  if (!les || les.available_spots <= 0 || isEnrolled(lessonId)) {
+    throw new Error(_tp('booking.toast.sessionNoLongerAvailable'))
+  }
+  const passRow = userPasses.find(p => String(p.id) === String(userPassId))
+  const allowed = passRow?.pass?.allowed_course_ids
+  if (allowed?.length && !allowed.includes(les.course_id)) {
+    throw new Error(_tp('booking.toast.passNotForCourse'))
+  }
+  const { error } = await sb.from('bookings').insert({
+    user_id:      currentUser.id,
+    lesson_id:    lessonId,
+    payment_type: 'pass',
+    price_paid:   0,
+    status:       PARTICIPATION_STATUS.CONFIRMED,
+    user_pass_id: userPassId,
+  })
+  if (error) throw error
+}
+
+function _resolveBuyPassLessonId(courseId, explicitLessonId) {
+  const fromArg = explicitLessonId != null && String(explicitLessonId).trim()
+    ? String(explicitLessonId).trim()
+    : ''
+  if (fromArg) return fromArg
+  const fromSelect = document.getElementById('bk-lesson-select')?.value?.trim?.()
+  if (fromSelect) return fromSelect
+  const fromCard = window._cardState?.[courseId]?.lessonId
+  return fromCard != null ? String(fromCard) : ''
+}
+
 window.buyPass = async (
   passId,
   entriesTotal,
@@ -1890,9 +1929,15 @@ window.buyPass = async (
 
   const originalBtnText = btn?.textContent ?? ''
   const passTitle = (extra.passTitle && String(extra.passTitle).trim()) || _tp('common.pass')
-  const reopenBooking = !!extra.reopenBooking
+  const bookLessonId = _resolveBuyPassLessonId(courseId, extra.bookLessonId ?? preselectedLessonId)
+  const bookAfterPurchase = !!bookLessonId
+  const reopenBooking = !!extra.reopenBooking && !bookAfterPurchase
 
-  const les = preselectedLessonId
+  const les = bookLessonId
+    ? _findFutureBookableLessonById(bookLessonId)
+    : (preselectedLessonId
+      ? window.AppState.upcomingLessons?.find(l => String(l.lesson_id ?? l.id) === String(preselectedLessonId))
+      : null)
     ? window.AppState.upcomingLessons?.find(l => String(l.lesson_id ?? l.id) === String(preselectedLessonId))
     : null
   const lessonWhen = les?.start_time ? fmtLessonPill(les.start_time) : ''
@@ -1925,22 +1970,42 @@ window.buyPass = async (
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + (entriesTotal + 2) * 7)
 
-    const { error } = await sb.from('user_passes').insert({
-      user_id:           currentUser.id,
-      pass_id:           passId,
-      entries_total:     entriesTotal,
-      entries_remaining: entriesTotal,
-      price_paid:        PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : price,
-      expires_at:        expiresAt.toISOString(),
-      status:            'active',
-    })
+    const { data: newPass, error } = await sb.from('user_passes')
+      .insert({
+        user_id:           currentUser.id,
+        pass_id:           passId,
+        entries_total:     entriesTotal,
+        entries_remaining: entriesTotal,
+        price_paid:        PILOT_FREE_CHECKOUT && priceNum > 0 ? 0 : price,
+        expires_at:        expiresAt.toISOString(),
+        status:            'active',
+      })
+      .select('id')
+      .single()
     if (error) throw error
 
     await loadUserPasses(currentUser.id)
+
+    if (bookAfterPurchase && newPass?.id) {
+      await _bookLessonWithUserPass(newPass.id, bookLessonId)
+      _closeBookingPopup()
+      await Promise.all([fetchUpcomingLessons(), fetchLessons()])
+      if (courseId) {
+        await loadPassesForCourse(courseId)
+        renderKurzy()
+        renderKalendar()
+      } else {
+        window.renderProfile?.()
+      }
+      window.refreshUserBookings?.()
+      window.showToast?.(_tp('purchase.passPurchasedAndBooked'), 'ok')
+      return
+    }
+
     if (courseId) {
       await loadPassesForCourse(courseId)
       const bookingPopup = document.getElementById('pop-booking')
-      if (bookingPopup?.style.display === 'flex') {
+      if (bookingPopup?.style.display === 'flex' && reopenBooking) {
         const selectedLessonId = preselectedLessonId ?? (document.getElementById('bk-lesson-select')?.value || null)
         await window.openBookingPopup?.(courseId, passId, selectedLessonId)
       }
@@ -2357,22 +2422,34 @@ function _renderBookingSummaryContent(
     </div>`
 }
 
-function _setBookingPopupUiMode(mode, { showResumeBanner = false } = {}) {
+function _syncBookingPopupChangeButton(courseId) {
+  const btn = document.getElementById('bk-change-btn')
+  if (!btn) return
+  const hide = !!(courseId && _workshopBundleLessons(courseId))
+  btn.style.display = hide ? 'none' : ''
+}
+
+function _setBookingPopupUiMode(mode, { showResumeBanner = false, courseId = null } = {}) {
   const popup = document.getElementById('pop-booking')
   if (popup) popup.dataset.bkMode = mode
   const banner = document.getElementById('bk-resume-banner')
   const summaryWrap = document.getElementById('bk-summary-wrap')
   const editWrap = document.getElementById('bk-edit-wrap')
+  const cid = courseId ?? document.getElementById('bk-payment-opts')?.dataset.courseid ?? null
   if (banner) {
     banner.style.display = showResumeBanner ? 'block' : 'none'
     banner.textContent = showResumeBanner ? _tp('booking.summary.resumeLead') : ''
   }
   if (summaryWrap) summaryWrap.style.display = mode === 'summary' ? 'block' : 'none'
   if (editWrap) editWrap.style.display = mode === 'summary' ? 'none' : 'block'
+  _syncBookingPopupChangeButton(cid)
 }
 
 window._bkShowBookingEdit = () => {
-  _setBookingPopupUiMode('edit')
+  const courseId = window._bookingPopupCtx?.courseId
+    ?? document.getElementById('bk-payment-opts')?.dataset.courseid
+  if (courseId && _workshopBundleLessons(courseId)) return
+  _setBookingPopupUiMode('edit', { courseId })
   if (window._bookingPopupCtx) window._bookingPopupCtx.uiMode = 'edit'
 }
 
@@ -2622,7 +2699,9 @@ window.openBookingPopup = async (
 
   _seedCardStateForBookingPopup(courseId, preselectedLessonId, defaultPay, preselectedLessonIds)
 
-  const useSummary = _shouldOpenBookingSummary(courseId, course, popupOpts, preselectedLessonId)
+  const isWorkshopBundle = !!_workshopBundleLessons(courseId)
+  const useSummary = isWorkshopBundle
+    || _shouldOpenBookingSummary(courseId, course, popupOpts, preselectedLessonId)
   if (useSummary) {
     _renderBookingSummaryContent(
       course,
@@ -2633,9 +2712,12 @@ window.openBookingPopup = async (
       activePasses,
       purchasablePasses,
     )
-    _setBookingPopupUiMode('summary', { showResumeBanner: !!popupOpts?.showResumeBanner })
+    _setBookingPopupUiMode('summary', {
+      showResumeBanner: !!popupOpts?.showResumeBanner,
+      courseId,
+    })
   } else {
-    _setBookingPopupUiMode('edit', { showResumeBanner: false })
+    _setBookingPopupUiMode('edit', { showResumeBanner: false, courseId })
   }
 
   window._bookingPopupCtx = {
@@ -2727,9 +2809,13 @@ window.confirmBooking = async () => {
     return
   }
   if (isBuyPass) {
-    const selectedLessonId = document.getElementById('bk-lesson-select')?.value || null
+    const selectedLessonId = _resolveBuyPassLessonId(courseId, null) || null
     if (!buyPassTemplateId || !buyPassEntriesTotal) {
       window.showToast?.(_tp('booking.toast.selectValidPass'), 'error')
+      return
+    }
+    if (!selectedLessonId) {
+      window.showToast?.(_tp('booking.toast.selectSession'), 'error')
       return
     }
     const passTitle = buyPassMetaEl?.querySelector('.bnm')?.textContent?.trim() || ''
@@ -2740,7 +2826,7 @@ window.confirmBooking = async () => {
       courseId,
       confirmBtn,
       selectedLessonId,
-      { passTitle, reopenBooking: true },
+      { passTitle, reopenBooking: false, bookLessonId: selectedLessonId },
     )
     return
   }

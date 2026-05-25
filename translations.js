@@ -426,6 +426,7 @@ export const UI_TRANSLATIONS = {
       duplicatePass:
         'Už máte aktivní permanentku stejného typu. Opravdu chcete zakoupit znovu?',
       passPurchased: '✓ Permanentka zakoupena.',
+      passPurchasedAndBooked: '✓ Permanentka zakoupena a termín rezervován.',
       passPurchaseErrorPrefix: 'Chyba při nákupu: ',
     },
     shop: {
@@ -1276,6 +1277,7 @@ export const UI_TRANSLATIONS = {
       duplicatePass:
         'You already have an active pass of this type. Do you really want to buy it again?',
       passPurchased: '✓ Pass purchased.',
+      passPurchasedAndBooked: '✓ Pass purchased and session booked.',
       passPurchaseErrorPrefix: 'Purchase error: ',
     },
     shop: {
