@@ -111,10 +111,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'Permanent Marker', cursive;
-    font-weight: 400;
+    font-family: 'Syne', sans-serif;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .cal-island__days {

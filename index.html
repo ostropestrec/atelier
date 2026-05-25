@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23FD8D40'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Permanent+Marker&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&display=swap" rel="stylesheet">
 
   <!-- Svelte islands feature flags (opt-in přes localStorage). Drží se brzy v <head>,
        aby legacy DOM nikdy neprobliknul, když je flag zapnutý. -->
@@ -58,8 +58,7 @@
       --overview-section-title-gap: 18px;
       --shell-shadow: 0 20px 50px rgba(40,84,185,.18), 0 4px 16px rgba(40,84,185,.10);
       --topbar-h: 64px;
-      --font-body: 'Hanken Grotesk', sans-serif;
-      --font-heading: 'Permanent Marker', cursive;
+      --font-family: 'Syne', sans-serif;
     }
 
     html,
@@ -68,7 +67,8 @@
     input,
     select,
     textarea {
-      font-family: var(--font-body);
+      font-family: var(--font-family);
+      font-weight: 400;
     }
 
     :is(
@@ -93,9 +93,8 @@
       .cal-island__head,
       .logo
     ) {
-      font-family: var(--font-heading);
-      font-weight: 400;
-      letter-spacing: 0.01em;
+      font-family: var(--font-family);
+      font-weight: 700;
     }
 
     [id$="-title"],
@@ -104,7 +103,8 @@
     #bk-name,
     #app-loader > div:first-child,
     #app-error > div:first-child {
-      font-family: var(--font-heading);
+      font-family: var(--font-family);
+      font-weight: 700;
     }
 
     body {
@@ -177,7 +177,7 @@
       height: 64px;
       gap: 12px;
     }
-    .logo { font-size: 16px; font-weight: 600; letter-spacing: .06em; flex: 1; color: var(--section-heading-accent); }
+    .logo { font-size: 16px; font-weight: 700; letter-spacing: .06em; flex: 1; color: var(--section-heading-accent); }
     .top-actions{display:flex;align-items:center;gap:10px;}
     .lang-toggle{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;}
     .lang-pill{
@@ -403,7 +403,7 @@
 
     /* ── Sekce nadpis ── */
     .sec-title {
-      font-size: 12px; font-weight: 600; letter-spacing: .08em;
+      font-size: 12px; font-weight: 700; letter-spacing: .08em;
       text-transform: uppercase; color: var(--section-heading-accent);
       margin-bottom: 12px;
     }
@@ -471,7 +471,7 @@
     .course-rich-text h2:first-child,
     .course-rich-text h3:first-child { margin-top: 0; }
     .course-rich-text h2 { font-size: 1.2rem; font-weight: 700; }
-    .course-rich-text h3 { font-size: 1.05rem; font-weight: 650; }
+    .course-rich-text h3 { font-size: 1.05rem; font-weight: 700; }
     .course-rich-text ul,
     .course-rich-text ol { margin: 0.35em 0 0.5em 0; padding-left: 1.35em; list-style-position: outside; }
     .course-rich-text ul { list-style-type: disc; }
@@ -1201,7 +1201,7 @@
       background: #fff; border: 1px solid var(--border);
       border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
     }
-    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
     .card-meta  { font-size: 12px; color: var(--muted); }
 
     /* ── Uživatelský manuál ── */
@@ -1235,7 +1235,7 @@
     .manual-title {
       font-size: 24px;
       line-height: 1.2;
-      font-weight: 800;
+      font-weight: 700;
       margin-bottom: 8px;
     }
     .manual-lead {
@@ -1348,13 +1348,13 @@
       margin-right: -12px;
       flex: 0 0 auto;
     }
-    .hello{ font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .hello{ font-size: 20px; font-weight: 700; margin-bottom: 4px; }
     .subtle{ font-size: 13px; color: var(--muted); }
     .section-h{
       font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
-      font-weight: 600;
+      font-weight: 700;
     }
     #screen-nastenka > .sec-title{
       margin-bottom: 24px;
@@ -1446,7 +1446,7 @@
       flex: 1;
       min-width: 0;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
       line-height: 1.35;
       color: var(--text);
     }
@@ -1644,7 +1644,7 @@
       overflow:hidden;
     }
     .modal-body{ padding: 18px 18px 14px; }
-    .modal-title{ font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .modal-title{ font-size: 18px; font-weight: 700; margin-bottom: 6px; }
     .modal-sub{ font-size: 13px; color: var(--muted); margin-bottom: 12px; }
     .modal-list{ margin: 0 0 14px; padding-left: 18px; color: var(--text); }
     .modal-list li{ margin: 6px 0; font-size: 13px; color: var(--anno); }
@@ -1741,7 +1741,7 @@
 
     /* ── Admin sekce nadpis (přehled, platby, sekce z buildStaffLessonsSectionHtml …) ── */
     .admin-section-title {
-      font-size: 11px; font-weight: 600; letter-spacing: .14em;
+      font-size: 11px; font-weight: 700; letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
