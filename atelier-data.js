@@ -611,8 +611,8 @@ function _detailInfoTableRow(label, value, valStyle = '') {
 /** Barvy meta štítků v detailu kurzu (lektor | termíny+délka | max+min). */
 const _DETAIL_META_PILL_COLORS = {
   instructor: '#5B4FCF',
-  scheduleDuration: '#C45C26',
-  capacity: '#B45309',
+  scheduleDuration: '#1A8F7A',
+  capacity: '#E07A2E',
 }
 
 function _detailMetaBadge(label, value, accentColor) {
