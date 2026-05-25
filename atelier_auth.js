@@ -829,6 +829,7 @@ export async function resumeBookingAfterAuth() {
       ret.lessonId ?? null,
       ret.preferredPayValue ?? null,
       ret.lessonIds ?? null,
+      { showResumeBanner: true },
     )
   }
   return true

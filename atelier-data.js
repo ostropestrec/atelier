@@ -1484,7 +1484,11 @@ function _buildCourseBookingInline(course, courseId, color, upcoming, bookable, 
 
   let paymentHtml = ''
   if (!currentUser) {
-    paymentHtml = `<p style="font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>`
+    const guestPrice = fmtPrice(course.price_single)
+    paymentHtml = `
+      <p style="font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.55;">${_escHtml(_tp('courses.detailLoginToBook'))}</p>
+      <p style="font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestFinishAfterLogin'))}</p>
+      <p style="font-size:12px;font-weight:500;color:${color};margin:6px 0 0;line-height:1.55;">${_escHtml(_tp('courses.guestPriceFrom', { price: guestPrice }))}</p>`
   } else if (!isWorkshopBundle) {
     const payScope = opts.payScope ?? (wrapSection ? 'detail' : 'card')
     paymentHtml = `<div style="margin-top:10px;">${buildBuyPanel(course, color, false, payScope)}</div>`
@@ -2211,6 +2215,167 @@ function _syncBkLessonPicker(course, courseLessons, preselectedLessonId, presele
 // ── Booking popup ─────────────────────────────────────────────
 window._bookingPopupCtx = null
 
+function _cardStateReadyForSummary(courseId, course) {
+  if (_workshopBundleLessons(courseId)) return true
+  const st = window._cardState?.[courseId]
+  if (!st?.paymentType) return false
+  if (st.paymentType === 'pass' && st.passId) {
+    return Array.isArray(st.lessonIds) && st.lessonIds.length > 0
+      && st.lessonIds.every(id => !!_findFutureBookableLessonById(id))
+  }
+  if (st.paymentType === 'buy-pass' && st.buyPassTemplateId) {
+    return !!st.lessonId && !!_findFutureBookableLessonById(st.lessonId)
+  }
+  if (st.paymentType === 'single') {
+    return !!st.lessonId && !!_findFutureBookableLessonById(st.lessonId)
+  }
+  return false
+}
+
+function _shouldOpenBookingSummary(courseId, course, popupOpts, preselectedLessonId) {
+  if (popupOpts?.forceEdit) return false
+  if (_cardStateReadyForSummary(courseId, course)) return true
+  if (preselectedLessonId && _findFutureBookableLessonById(preselectedLessonId)) {
+    const st = window._cardState?.[courseId]
+    if (!st || st.paymentType === 'single' || !st.paymentType) return true
+  }
+  return false
+}
+
+function _seedCardStateForBookingPopup(courseId, preselectedLessonId, preferredPayValue, preselectedLessonIds) {
+  if (_workshopBundleLessons(courseId)) return
+  const course = window.AppState.courses.find(c => c.id === courseId)
+  if (_cardStateReadyForSummary(courseId, course)) return
+  if (!preselectedLessonId || !_findFutureBookableLessonById(preselectedLessonId)) return
+  window._cardState ??= {}
+  const pay = String(preferredPayValue ?? 'single').trim() || 'single'
+  if (pay.startsWith('up-')) {
+    window._cardState[courseId] = {
+      lessonId: null,
+      lessonIds: Array.isArray(preselectedLessonIds) ? [...preselectedLessonIds] : [],
+      paymentType: 'pass',
+      passId: pay.replace(/^up-/, ''),
+      buyPassTemplateId: null,
+      buyPassEntriesTotal: null,
+      buyPassPrice: null,
+    }
+    return
+  }
+  if (pay.startsWith('tpl-')) {
+    window._cardState[courseId] = {
+      lessonId: preselectedLessonId,
+      lessonIds: [],
+      paymentType: 'buy-pass',
+      passId: null,
+      buyPassTemplateId: pay.replace(/^tpl-/, ''),
+    }
+    return
+  }
+  window._cardState[courseId] = {
+    lessonId: preselectedLessonId,
+    lessonIds: [],
+    paymentType: 'single',
+    passId: null,
+    buyPassTemplateId: null,
+    buyPassEntriesTotal: null,
+    buyPassPrice: null,
+  }
+}
+
+function _bookingSummaryPaymentLine(course, defaultPay, activePasses, purchasablePasses) {
+  if (defaultPay === 'single') {
+    const title = _escHtml(_singlePaymentLabelForCourse(course))
+    const price = _escHtml(fmtPrice(course.price_single))
+    return `${title} · <strong>${price}</strong>`
+  }
+  if (defaultPay.startsWith('up-')) {
+    const up = activePasses.find(p => String(p.id) === defaultPay.replace(/^up-/, ''))
+    const name = _escHtml(loc(up?.pass?.name ?? {}) || _tp('common.pass'))
+    const left = up ? _escHtml(_tp('booking.payment.entriesLeft', { n: up.entries_remaining })) : ''
+    return left ? `${name} · ${left}` : name
+  }
+  if (defaultPay.startsWith('tpl-')) {
+    const p = purchasablePasses.find(x => String(x.id) === defaultPay.replace(/^tpl-/, ''))
+    const name = _escHtml(loc(p?.name ?? {}) || _tp('common.pass'))
+    const price = p ? _escHtml(fmtPrice(p.price)) : ''
+    return price ? `${name} · <strong>${price}</strong>` : name
+  }
+  return '—'
+}
+
+function _renderBookingSummaryContent(
+  course,
+  courseId,
+  defaultPay,
+  preselectedLessonId,
+  preselectedLessonIds,
+  activePasses,
+  purchasablePasses,
+) {
+  const el = document.getElementById('bk-summary')
+  if (!el) return
+  const bundle = _workshopBundleLessons(courseId)
+  let sessionsHtml = ''
+  if (bundle) {
+    const items = bundle.map(l => `<li>${_escHtml(_fmtBkLessonLine(l))}</li>`).join('')
+    sessionsHtml = `
+      <div class="bk-summary-row">
+        <div class="bk-summary-lbl">${_escHtml(_tp('booking.summary.sessionsLabel'))}</div>
+        <div class="bk-summary-val">${_escHtml(_tp('booking.summary.workshopBundle', { n: bundle.length }))}</div>
+        <ul class="bk-summary-sessions">${items}</ul>
+      </div>`
+  } else if (defaultPay.startsWith('up-')) {
+    const ids = (preselectedLessonIds?.length
+      ? preselectedLessonIds
+      : (window._cardState?.[courseId]?.lessonIds ?? []))
+      .map(String)
+    const lines = ids.map(id => {
+      const l = _findFutureBookableLessonById(id)
+      return l ? `<li>${_escHtml(_fmtBkLessonLine(l))}</li>` : ''
+    }).filter(Boolean).join('')
+    const lbl = ids.length > 1 ? _tp('booking.summary.sessionsLabel') : _tp('booking.summary.sessionLabel')
+    sessionsHtml = lines ? `
+      <div class="bk-summary-row">
+        <div class="bk-summary-lbl">${_escHtml(lbl)}</div>
+        <ul class="bk-summary-sessions">${lines}</ul>
+      </div>` : ''
+  } else {
+    const lid = preselectedLessonId || document.getElementById('bk-lesson-select')?.value
+    const l = lid ? _findFutureBookableLessonById(lid) : null
+    const line = l ? _fmtBkLessonLine(l) : _tp('booking.empty.selectedLessonPlaceholder')
+    sessionsHtml = `
+      <div class="bk-summary-row">
+        <div class="bk-summary-lbl">${_escHtml(_tp('booking.summary.sessionLabel'))}</div>
+        <div class="bk-summary-val">${_escHtml(line)}</div>
+      </div>`
+  }
+  const payLine = _bookingSummaryPaymentLine(course, defaultPay, activePasses, purchasablePasses)
+  el.innerHTML = `${sessionsHtml}
+    <div class="bk-summary-row">
+      <div class="bk-summary-lbl">${_escHtml(_tp('booking.summary.paymentLabel'))}</div>
+      <div class="bk-summary-val">${payLine}</div>
+    </div>`
+}
+
+function _setBookingPopupUiMode(mode, { showResumeBanner = false } = {}) {
+  const popup = document.getElementById('pop-booking')
+  if (popup) popup.dataset.bkMode = mode
+  const banner = document.getElementById('bk-resume-banner')
+  const summaryWrap = document.getElementById('bk-summary-wrap')
+  const editWrap = document.getElementById('bk-edit-wrap')
+  if (banner) {
+    banner.style.display = showResumeBanner ? 'block' : 'none'
+    banner.textContent = showResumeBanner ? _tp('booking.summary.resumeLead') : ''
+  }
+  if (summaryWrap) summaryWrap.style.display = mode === 'summary' ? 'block' : 'none'
+  if (editWrap) editWrap.style.display = mode === 'summary' ? 'none' : 'block'
+}
+
+window._bkShowBookingEdit = () => {
+  _setBookingPopupUiMode('edit')
+  if (window._bookingPopupCtx) window._bookingPopupCtx.uiMode = 'edit'
+}
+
 async function _refreshOpenBookingPopupIfVisible() {
   const ctx = window._bookingPopupCtx
   const popup = document.getElementById('pop-booking')
@@ -2224,17 +2389,29 @@ async function _refreshOpenBookingPopupIfVisible() {
     preselectedLessonIds = [...document.querySelectorAll('#bk-lesson-checkboxes input[name="bk-lesson-cb"]:checked')]
       .map(cb => cb.value)
   }
+  const uiMode = ctx.uiMode ?? popup?.dataset.bkMode ?? 'summary'
   await window.openBookingPopup?.(
     ctx.courseId,
     ctx.passId,
     preselectedLessonId || null,
     preferredPayValue,
     preselectedLessonIds?.length ? preselectedLessonIds : ctx.preselectedLessonIds,
+    {
+      forceEdit: uiMode === 'edit',
+      showResumeBanner: !!ctx.showResumeBanner,
+    },
   )
   _syncPopupPrimaryButton()
 }
 
-window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferredPayValue = null, preselectedLessonIds = null) => {
+window.openBookingPopup = async (
+  courseId,
+  passId,
+  preselectedLessonId,
+  preferredPayValue = null,
+  preselectedLessonIds = null,
+  popupOpts = null,
+) => {
   const cardSt = window._cardState?.[courseId]
   if (preselectedLessonId == null && cardSt) {
     if (cardSt.paymentType === 'single' || cardSt.paymentType === 'buy-pass') {
@@ -2443,14 +2620,35 @@ window.openBookingPopup = async (courseId, passId, preselectedLessonId, preferre
     preselectedLessonIds,
   )
 
+  _seedCardStateForBookingPopup(courseId, preselectedLessonId, defaultPay, preselectedLessonIds)
+
+  const useSummary = _shouldOpenBookingSummary(courseId, course, popupOpts, preselectedLessonId)
+  if (useSummary) {
+    _renderBookingSummaryContent(
+      course,
+      courseId,
+      defaultPay,
+      preselectedLessonId,
+      preselectedLessonIds,
+      activePasses,
+      purchasablePasses,
+    )
+    _setBookingPopupUiMode('summary', { showResumeBanner: !!popupOpts?.showResumeBanner })
+  } else {
+    _setBookingPopupUiMode('edit', { showResumeBanner: false })
+  }
+
   window._bookingPopupCtx = {
     courseId,
     passId: passId ?? null,
     preselectedLessonId: preselectedLessonId ?? null,
-    preferredPayValue: preferredPayValue ?? null,
+    preferredPayValue: defaultPay,
     preselectedLessonIds: preselectedLessonIds ?? null,
+    uiMode: useSummary ? 'summary' : 'edit',
+    showResumeBanner: !!popupOpts?.showResumeBanner,
   }
   popup.style.display = 'flex'
+  _syncPopupPrimaryButton()
 }
 
 window._bkSelectPayment = (el, value) => {
