@@ -111,8 +111,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'Syne', sans-serif;
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 700;
   }
 

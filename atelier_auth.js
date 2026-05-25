@@ -1039,15 +1039,15 @@ const _GOOGLE_SVG = `<svg width="15" height="15" viewBox="0 0 18 18" fill="none"
   <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
 </svg>`
 
-const _INP  = 'width:100%;padding:8px 10px;border:0.5px solid rgba(0,0,0,.18);border-radius:8px;font-size:14px;margin-bottom:8px;box-sizing:border-box;'
-const _BTN  = 'width:100%;padding:10px;border-radius:var(--btn-radius);border:none;background:#2854B9;color:#fff;font-size:14px;font-weight:500;cursor:pointer;'
-const _ERR  = 'display:none;font-size:13px;color:#791F1F;background:#FCEBEB;border-radius:6px;padding:8px 10px;margin-bottom:8px;'
-const _OK   = 'display:none;font-size:13px;color:#085041;background:#E1F5EE;border-radius:6px;padding:8px 10px;margin-bottom:8px;'
-const _LBL  = 'font-size:13px;color:#6b6b6b;display:block;margin-bottom:4px;'
+const _INP  = 'width:100%;padding:8px 10px;border:0.5px solid rgba(0,0,0,.18);border-radius:8px;font-size:13px;margin-bottom:8px;box-sizing:border-box;'
+const _BTN  = 'width:100%;padding:10px;border-radius:var(--btn-radius);border:none;background:#2854B9;color:#fff;font-size:13px;font-weight:500;cursor:pointer;'
+const _ERR  = 'display:none;font-size:12px;color:#791F1F;background:#FCEBEB;border-radius:6px;padding:8px 10px;margin-bottom:8px;'
+const _OK   = 'display:none;font-size:12px;color:#085041;background:#E1F5EE;border-radius:6px;padding:8px 10px;margin-bottom:8px;'
+const _LBL  = 'font-size:12px;color:#6b6b6b;display:block;margin-bottom:4px;'
 const _DIV  = 'display:flex;align-items:center;gap:8px;margin:10px 0;'
 const _AUTH_CARD = 'border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:12px;background:#fff;'
-const _AUTH_H = 'font-size:14px;font-weight:700;color:#111;margin-bottom:3px;'
-const _AUTH_P = 'font-size:12px;color:#6b6b6b;line-height:1.45;margin-bottom:10px;'
+const _AUTH_H = 'font-size:13px;font-weight:700;color:#111;margin-bottom:3px;'
+const _AUTH_P = 'font-size:11px;color:#6b6b6b;line-height:1.45;margin-bottom:10px;'
 
 function buildAuthPopup() {
   if (document.getElementById('auth-overlay')) return
@@ -1062,12 +1062,12 @@ function buildAuthPopup() {
         <!-- Taby -->
         <div style="display:flex;border-bottom:0.5px solid rgba(0,0,0,.08);">
           <button id="auth-tab-login" onclick="authSwitchTab('login')"
-            style="flex:1;padding:11px;font-size:13px;font-weight:500;border:none;background:transparent;
+            style="flex:1;padding:11px;font-size:12px;font-weight:500;border:none;background:transparent;
               cursor:pointer;color:#2854B9;border-bottom:2px solid #2854B9;">
             Přihlásit se
           </button>
           <button id="auth-tab-register" onclick="authSwitchTab('register')"
-            style="flex:1;padding:11px;font-size:13px;font-weight:500;border:none;background:transparent;
+            style="flex:1;padding:11px;font-size:12px;font-weight:500;border:none;background:transparent;
               cursor:pointer;color:#6b6b6b;border-bottom:2px solid transparent;">
             Registrace
           </button>
@@ -1078,14 +1078,14 @@ function buildAuthPopup() {
           <!-- Google (sdílené) -->
           <button onclick="signInWithProvider('google')"
             style="width:100%;padding:9px 12px;border-radius:var(--btn-radius);border:0.5px solid rgba(0,0,0,.18);
-              background:transparent;display:flex;align-items:center;gap:8px;font-size:14px;
+              background:transparent;display:flex;align-items:center;gap:8px;font-size:13px;
               font-weight:500;color:#1a1a1a;cursor:pointer;margin-bottom:2px;">
             ${_GOOGLE_SVG} Pokračovat přes Google
           </button>
 
           <div style="${_DIV}">
             <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
-            <span style="font-size:12px;color:#9b9b9b;">nebo</span>
+            <span style="font-size:11px;color:#9b9b9b;">nebo</span>
             <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
           </div>
 
@@ -1108,7 +1108,7 @@ function buildAuthPopup() {
 
             <div style="${_DIV}">
               <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
-              <span style="font-size:12px;color:#9b9b9b;">nebo</span>
+              <span style="font-size:11px;color:#9b9b9b;">nebo</span>
               <div style="flex:1;height:0.5px;background:rgba(0,0,0,.08);"></div>
             </div>
 
@@ -1127,7 +1127,7 @@ function buildAuthPopup() {
               </button>
               <div style="text-align:center;margin-top:10px;">
                 <button type="button" id="auth-forgot-link" onclick="submitForgotPassword()"
-                  style="background:none;border:none;color:#2854B9;font-size:13px;cursor:pointer;padding:0;">
+                  style="background:none;border:none;color:#2854B9;font-size:12px;cursor:pointer;padding:0;">
                   Zapomenuté heslo?
                 </button>
               </div>
@@ -1165,7 +1165,7 @@ function buildAuthPopup() {
         <div style="padding:0 16px 12px;">
           <button onclick="closeAuthPopup()"
             style="width:100%;padding:9px;border-radius:var(--btn-radius);border:0.5px solid rgba(0,0,0,.18);
-              background:transparent;font-size:13px;color:#1a1a1a;cursor:pointer;">
+              background:transparent;font-size:12px;color:#1a1a1a;cursor:pointer;">
             Zavřít
           </button>
         </div>

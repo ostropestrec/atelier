@@ -175,7 +175,7 @@ function _adminScopeSwitchHtml(active, setterName) {
     'border:1px solid var(--section-heading-accent)',
     `background:${isActive ? 'var(--section-heading-accent)' : '#fff'}`,
     `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
-    'font-size:13px',
+    'font-size:12px',
     'font-weight:700',
     'letter-spacing:.08em',
     'cursor:pointer',
@@ -363,7 +363,7 @@ function _adminDashboardSwitchHtml(active = _adminDashboardView) {
     'border:1px solid var(--section-heading-accent)',
     `background:${isActive ? 'var(--section-heading-accent)' : '#fff'}`,
     `color:${isActive ? '#fff' : 'var(--section-heading-accent)'}`,
-    'font-size:13px',
+    'font-size:12px',
     'font-weight:700',
     'letter-spacing:.08em',
     'cursor:pointer',
@@ -707,7 +707,7 @@ function buildAdminCustomerHistoryModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:20px;font-weight:700;" id="mch-title">${esc(_adm('customers.historyModalTitle'))}</div>
+          <div style="font-size:19px;font-weight:700;" id="mch-title">${esc(_adm('customers.historyModalTitle'))}</div>
         </div>
         <div id="mch-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
         <div style="display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);">
@@ -734,11 +734,11 @@ function _adminCustomerHistoryHtml(user) {
         return `
           <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start;">
             <div style="min-width:0;flex:1;">
-              <div style="font-size:15px;font-weight:600;margin-bottom:4px;">${esc(title)}</div>
-              <div style="font-size:13px;color:#6b6b6b;line-height:1.5;">${esc(when)} · ${esc(pay)}</div>
-              <div style="font-size:12px;color:#9b9b9b;margin-top:4px;">${_adm('customers.historyBookedOn', { date: b.created_at ? fmtDate(b.created_at) : _adm('misc.dash') })}</div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(title)}</div>
+              <div style="font-size:12px;color:#6b6b6b;line-height:1.5;">${esc(when)} · ${esc(pay)}</div>
+              <div style="font-size:11px;color:#9b9b9b;margin-top:4px;">${_adm('customers.historyBookedOn', { date: b.created_at ? fmtDate(b.created_at) : _adm('misc.dash') })}</div>
             </div>
-            <span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:20px;background:${st.bg};color:${st.c};white-space:nowrap;">
+            <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:${st.bg};color:${st.c};white-space:nowrap;">
               ${esc(status)}
             </span>
           </div>`
@@ -1003,15 +1003,15 @@ window.adminLessonActionButtons = (lessonId, status = 'active', startTime = null
   const isPast = startTime ? new Date(startTime).getTime() < Date.now() : true
   if (status === 'cancelled') {
     const deleteBtn = isPast
-      ? `<button type="button" class="btn-small danger" style="font-size:13px;padding:6px 10px;"
+      ? `<button type="button" class="btn-small danger" style="font-size:12px;padding:6px 10px;"
           onclick="event.stopPropagation();window.adminDeleteLesson?.('${lid}')">${esc(_adm('btn.delete'))}</button>`
       : ''
-    return `<button type="button" class="btn-small" style="font-size:13px;padding:6px 10px;"
+    return `<button type="button" class="btn-small" style="font-size:12px;padding:6px 10px;"
       onclick="event.stopPropagation();window.adminActivateLesson?.('${lid}')">${esc(_adm('btn.activate'))}</button>${deleteBtn}`
   }
-  return `<button type="button" class="btn-small" style="font-size:13px;padding:6px 10px;"
+  return `<button type="button" class="btn-small" style="font-size:12px;padding:6px 10px;"
       onclick="event.stopPropagation();window.adminOpenLessonDetail?.('${lid}')">${esc(_adm('btn.attendees'))}</button>
-    <button type="button" class="btn-small danger" style="font-size:13px;padding:6px 10px;"
+    <button type="button" class="btn-small danger" style="font-size:12px;padding:6px 10px;"
       onclick="event.stopPropagation();window.adminDeactivateLesson?.('${lid}')">${esc(_adm('btn.deactivate'))}</button>`
 }
 
@@ -1028,7 +1028,7 @@ function _lessonRow(lesson, showDate = false) {
   const status  = lesson.status ?? 'active'
   const lid     = String(lesson.lesson_id ?? lesson.id ?? '')
   const workshopBadge = course.is_workshop
-    ? ` <span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">${esc(_adm('kurzy.workshopBadge'))}</span>`
+    ? ` <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;background:#FFF4E0;color:#8B5C00;">${esc(_adm('kurzy.workshopBadge'))}</span>`
     : ''
   const actions = window.adminLessonActionButtons?.(lid, status, lesson.start_time) ?? ''
   const courseId  = esc(String(lesson.course_id ?? course.id ?? ''))
@@ -1039,11 +1039,11 @@ function _lessonRow(lesson, showDate = false) {
         <div onclick="window.openDetail?.('${courseId}')" style="flex:1;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
           <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px;"></div>
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
-            <div style="font-size:15px;font-weight:600;line-height:1.35;">${esc(title)}${workshopBadge}</div>
-            <div style="font-size:13px;color:#6b6b6b;">${showDate ? esc(dateStr) + ' · ' : ''}${esc(timeStr)}</div>
+            <div style="font-size:14px;font-weight:600;line-height:1.35;">${esc(title)}${workshopBadge}</div>
+            <div style="font-size:12px;color:#6b6b6b;">${showDate ? esc(dateStr) + ' · ' : ''}${esc(timeStr)}</div>
             <div style="margin-top:2px;">
-              <div style="font-size:15px;font-weight:600;">${booked}/${cap}</div>
-              <div style="font-size:12px;color:#9b9b9b;margin-bottom:4px;">${esc(t(_adminLocale(), 'courses.occupied'))}</div>
+              <div style="font-size:14px;font-weight:600;">${booked}/${cap}</div>
+              <div style="font-size:11px;color:#9b9b9b;margin-bottom:4px;">${esc(t(_adminLocale(), 'courses.occupied'))}</div>
               <div style="width:100%;height:4px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
                 <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
               </div>
@@ -1112,16 +1112,16 @@ export async function renderAdminKurzy() {
       listBody = `<div class="empty">${esc(_adm('kurzy.empty'))}</div>`
     } else {
       if (activeCourses.length) {
-        listBody += `<div style="font-size:14px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nActive', { n: activeCourses.length })}</div>`
+        listBody += `<div style="font-size:13px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nActive', { n: activeCourses.length })}</div>`
         listBody += `<div class="nastenka-cards-2col">${activeCourses.map(_courseCard).join('')}</div>`
       }
       if (inactiveCourses.length) {
         listBody += `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:20px 0 10px;">
-          <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;">${esc(_adm('kurzy.sectionInactive'))}</div>
-          <button type="button" class="btn-small danger" style="font-size:13px;padding:6px 10px;"
+          <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--section-heading-accent);font-weight:600;">${esc(_adm('kurzy.sectionInactive'))}</div>
+          <button type="button" class="btn-small danger" style="font-size:12px;padding:6px 10px;"
             onclick="window.adminDeleteAllInactiveCourses?.()">${esc(_adm('courseActions.deleteAll'))}</button>
         </div>`
-        listBody += `<div style="font-size:14px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nInactiveDelete', { n: inactiveCourses.length })}</div>`
+        listBody += `<div style="font-size:13px;color:#6b6b6b;margin-bottom:12px;">${_adm('kurzy.nInactiveDelete', { n: inactiveCourses.length })}</div>`
         listBody += `<div class="nastenka-cards-2col">${inactiveCourses.map(_courseCard).join('')}</div>`
       }
     }
@@ -1151,11 +1151,11 @@ export async function renderAdminKurzy() {
 function _adminCourseScheduleHtml(course) {
   const infoBox = (label, value, sub = '') => `
     <div style="margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#faf8f5;">
-      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9b6f5f;margin-bottom:3px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9b6f5f;margin-bottom:3px;">
         ${esc(label)}
       </div>
-      <div style="font-size:14px;font-weight:600;color:#2f2a24;">${esc(value)}</div>
-      ${sub ? `<div style="font-size:13px;color:#6b6b6b;margin-top:3px;white-space:pre-line;">${esc(sub)}</div>` : ''}
+      <div style="font-size:13px;font-weight:600;color:#2f2a24;">${esc(value)}</div>
+      ${sub ? `<div style="font-size:12px;color:#6b6b6b;margin-top:3px;white-space:pre-line;">${esc(sub)}</div>` : ''}
     </div>`
 
   const lessons = Array.isArray(course._adminLessons) ? course._adminLessons : []
@@ -1228,7 +1228,7 @@ function _courseCard(course) {
   const editFn     = isWorkshop ? 'adminEditWorkshop' : 'adminEditCourse'
   const workshopLbl = _adm('kurzy.workshopBadge')
   const deactBadge = _adm('state.deactivatedBadge')
-  const actionBtnStyle = 'font-size:13px;padding:6px 10px;'
+  const actionBtnStyle = 'font-size:12px;padding:6px 10px;'
   const topUpBtn = active && !isWorkshop
     ? `<button class="btn-small" style="${actionBtnStyle}" onclick="window.adminTopUpCourseLessons?.('${esc(course.id)}')">${esc(_adm('courseActions.topUpLessons'))}</button>`
     : ''
@@ -1244,13 +1244,13 @@ function _courseCard(course) {
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.openDetail?.('${esc(course.id)}')}"
           style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;flex:1;">
           <div>
-            <div style="font-size:16px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;">
+            <div style="font-size:15px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;">
               ${esc(title)}
-              ${isWorkshop ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FFF4E0;color:#8B5C00;letter-spacing:.04em;">${esc(workshopLbl)}</span>` : ''}
-              ${course.is_restricted ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#E8EEF8;color:#2854B9;letter-spacing:.04em;">${esc(_adm('kurzy.restrictedBadge'))}</span>` : ''}
-              ${!active ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:4px;">${esc(deactBadge)}</span>` : ''}
+              ${isWorkshop ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FFF4E0;color:#8B5C00;letter-spacing:.04em;">${esc(workshopLbl)}</span>` : ''}
+              ${course.is_restricted ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#E8EEF8;color:#2854B9;letter-spacing:.04em;">${esc(_adm('kurzy.restrictedBadge'))}</span>` : ''}
+              ${!active ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F3F4F6;color:#6b6b6b;margin-left:4px;">${esc(deactBadge)}</span>` : ''}
             </div>
-            <div style="font-size:13px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;">
+            <div style="font-size:12px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;">
               <span>${esc(_adm('kurzy.instructor'))} <b>${esc(ownerName ?? _adm('misc.dash'))}</b></span>
               <span>${esc(_adm('kurzy.capacity'))} ${course.capacity_default} ${_adm('misc.spotsSuffix')}</span>
               ${!isWorkshop ? `<span>${esc(_adm('kurzy.cancellation'))} ${course.cancellation_hours} ${_adm('kurzy.hoursShort')}</span>` : ''}
@@ -1258,8 +1258,8 @@ function _courseCard(course) {
             ${scheduleHtml}
           </div>
           <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:18px;font-weight:700;color:${color};">${fmtPrice(course.price_single)}</div>
-            <span style="font-size:12px;font-weight:600;padding:3px 8px;border-radius:20px;
+            <div style="font-size:17px;font-weight:700;color:${color};">${fmtPrice(course.price_single)}</div>
+            <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;
               background:${active ? '#E1F5EE' : '#F3F4F6'};color:${active ? '#085041' : '#6b6b6b'};">
               ${esc(active ? _adm('state.active') : _adm('state.inactive'))}
             </span>
@@ -1377,14 +1377,14 @@ export async function renderAdminZakaznici() {
     el.innerHTML = `
       <div class="page-title" style="margin-bottom:8px;">${esc(_adm('customers.pageTitle'))}</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-        <div id="admin-zakaznici-count" style="font-size:14px;color:#6b6b6b;">${esc(_adm('customers.countTotal', { total: 0 }))}</div>
+        <div id="admin-zakaznici-count" style="font-size:13px;color:#6b6b6b;">${esc(_adm('customers.countTotal', { total: 0 }))}</div>
         <input
           id="admin-zakaznici-search"
           type="search"
           value="${esc(_adminCustomersQuery)}"
           placeholder="${esc(_adm('customers.searchPlaceholder'))}"
           oninput="window.adminFilterZakaznici?.(this.value)"
-          style="width:100%;max-width:380px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;box-sizing:border-box;"
+          style="width:100%;max-width:380px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;box-sizing:border-box;"
         />
       </div>
       <div id="admin-zakaznici-list"></div>
@@ -1414,17 +1414,17 @@ function _zakaznikRow(user) {
   return `
     <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
       <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;
-        display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">
+        display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">
         ${esc(initials(user.name || user.email))}
       </div>
       <div style="flex:1 1 260px;min-width:0;overflow-wrap:anywhere;word-break:break-word;">
-        <div style="font-size:15px;font-weight:500;line-height:1.4;">${esc(user.name || _adm('misc.dash'))}</div>
-        <div style="font-size:13px;color:#6b6b6b;line-height:1.45;margin-top:2px;">${esc(user.email)}</div>
-        <div style="font-size:13px;color:#8a8c90;line-height:1.45;margin-top:4px;">${esc(summary)}</div>
+        <div style="font-size:14px;font-weight:500;line-height:1.4;">${esc(user.name || _adm('misc.dash'))}</div>
+        <div style="font-size:12px;color:#6b6b6b;line-height:1.45;margin-top:2px;">${esc(user.email)}</div>
+        <div style="font-size:12px;color:#8a8c90;line-height:1.45;margin-top:4px;">${esc(summary)}</div>
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-start;flex:1 1 160px;min-width:0;">
         ${passes.slice(0, 2).map(up => `
-          <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:20px;
+          <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;
             background:rgba(40,84,185,.10);color:var(--primary);border:1px solid rgba(40,84,185,.18);line-height:1.35;overflow-wrap:anywhere;word-break:break-word;max-width:100%;">
             ${esc(up || _adm('misc.pass'))}
           </span>`).join('')}
@@ -1455,10 +1455,10 @@ function buildAdminCustomerPassesModal() {
       <div id="mup-panel" style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:20px;font-weight:700;" id="mup-title">${esc(_adm('misc.pass'))}</div>
+          <div style="font-size:19px;font-weight:700;" id="mup-title">${esc(_adm('misc.pass'))}</div>
         </div>
         <div id="mup-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
-        <div id="mup-error" style="display:none;margin:0 18px 12px;font-size:14px;color:#791F1F;background:#FCEBEB;
+        <div id="mup-error" style="display:none;margin:0 18px 12px;font-size:13px;color:#791F1F;background:#FCEBEB;
           border-radius:8px;padding:10px 12px;"></div>
         <div style="display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);">
           <button type="button" class="btn-wide" onclick="window.closeAdminCustomerPassesModal?.()">${esc(_adm('btn.close'))}</button>
@@ -1507,7 +1507,7 @@ function _mupPassesListHtml(passes) {
   if (!passes.length) {
     return `${addHtml}<div class="empty" style="padding:12px 0;">${esc(_adm('customers.passesEmpty'))}</div>`
   }
-  const INP = 'width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:15px;box-sizing:border-box;'
+  const INP = 'width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box;'
   return addHtml + passes.map(up => {
     const name = loc(up.pass?.name) || _adm('misc.pass')
     const st = up.status || 'active'
@@ -1515,28 +1515,28 @@ function _mupPassesListHtml(passes) {
     const cancellationLimit = _passCancellationLimit(up.entries_total)
     return `
     <div data-mup-card="${esc(up.id)}" style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;background:#fafafa;">
-      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">${esc(name)}</div>
-      <div style="font-size:13px;color:#6b6b6b;margin-bottom:10px;">${_adm('mup.purchasedOn', { date: fmtDate(up.created_at) })}</div>
-      <div style="font-size:13px;color:#6b6b6b;margin:-4px 0 10px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">${esc(name)}</div>
+      <div style="font-size:12px;color:#6b6b6b;margin-bottom:10px;">${_adm('mup.purchasedOn', { date: fmtDate(up.created_at) })}</div>
+      <div style="font-size:12px;color:#6b6b6b;margin:-4px 0 10px;">
         ${esc(_adm('mup.cancellationsUsed', { used: cancellationCount, limit: cancellationLimit || 0 }))}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
-          <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelRemaining'))}</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelRemaining'))}</label>
           <input type="number" min="0" data-mup-field="entries_remaining" value="${up.entries_remaining}" style="${INP}" />
         </div>
         <div>
-          <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelTotal'))}</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelTotal'))}</label>
           <input type="number" min="1" data-mup-field="entries_total" value="${up.entries_total}" style="${INP}" />
         </div>
       </div>
       <div style="margin-bottom:8px;">
-        <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelValidUntil'))}</label>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelValidUntil'))}</label>
         <input type="datetime-local" data-mup-field="expires_at" value="${esc(_isoToDatetimeLocalInput(up.expires_at))}" style="${INP}" />
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
         <div>
-          <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelStatus'))}</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelStatus'))}</label>
           <select data-mup-field="status" style="${INP}">
             <option value="active" ${st === 'active' ? 'selected' : ''}>${esc(_adm('userPassUiStatus.active'))}</option>
             <option value="expired" ${st === 'expired' ? 'selected' : ''}>${esc(_adm('userPassUiStatus.expired'))}</option>
@@ -1544,11 +1544,11 @@ function _mupPassesListHtml(passes) {
           </select>
         </div>
         <div>
-          <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelPricePaid'))}</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelPricePaid'))}</label>
           <input type="number" min="0" step="0.01" data-mup-field="price_paid" value="${Number(up.price_paid) || 0}" style="${INP}" />
         </div>
       </div>
-      <div data-mup-row-err style="display:none;font-size:14px;color:#791F1F;margin-bottom:8px;"></div>
+      <div data-mup-row-err style="display:none;font-size:13px;color:#791F1F;margin-bottom:8px;"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <button type="button" class="btn-small primary" data-mup-save="${esc(up.id)}">${esc(_adm('btn.save'))}</button>
         <button type="button" class="btn-small danger" data-mup-delete="${esc(up.id)}">${esc(_adm('btn.delete'))}</button>
@@ -1561,15 +1561,15 @@ function _mupAddFormHtml() {
   const hasTemplates = _mupAvailablePasses.length > 0
   return `
     <div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#fff;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">${esc(_adm('mup.grantHeading'))}</div>
-      <div style="font-size:13px;color:#6b6b6b;margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">${esc(_adm('mup.grantHeading'))}</div>
+      <div style="font-size:12px;color:#6b6b6b;margin-bottom:10px;">
         ${esc(_adm('mup.grantLead'))}
       </div>
       ${hasTemplates ? `
         <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;">
           <div>
-            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelPassType'))}</label>
-            <select id="mup-add-pass-id" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:15px;box-sizing:border-box;">
+            <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">${esc(_adm('mup.labelPassType'))}</label>
+            <select id="mup-add-pass-id" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box;">
               ${_mupAvailablePasses.map((p, idx) => `
                 <option value="${esc(p.id)}" ${idx === 0 ? 'selected' : ''}>
                   ${esc(t(_adminLocale(), 'admin.customers.passLine', {
@@ -1584,15 +1584,15 @@ function _mupAddFormHtml() {
           <button type="button" class="btn-small primary" data-mup-add="1"
             style="white-space:nowrap;">${esc(_adm('btn.assignPass'))}</button>
         </div>
-      ` : `<div style="font-size:14px;color:#9b9b9b;">${esc(_adm('customers.noPassTypes'))}</div>`}
-      <div id="mup-add-error" style="display:none;font-size:14px;color:#791F1F;margin-top:10px;"></div>
+      ` : `<div style="font-size:13px;color:#9b9b9b;">${esc(_adm('customers.noPassTypes'))}</div>`}
+      <div id="mup-add-error" style="display:none;font-size:13px;color:#791F1F;margin-top:10px;"></div>
     </div>`
 }
 
 async function _mupReloadBody() {
   const body = document.getElementById('mup-body')
   if (!body || !_mupEditUserId) return
-  body.innerHTML = `<div style="font-size:14px;color:#9b9b9b;">${esc(_adm('loading.generic'))}</div>`
+  body.innerHTML = `<div style="font-size:13px;color:#9b9b9b;">${esc(_adm('loading.generic'))}</div>`
   const [userPassRes, passTemplatesRes] = await Promise.all([
     sb.from('user_passes')
       .select('id, entries_total, entries_remaining, cancellation_count, expires_at, status, price_paid, created_at, pass:passes(name)')
@@ -1623,7 +1623,7 @@ window.openAdminCustomerPassesModal = async (userId, displayName) => {
   if (errGlobal) { errGlobal.style.display = 'none'; errGlobal.textContent = '' }
   document.getElementById('modal-admin-user-passes').style.display = 'flex'
   const body = document.getElementById('mup-body')
-  body.innerHTML = `<div style="font-size:14px;color:#9b9b9b;">${esc(_adm('loading.generic'))}</div>`
+  body.innerHTML = `<div style="font-size:13px;color:#9b9b9b;">${esc(_adm('loading.generic'))}</div>`
   try {
     await _mupReloadBody()
   } catch (e) {
@@ -2021,9 +2021,9 @@ async function _renderPlatbyHistory(scope) {
       <div class="page-title" style="margin-bottom:16px;">${esc(_adm(meta.pageTitleKey))}</div>
       ${_platbyHeaderHtml(scope, activeKey, canPrev, canNext)}
       <div class="admin-stat-grid">
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:20px;">${fmtPrice(activeEntry.gross)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:20px;">${fmtPrice(activeEntry.refunds)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div></div>
-        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:20px;">${fmtPrice(activeEntry.net)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statNet'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:19px;">${fmtPrice(activeEntry.gross)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statGross'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:19px;">${fmtPrice(activeEntry.refunds)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statRefunds'))}</div></div>
+        <div class="admin-stat-card"><div class="admin-stat-value" style="font-size:19px;">${fmtPrice(activeEntry.net)}</div><div class="admin-stat-label">${esc(_adm('dashboard.statNet'))}</div></div>
       </div>
       <div class="admin-section-title">${esc(_adm('platby.sectionMonth', { month: _platbyMonthLabel(activeKey) }))}</div>
       ${activeEntry.items.length
@@ -2085,12 +2085,12 @@ function _platbaRow(p, canRefund = true) {
   }
   const st = stKey ? statusMap[stKey] : { l: String(p.status ?? ''), bg: '#F3F4F6', c: '#6b6b6b' }
   const refundBadge = refundPending
-    ? `<span style="font-size:12px;font-weight:600;padding:2px 7px;border-radius:20px;background:#FCEBEB;color:#791F1F;">${esc(_adm('refund.pendingBadge'))}</span>`
+    ? `<span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:#FCEBEB;color:#791F1F;">${esc(_adm('refund.pendingBadge'))}</span>`
     : refundCompleted
-      ? `<span style="font-size:12px;font-weight:600;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#085041;">${esc(_adm('refund.doneBadge'))}</span>`
+      ? `<span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#085041;">${esc(_adm('refund.doneBadge'))}</span>`
       : ''
   const refundMeta = refundCompleted
-    ? `<div style="font-size:13px;color:#085041;margin-top:6px;">
+    ? `<div style="font-size:12px;color:#085041;margin-top:6px;">
         ${_adm('platby.refundedLine', { amount: fmtPrice(refundApplied || paidAmount) })}
         ${p.refundedAt ? ` · ${fmtDateTime(p.refundedAt)}` : ''}
         ${p.refundNote ? ` · ${esc(p.refundNote)}` : ''}
@@ -2107,14 +2107,14 @@ function _platbaRow(p, canRefund = true) {
           step="0.01"
           value="${esc(draftRefundAmount)}"
           placeholder="${esc(_adm('platby.refundAmountPh'))}"
-          style="width:160px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:14px;box-sizing:border-box;"
+          style="width:160px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:13px;box-sizing:border-box;"
         />
         <input
           id="${esc(noteId)}"
           type="text"
           value="${esc(p.refundNote || '')}"
           placeholder="${esc(_adm('platby.refundNotePh'))}"
-          style="flex:1;min-width:240px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:14px;box-sizing:border-box;"
+          style="flex:1;min-width:240px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;font-size:13px;box-sizing:border-box;"
         />
         ${refundCanStart
           ? `<button type="button" class="btn-small" onclick="window.adminStartPaymentRefund?.('${esc(p.type)}', '${esc(p.id)}', this)">
@@ -2129,15 +2129,15 @@ function _platbaRow(p, canRefund = true) {
     <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
-          <span style="font-size:12px;font-weight:600;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};">${esc(isPass ? _adm('misc.pass') : _adm('misc.singleEntry'))}</span>
-          <span style="font-size:14px;font-weight:500;">${esc(p.description)}</span>
+          <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:${typeBg};color:${typeColor};">${esc(isPass ? _adm('misc.pass') : _adm('misc.singleEntry'))}</span>
+          <span style="font-size:13px;font-weight:500;">${esc(p.description)}</span>
         </div>
-        <div style="font-size:13px;color:#6b6b6b;">${esc(p.userName)} · ${fmtDateTime(p.date)}</div>
+        <div style="font-size:12px;color:#6b6b6b;">${esc(p.userName)} · ${fmtDateTime(p.date)}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:16px;font-weight:700;margin-bottom:3px;">${fmtPrice(p.amount)}</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:3px;">${fmtPrice(p.amount)}</div>
         <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
-          <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.c};">${esc(st.l)}</span>
+          <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.c};">${esc(st.l)}</span>
           ${refundBadge}
         </div>
         ${refundMeta}
@@ -2159,14 +2159,14 @@ function _platbyHeaderHtml(scope, activeKey, canPrev, canNext) {
         title="${prevAria}"
         ${canPrev ? '' : 'disabled'}
         onclick="${_platbyHandler(scope, 'PrevMonth')}"
-        style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:20px;line-height:1;cursor:${canPrev ? 'pointer' : 'not-allowed'};opacity:${canPrev ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
+        style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:19px;line-height:1;cursor:${canPrev ? 'pointer' : 'not-allowed'};opacity:${canPrev ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
         ‹
       </button>
       <button type="button"
         aria-label="${pickAria}"
         title="${pickAria}"
         onclick="${_platbyHandler(scope, 'OpenMonthPicker')}"
-        style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:20px;font-size:16px;font-weight:600;cursor:pointer;min-width:180px;justify-content:center;">
+        style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;min-width:180px;justify-content:center;">
         <span aria-hidden="true">📅</span>
         <span>${esc(label)}</span>
       </button>
@@ -2175,7 +2175,7 @@ function _platbyHeaderHtml(scope, activeKey, canPrev, canNext) {
         title="${nextAria}"
         ${canNext ? '' : 'disabled'}
         onclick="${_platbyHandler(scope, 'NextMonth')}"
-        style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:20px;line-height:1;cursor:${canNext ? 'pointer' : 'not-allowed'};opacity:${canNext ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
+        style="width:36px;height:36px;border:1px solid var(--border);background:#fff;border-radius:50%;font-size:19px;line-height:1;cursor:${canNext ? 'pointer' : 'not-allowed'};opacity:${canNext ? '1' : '.35'};display:inline-flex;align-items:center;justify-content:center;padding:0;">
         ›
       </button>
     </div>
@@ -2201,7 +2201,7 @@ function _monthPickerModalHtml(scope, byMonth, activeKey) {
         <div class="pop-sheet" style="max-width:560px;">
           <div class="pop-bar"></div>
           <div class="pop-body" style="padding:20px;">
-            <div style="font-size:18px;font-weight:600;margin-bottom:12px;">${esc(_adm('platby.pickerTitle'))}</div>
+            <div style="font-size:17px;font-weight:600;margin-bottom:12px;">${esc(_adm('platby.pickerTitle'))}</div>
             <div class="empty" style="padding:24px 8px;">${esc(_adm('platby.empty'))}</div>
             <button type="button" class="pop-close" onclick="window.${hp}CloseMonthPicker?.()">${esc(_adm('platby.pickerClose'))}</button>
           </div>
@@ -2235,12 +2235,12 @@ function _monthPickerModalHtml(scope, byMonth, activeKey) {
     const header = flat ? '' : `
       <button type="button"
         onclick="window.${hp}ToggleYear?.('${esc(year)}')"
-        style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:0;background:transparent;cursor:pointer;border-top:1px solid var(--border);font-size:16px;font-weight:600;text-align:left;">
+        style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:0;background:transparent;cursor:pointer;border-top:1px solid var(--border);font-size:15px;font-weight:600;text-align:left;">
         <span style="display:inline-flex;align-items:center;gap:8px;">
           <span aria-hidden="true" style="display:inline-block;width:12px;transition:transform .15s;transform:rotate(${expanded ? '90deg' : '0'});">▸</span>
           ${esc(year)}
         </span>
-        <span style="font-size:14px;color:var(--muted);font-weight:500;">${esc(_adm('platby.pickerYearTotal', { amount: fmtPrice(yearNet) }))}</span>
+        <span style="font-size:13px;color:var(--muted);font-weight:500;">${esc(_adm('platby.pickerYearTotal', { amount: fmtPrice(yearNet) }))}</span>
       </button>
     `
     const monthsGrid = expanded ? `
@@ -2281,7 +2281,7 @@ function _monthPickerModalHtml(scope, byMonth, activeKey) {
 
   // Pro flat zobrazení (1 rok) přidáme i jednoduchý header roku jen jako titulek
   const flatYearTitle = flat ? `
-    <div style="padding:8px 16px 0;font-size:18px;font-weight:600;">${esc(yearsWithData[0])}</div>
+    <div style="padding:8px 16px 0;font-size:17px;font-weight:600;">${esc(yearsWithData[0])}</div>
   ` : ''
 
   return `
@@ -2307,10 +2307,10 @@ function _monthPickerModalHtml(scope, byMonth, activeKey) {
         background: #f7f7f7;
       }
       .platby-picker-tile-month {
-        font-size: 15px; font-weight: 600;
+        font-size: 14px; font-weight: 600;
       }
       .platby-picker-tile-sum {
-        font-size: 13px; color: var(--muted);
+        font-size: 12px; color: var(--muted);
       }
       .platby-picker-tile-active {
         background: rgba(40,84,185,.08);
@@ -2334,10 +2334,10 @@ function _monthPickerModalHtml(scope, byMonth, activeKey) {
         <div class="pop-bar"></div>
         <div class="pop-body" style="padding:16px 0 16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px 12px;">
-            <div style="font-size:18px;font-weight:600;">${esc(_adm('platby.pickerTitle'))}</div>
+            <div style="font-size:17px;font-weight:600;">${esc(_adm('platby.pickerTitle'))}</div>
             <button type="button"
               onclick="window.${hp}JumpToCurrent?.()"
-              style="font-size:14px;padding:6px 12px;border:1px solid var(--border);background:#fff;border-radius:20px;cursor:pointer;">
+              style="font-size:13px;padding:6px 12px;border:1px solid var(--border);background:#fff;border-radius:20px;cursor:pointer;">
               ${esc(_adm('platby.pickerJumpToCurrent'))}
             </button>
           </div>
@@ -2534,8 +2534,8 @@ function _passCard(pass, courseMap) {
     <div class="admin-pass-card" style="border-radius:12px;padding:14px 16px;margin-bottom:10px;${tint}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:16px;font-weight:600;margin-bottom:4px;">${esc(name)}</div>
-          <div style="font-size:13px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px;">${esc(name)}</div>
+          <div style="font-size:12px;color:#6b6b6b;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
             <span>${tWithEntries(_adminLocale(), 'admin.passesPage.cardEntries', pass.entries_total)}</span>
             <span>${t(_adminLocale(), 'admin.passesPage.cardPerEntryPrice', {
               price: fmtPrice(pass.price / pass.entries_total),
@@ -2546,12 +2546,12 @@ function _passCard(pass, courseMap) {
           ${courseNames.length ? `
             <div style="display:flex;gap:5px;flex-wrap:wrap;">
               ${courseNames.map(n => `
-                <span style="font-size:12px;font-weight:500;padding:2px 7px;border-radius:20px;
+                <span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;
                   background:${ph}22;color:${ph};">${esc(n)}</span>`).join('')}
-            </div>` : `<div style="font-size:13px;color:#9b9b9b;">${esc(_adm('passesPage.notLinked'))}</div>`}
+            </div>` : `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('passesPage.notLinked'))}</div>`}
         </div>
         <div style="text-align:left;flex-shrink:0;">
-          <div style="font-size:20px;font-weight:700;color:${ph};margin-bottom:10px;text-align:left;">${fmtPrice(pass.price)}</div>
+          <div style="font-size:19px;font-weight:700;color:${ph};margin-bottom:10px;text-align:left;">${fmtPrice(pass.price)}</div>
           <div style="display:flex;gap:8px;">
             <button class="btn-small" onclick="window.openPassModal?.('${esc(pass.id)}')">${esc(_adm('btn.edit'))}</button>
             <button class="btn-small danger" onclick="window.adminDeletePass?.('${esc(pass.id)}')">${esc(_adm('btn.delete'))}</button>
@@ -2564,7 +2564,7 @@ function _passCard(pass, courseMap) {
 // ── Modal: Permanentka ────────────────────────────────────────
 function buildPassModal() {
   if (document.getElementById('modal-pass')) return
-  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;box-sizing:border-box;'
+  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;box-sizing:border-box;'
   const passColorDots = PASS_PALETTE.map(c => `
     <button type="button" data-mp-color="${c}" onclick="window._mpPickColor?.('${c}')"
       title="${c}"
@@ -2578,31 +2578,31 @@ function buildPassModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:480px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:20px;font-weight:700;" id="mp-title">${esc(_adm('passesPage.modalTitleNew'))}</div>
+          <div style="font-size:19px;font-weight:700;" id="mp-title">${esc(_adm('passesPage.modalTitleNew'))}</div>
         </div>
         <div style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 140px);">
           <input type="hidden" id="mp-id" />
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Název permanentky</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Název permanentky</label>
             <input id="mp-name" type="text" placeholder="např. Základní balíček 10" style="${INP}" />
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Počet vstupů</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Počet vstupů</label>
               <input id="mp-entries" type="number" min="1" placeholder="10" style="${INP}" />
             </div>
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Cena (Kč)</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Cena (Kč)</label>
               <input id="mp-price" type="number" min="0" placeholder="3500" style="${INP}" />
             </div>
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Platnost (týdny)</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Platnost (týdny)</label>
               <input id="mp-weeks" type="number" min="1" value="12" style="${INP}" />
             </div>
           </div>
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:6px;">Barva karty permanentky</label>
-            <div style="font-size:13px;color:#6b6b6b;line-height:1.45;margin-bottom:10px;">
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">Barva karty permanentky</label>
+            <div style="font-size:12px;color:#6b6b6b;line-height:1.45;margin-bottom:10px;">
               Teplé pastelové barvy (hlína / glazura), oddělené od palety kurzů — určují nádech karty permanentky v aplikaci.
             </div>
             <div id="mp-colors" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
@@ -2610,10 +2610,10 @@ function buildPassModal() {
             </div>
           </div>
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:8px;">Platí pro kurzy</label>
-            <div id="mp-courses-list"><div style="font-size:14px;color:#9b9b9b;">Načítám kurzy…</div></div>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">Platí pro kurzy</label>
+            <div id="mp-courses-list"><div style="font-size:13px;color:#9b9b9b;">Načítám kurzy…</div></div>
           </div>
-          <div id="mp-error" style="display:none;font-size:14px;color:#791F1F;background:#FCEBEB;
+          <div id="mp-error" style="display:none;font-size:13px;color:#791F1F;background:#FCEBEB;
             border-radius:8px;padding:10px 12px;"></div>
         </div>
         <div style="display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);">
@@ -2635,7 +2635,7 @@ window.openPassModal = async (passId = null) => {
   document.getElementById('mp-weeks').value = '12'
 
   const listEl = document.getElementById('mp-courses-list')
-  listEl.innerHTML = `<div style="font-size:14px;color:#9b9b9b;">${esc(_adm('loading.modalCourses'))}</div>`
+  listEl.innerHTML = `<div style="font-size:13px;color:#9b9b9b;">${esc(_adm('loading.modalCourses'))}</div>`
 
   // Lektor přidává permanentku jen ke svým kurzům (RLS by stejně cizí update zablokovala).
   const coursesQuery = _scopeOwnerQuery(
@@ -2662,7 +2662,7 @@ window.openPassModal = async (passId = null) => {
   const existingIds = pass?.allowed_course_ids ?? []
 
   if (!courses?.length) {
-    listEl.innerHTML = `<div style="font-size:14px;color:#9b9b9b;padding:8px 0;">${esc(_adm('passesPage.modalCoursesEmpty'))}</div>`
+    listEl.innerHTML = `<div style="font-size:13px;color:#9b9b9b;padding:8px 0;">${esc(_adm('passesPage.modalCoursesEmpty'))}</div>`
   } else {
     listEl.innerHTML = courses.map(c => {
       const color = c.color_code ?? '#2854B9'
@@ -2672,7 +2672,7 @@ window.openPassModal = async (passId = null) => {
           <input type="checkbox" value="${esc(c.id)}" ${existingIds.includes(c.id)?'checked':''}
             style="width:16px;height:16px;accent-color:${color};cursor:pointer;flex-shrink:0;" />
           <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;"></div>
-          <span style="font-size:15px;">${esc(loc(c.title))}</span>
+          <span style="font-size:14px;">${esc(loc(c.title))}</span>
         </label>`
     }).join('')
   }
@@ -2801,7 +2801,7 @@ function _wsRenderSessionDates(preset) {
   if (!wrap) return
   if (!multi) return
   const count = _wsSessionCount()
-  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;box-sizing:border-box;'
+  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;box-sizing:border-box;'
   const rows = []
   for (let i = 0; i < count; i++) {
     const p = preset?.[i]
@@ -2809,7 +2809,7 @@ function _wsRenderSessionDates(preset) {
     const val = p?.date ?? ''
     rows.push(`
       <div style="margin-bottom:10px;">
-        <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">${esc(_adm('workshop.sessionDateLabel', { n: i + 1 }))}</label>
+        <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">${esc(_adm('workshop.sessionDateLabel', { n: i + 1 }))}</label>
         <input type="date" class="mw-session-date" style="${INP}" value="${esc(val)}"${lid} />
       </div>`)
   }
@@ -3057,7 +3057,7 @@ window.adminDuplicateWorkshop = async (courseId) => {
 // ── Modal: Nový / upravit workshop ───────────────────────────
 function buildWorkshopModal() {
   if (document.getElementById('modal-workshop')) return
-  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;box-sizing:border-box;'
+  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;box-sizing:border-box;'
 
   const colorDots = PRESET_COLORS.map((c, i) => `
     <button type="button" data-ws-color="${c}" onclick="window._wsPickColor?.('${c}')"
@@ -3072,61 +3072,61 @@ function buildWorkshopModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:520px;overflow:hidden;margin:auto;max-height:90vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:20px;font-weight:700;" id="mw-title">Nový workshop</div>
+          <div style="font-size:19px;font-weight:700;" id="mw-title">Nový workshop</div>
         </div>
         <div style="padding:14px 18px;overflow-y:auto;flex:1;">
           <input type="hidden" id="mw-id" />
           <input type="hidden" id="mw-lesson-id" />
 
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Název workshopu</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Název workshopu</label>
             <input id="mw-name" type="text" placeholder="např. Úvod do keramiky" style="${INP}" />
           </div>
 
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Anotace <span style="font-weight:400;opacity:.7;">(zobrazí se v seznamu)</span></label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Anotace <span style="font-weight:400;opacity:.7;">(zobrazí se v seznamu)</span></label>
             <textarea id="mw-desc" rows="2" placeholder="Krátký popis workshopu…"
               style="${INP}resize:vertical;min-height:60px;"></textarea>
           </div>
 
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Obsah workshopu <span style="font-weight:400;opacity:.7;">(detailní popis)</span></label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Obsah workshopu <span style="font-weight:400;opacity:.7;">(detailní popis)</span></label>
             <div id="mw-long-wrap" class="admin-quill-wrap"><div id="mw-long-editor"></div></div>
           </div>
 
           <div style="margin-bottom:14px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:8px;">Barva v kalendáři</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">Barva v kalendáři</label>
             <div id="mw-colors" style="display:flex;gap:8px;flex-wrap:wrap;">${colorDots}</div>
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Cena (Kč)</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Cena (Kč)</label>
               <input id="mw-price" type="number" min="0" placeholder="800" style="${INP}" />
             </div>
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Kapacita (míst)</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Kapacita (míst)</label>
               <input id="mw-capacity" type="number" min="1" value="12" style="${INP}" />
             </div>
           </div>
 
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Minimální počet účastníků</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Minimální počet účastníků</label>
             <input id="mw-min-p" type="number" min="1" value="1" style="${INP}" />
-            <div style="font-size:13px;color:#6b6b6b;margin-top:4px;line-height:1.45;">
+            <div style="font-size:12px;color:#6b6b6b;margin-top:4px;line-height:1.45;">
               Stejná logika upozornění jako u běžného kurzu (cron + fronta e‑mailů).
             </div>
           </div>
 
           <div style="margin-bottom:12px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
               <input type="checkbox" id="mw-multi" onchange="window._wsToggleMultiUI?.()" style="accent-color:var(--primary);" />
               <span>${esc(_adm('workshop.multiSessions'))}</span>
             </label>
           </div>
 
           <div id="mw-multi-panel" style="display:none;margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">${esc(_adm('workshop.sessionCount'))}</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">${esc(_adm('workshop.sessionCount'))}</label>
             <select id="mw-session-count" onchange="window._wsOnSessionCountChange?.()" style="${INP}">
               ${[2, 3, 4, 5, 6].map(n => `<option value="${n}">${n}</option>`).join('')}
             </select>
@@ -3134,17 +3134,17 @@ function buildWorkshopModal() {
           </div>
 
           <div id="mw-single-date-wrap" style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Datum</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Datum</label>
             <input id="mw-date" type="date" style="${INP}" />
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Čas od</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Čas od</label>
               <input id="mw-time-from" type="time" value="09:00" style="${INP}" />
             </div>
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Čas do</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Čas do</label>
               <input id="mw-time-to" type="time" value="12:00" style="${INP}" />
             </div>
           </div>
@@ -3152,14 +3152,14 @@ function buildWorkshopModal() {
           <div style="margin-bottom:14px;">
             <div id="mw-photos-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
             <label id="mw-photos-add" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
-              border:1.5px dashed var(--border);border-radius:var(--btn-radius);cursor:pointer;font-size:14px;color:var(--muted);">
+              border:1.5px dashed var(--border);border-radius:var(--btn-radius);cursor:pointer;font-size:13px;color:var(--muted);">
               + Přidat foto
               <input type="file" id="mw-photo-input" accept="image/*" multiple style="display:none;"
                 onchange="window._mwHandlePhotos(this)" />
             </label>
           </div>
 
-          <div id="mw-error" style="display:none;font-size:14px;color:#791F1F;background:#FCEBEB;
+          <div id="mw-error" style="display:none;font-size:13px;color:#791F1F;background:#FCEBEB;
             border-radius:8px;padding:10px 12px;"></div>
         </div>
         <div style="display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);">
@@ -3376,7 +3376,7 @@ function _photoThumb(src, onRemove) {
       <img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--border);" />
       <button type="button" onclick="${onRemove}"
         style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;
-          background:#fff;border:1px solid var(--border);font-size:14px;cursor:pointer;
+          background:#fff;border:1px solid var(--border);font-size:13px;cursor:pointer;
           display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">×</button>
     </div>`
 }
@@ -3508,7 +3508,7 @@ async function _uploadCourseImage(file, courseId) {
 // ── Modal: Nový / upravit kurz ────────────────────────────────
 function buildCourseModal() {
   if (document.getElementById('modal-course')) return
-  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;outline:none;box-sizing:border-box;'
+  const INP = 'width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;outline:none;box-sizing:border-box;'
 
   const colorDots = PRESET_COLORS.map((c, i) => `
     <button type="button" data-color="${c}" onclick="window._ncPickColor?.('${c}')"
@@ -3519,7 +3519,7 @@ function buildCourseModal() {
   const dayBtns = _adminWeekdayShortLabels().map((d, i) => `
     <button type="button" data-day="${i}" onclick="window._ncToggleDay?.(${i},this)"
       style="flex:1;padding:9px 2px;border-radius:var(--btn-radius);border:1px solid var(--border);
-        background:transparent;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s;">
+        background:transparent;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);transition:.15s;">
       ${d}
     </button>`).join('')
 
@@ -3530,63 +3530,63 @@ function buildCourseModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:520px;overflow:hidden;margin:auto;max-height:90vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:20px;font-weight:700;" id="mc-title">Nový kurz</div>
+          <div style="font-size:19px;font-weight:700;" id="mc-title">Nový kurz</div>
         </div>
         <div style="padding:14px 18px;overflow-y:auto;flex:1;">
           <input type="hidden" id="mc-id" />
 
-          <div id="mc-edit-note" style="display:none;font-size:13px;color:#8B5C00;background:#FFF4E0;
+          <div id="mc-edit-note" style="display:none;font-size:12px;color:#8B5C00;background:#FFF4E0;
             border-radius:8px;padding:10px 12px;margin-bottom:14px;">
             Změna názvu, barvy, ceny, kapacity a času se automaticky projeví u všech budoucích termínů tohoto kurzu.
           </div>
 
           <!-- Název -->
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Název kurzu</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Název kurzu</label>
             <input id="mc-name" type="text" placeholder="např. Točení na kruhu" style="${INP}" />
           </div>
 
           <!-- Anotace (krátký popis) -->
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Anotace <span style="font-weight:400;opacity:.7;">(zobrazí se v seznamu kurzů)</span></label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Anotace <span style="font-weight:400;opacity:.7;">(zobrazí se v seznamu kurzů)</span></label>
             <textarea id="mc-desc" rows="2" placeholder="Stručný popis kurzu…"
               style="${INP}resize:vertical;min-height:60px;"></textarea>
           </div>
 
           <!-- Obsah kurzu (dlouhý popis) — Quill editor -->
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Obsah kurzu <span style="font-weight:400;opacity:.7;">(detailní popis na stránce kurzu)</span></label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Obsah kurzu <span style="font-weight:400;opacity:.7;">(detailní popis na stránce kurzu)</span></label>
             <div id="mc-long-wrap" class="admin-quill-wrap"><div id="mc-long-editor"></div></div>
           </div>
 
           <!-- Barva -->
           <div style="margin-bottom:14px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:8px;">Barva v kalendáři</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">Barva v kalendáři</label>
             <div id="mc-colors" style="display:flex;gap:8px;flex-wrap:wrap;">${colorDots}</div>
           </div>
 
           <!-- Cena + Kapacita -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Jednorázový vstup (Kč)</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Jednorázový vstup (Kč)</label>
               <input id="mc-price" type="number" min="0" placeholder="450" style="${INP}" />
             </div>
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Kapacita (míst)</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Kapacita (míst)</label>
               <input id="mc-capacity" type="number" min="1" value="12" style="${INP}" />
             </div>
           </div>
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Minimální počet účastníků</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Minimální počet účastníků</label>
             <input id="mc-min-p" type="number" min="1" value="1" style="${INP}" />
-            <div style="font-size:13px;color:#6b6b6b;margin-top:4px;line-height:1.45;">
+            <div style="font-size:12px;color:#6b6b6b;margin-top:4px;line-height:1.45;">
               Pokud bude méně přihlášených, lektor dostane e‑mail cca 24 h před začátkem lekce (vyžaduje cron + odesílání fronty).
             </div>
           </div>
 
           <!-- Storno -->
           <div style="margin-bottom:14px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Storno lhůta</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Storno lhůta</label>
             <select id="mc-cancel" style="${INP}">
               <option value="6">6 hodin předem</option>
               <option value="24" selected>24 hodin předem</option>
@@ -3596,18 +3596,18 @@ function buildCourseModal() {
 
           <!-- Dny v týdnu -->
           <div style="margin-bottom:14px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:8px;">Dny v týdnu</label>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">Dny v týdnu</label>
             <div style="display:flex;gap:5px;">${dayBtns}</div>
           </div>
 
           <!-- Čas od–do -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Čas od</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Čas od</label>
               <input id="mc-time-from" type="time" value="09:00" style="${INP}" />
             </div>
             <div>
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:5px;">Čas do</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:5px;">Čas do</label>
               <input id="mc-time-to" type="time" value="10:30" style="${INP}" />
             </div>
           </div>
@@ -3616,7 +3616,7 @@ function buildCourseModal() {
           <div style="margin-bottom:14px;">
             <div id="mc-photos-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
             <label id="mc-photos-add" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;
-              border:1.5px dashed var(--border);border-radius:var(--btn-radius);cursor:pointer;font-size:14px;color:var(--muted);">
+              border:1.5px dashed var(--border);border-radius:var(--btn-radius);cursor:pointer;font-size:13px;color:var(--muted);">
               + Přidat foto
               <input type="file" id="mc-photo-input" accept="image/*" multiple style="display:none;"
                 onchange="window._ncHandlePhotos(this)" />
@@ -3629,28 +3629,28 @@ function buildCourseModal() {
               <input type="checkbox" id="mc-restricted" onchange="window._mcToggleRestricted?.()"
                 style="width:16px;height:16px;margin-top:2px;accent-color:var(--primary);flex-shrink:0;" />
               <span>
-                <span style="font-size:15px;font-weight:600;display:block;">${esc(_adm('courseModal.restrictedLabel'))}</span>
-                <span style="font-size:13px;color:#6b6b6b;line-height:1.45;">${esc(_adm('courseModal.restrictedHint'))}</span>
+                <span style="font-size:14px;font-weight:600;display:block;">${esc(_adm('courseModal.restrictedLabel'))}</span>
+                <span style="font-size:12px;color:#6b6b6b;line-height:1.45;">${esc(_adm('courseModal.restrictedHint'))}</span>
               </span>
             </label>
             <div id="mc-allowed-users-wrap" style="display:none;margin-top:12px;">
-              <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:6px;">${esc(_adm('courseModal.allowedUsersLabel'))}</label>
+              <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">${esc(_adm('courseModal.allowedUsersLabel'))}</label>
               <input type="search" id="mc-allowed-users-search" placeholder="${esc(_adm('courseModal.allowedUsersSearchPh'))}"
                 oninput="window._mcFilterAllowedUsers?.(this.value)"
                 style="${INP}margin-bottom:8px;" />
               <div id="mc-allowed-users-list" style="max-height:200px;overflow-y:auto;">
-                <div style="font-size:14px;color:#9b9b9b;">${esc(_adm('loading.modalAllowedUsers'))}</div>
+                <div style="font-size:13px;color:#9b9b9b;">${esc(_adm('loading.modalAllowedUsers'))}</div>
               </div>
             </div>
           </div>
 
           <!-- Povolené permanentky -->
           <div style="margin-bottom:12px;">
-            <label style="font-size:14px;color:var(--muted);display:block;margin-bottom:8px;">${esc(_adm('passesPage.allowedPassesLabel'))}</label>
-            <div id="mc-passes-list"><div style="font-size:14px;color:#9b9b9b;">${esc(_adm('loading.modalPasses'))}</div></div>
+            <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">${esc(_adm('passesPage.allowedPassesLabel'))}</label>
+            <div id="mc-passes-list"><div style="font-size:13px;color:#9b9b9b;">${esc(_adm('loading.modalPasses'))}</div></div>
           </div>
 
-          <div id="mc-error" style="display:none;font-size:14px;color:#791F1F;background:#FCEBEB;
+          <div id="mc-error" style="display:none;font-size:13px;color:#791F1F;background:#FCEBEB;
             border-radius:8px;padding:10px 12px;"></div>
         </div>
         <div style="display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);">
@@ -3736,14 +3736,14 @@ async function _openCourseModal(courseId = null) {
   window._mcToggleRestricted?.()
   const allowedListEl = document.getElementById('mc-allowed-users-list')
   if (allowedListEl) {
-    allowedListEl.innerHTML = `<div style="font-size:14px;color:#9b9b9b;">${esc(_adm('loading.modalAllowedUsers'))}</div>`
+    allowedListEl.innerHTML = `<div style="font-size:13px;color:#9b9b9b;">${esc(_adm('loading.modalAllowedUsers'))}</div>`
   }
   const noteEl = document.getElementById('mc-edit-note')
   if (noteEl) noteEl.style.display = isEdit ? 'block' : 'none'
 
   // Load passes list
   const passesListEl = document.getElementById('mc-passes-list')
-  passesListEl.innerHTML = `<div style="font-size:14px;color:#9b9b9b;">${esc(_adm('loading.modalPasses'))}</div>`
+  passesListEl.innerHTML = `<div style="font-size:13px;color:#9b9b9b;">${esc(_adm('loading.modalPasses'))}</div>`
 
   let passes = []
   let courseData = { data: null }
@@ -3770,10 +3770,10 @@ async function _openCourseModal(courseId = null) {
   } catch (e) {
     modalDataFailed = true
     console.error('[Admin] modal kurz:', e)
-    passesListEl.innerHTML = `<div style="font-size:14px;color:#791F1F;padding:8px 0;">
+    passesListEl.innerHTML = `<div style="font-size:13px;color:#791F1F;padding:8px 0;">
       ${esc(_adm('courseModal.modalLoadFail'))}</div>`
     if (allowedListEl) {
-      allowedListEl.innerHTML = `<div style="font-size:14px;color:#791F1F;padding:8px 0;">
+      allowedListEl.innerHTML = `<div style="font-size:13px;color:#791F1F;padding:8px 0;">
         ${esc(_adm('courseModal.modalLoadFail'))}</div>`
     }
   }
@@ -3826,7 +3826,7 @@ async function _openCourseModal(courseId = null) {
     }
 
     if (!(passes && passes.length)) {
-      passesListEl.innerHTML = `<div style="font-size:14px;color:#9b9b9b;padding:8px 0;">${esc(_adm('passesPage.modalPassesEmpty'))}</div>`
+      passesListEl.innerHTML = `<div style="font-size:13px;color:#9b9b9b;padding:8px 0;">${esc(_adm('passesPage.modalPassesEmpty'))}</div>`
     } else {
       passesListEl.innerHTML = passes.map(p => {
         const name = loc(p.name) || _adm('misc.pass')
@@ -3836,8 +3836,8 @@ async function _openCourseModal(courseId = null) {
           <input type="checkbox" value="${esc(p.id)}" ${linkedPassIds.includes(p.id)?'checked':''}
             style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;" />
           <div style="flex:1;">
-            <div style="font-size:15px;font-weight:500;">${esc(name)}</div>
-            <div style="font-size:13px;color:#6b6b6b;">${esc(t(_adminLocale(), 'admin.customers.passLine', {
+            <div style="font-size:14px;font-weight:500;">${esc(name)}</div>
+            <div style="font-size:12px;color:#6b6b6b;">${esc(t(_adminLocale(), 'admin.customers.passLine', {
               name,
               entries: p.entries_total,
               price: fmtPrice(p.price),
@@ -3997,7 +3997,7 @@ function _mcRenderAllowedUsersList() {
     ? []
     : _mcInviteCandidates.filter(u => !q || u.searchText.includes(q))
   if (!filtered.length) {
-    listEl.innerHTML = `<div style="font-size:14px;color:#9b9b9b;padding:8px 0;">${esc(_adm('courseModal.allowedUsersEmpty'))}</div>`
+    listEl.innerHTML = `<div style="font-size:13px;color:#9b9b9b;padding:8px 0;">${esc(_adm('courseModal.allowedUsersEmpty'))}</div>`
     return
   }
   listEl.innerHTML = filtered.map(u => `
@@ -4007,8 +4007,8 @@ function _mcRenderAllowedUsersList() {
         onchange="window._mcToggleAllowedUser?.('${esc(u.id)}', this.checked)"
         style="width:16px;height:16px;accent-color:var(--primary);flex-shrink:0;" />
       <div style="flex:1;min-width:0;">
-        <div style="font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.name || u.email)}</div>
-        <div style="font-size:13px;color:#6b6b6b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.email ?? '')}</div>
+        <div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.name || u.email)}</div>
+        <div style="font-size:12px;color:#6b6b6b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.email ?? '')}</div>
       </div>
     </label>`).join('')
 }
@@ -4246,9 +4246,9 @@ function buildLessonAttendeesModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:520px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div id="mla-title" style="font-size:20px;font-weight:700;">${esc(_adm('lessonDetail.title'))}</div>
+          <div id="mla-title" style="font-size:19px;font-weight:700;">${esc(_adm('lessonDetail.title'))}</div>
           <button type="button" onclick="window.closeLessonAttendeesModal?.()"
-            style="border:none;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#6b6b6b;padding:0 4px;">×</button>
+            style="border:none;background:transparent;font-size:21px;line-height:1;cursor:pointer;color:#6b6b6b;padding:0 4px;">×</button>
         </div>
         <div id="mla-list" style="padding:14px 18px 18px;max-height:65vh;overflow:auto;"></div>
       </div>
@@ -4457,7 +4457,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
   const titleEl = document.getElementById('mla-title')
   if (!modal || !listEl) return
   modal.dataset.lessonId = String(lessonId)
-  listEl.innerHTML = `<div style="font-size:14px;color:#9b9b9b;padding:12px 0;">${esc(_adm('loading.attendees'))}</div>`
+  listEl.innerHTML = `<div style="font-size:13px;color:#9b9b9b;padding:12px 0;">${esc(_adm('loading.attendees'))}</div>`
   if (titleEl) titleEl.textContent = _adm('lessonDetail.title')
   modal.style.display = 'flex'
   try {
@@ -4511,13 +4511,13 @@ window.adminOpenLessonDetail = async (lessonId) => {
         <button type="button" class="btn-small" style="width:100%;justify-content:center;"
           onclick="window.adminToggleLessonParticipantMessage?.()">${esc(_adm('lessonDetail.messageToggle'))}</button>
         <div id="mla-message-panel" hidden style="margin-top:12px;display:none;gap:10px;">
-          <label style="display:grid;gap:5px;font-size:14px;color:#6b6b6b;font-weight:600;">
+          <label style="display:grid;gap:5px;font-size:13px;color:#6b6b6b;font-weight:600;">
             ${esc(_adm('lessonDetail.messageSubjectLabel'))}
             <input id="mla-message-subject" type="text" maxlength="160"
               placeholder="${esc(_adm('lessonDetail.messageSubjectPh'))}"
               style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 10px;font:inherit;color:#2f2a24;background:white;">
           </label>
-          <label style="display:grid;gap:5px;font-size:14px;color:#6b6b6b;font-weight:600;">
+          <label style="display:grid;gap:5px;font-size:13px;color:#6b6b6b;font-weight:600;">
             ${esc(_adm('lessonDetail.messageBodyLabel'))}
             <textarea id="mla-message-body" maxlength="5000" rows="6"
               placeholder="${esc(_adm('lessonDetail.messageBodyPh'))}"
@@ -4528,7 +4528,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
         </div>
       </div>
       <div style="overflow-x:auto;">
-      <table style="width:100%;min-width:700px;border-collapse:collapse;font-size:15px;table-layout:fixed;">
+      <table style="width:100%;min-width:700px;border-collapse:collapse;font-size:14px;table-layout:fixed;">
         <colgroup>
           <col style="width:18%;">
           <col style="width:26%;">
@@ -4536,7 +4536,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
           <col style="width:20%;">
         </colgroup>
         <thead>
-          <tr style="text-align:left;color:#6b6b6b;font-size:13px;">
+          <tr style="text-align:left;color:#6b6b6b;font-size:12px;">
             <th style="padding:8px 8px 8px 0;">${esc(_adm('lessonDetail.tableName'))}</th>
             <th style="padding:8px 4px;">${esc(_adm('lessonDetail.tableEmail'))}</th>
             <th style="padding:8px 0 8px 8px;">${esc(_adm('lessonDetail.tablePayment'))}</th>
@@ -4552,7 +4552,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
               ? `${esc(_adm('lessonDetail.paymentPassLabel'))}${passLabel ? ': ' + passLabel : ''}`
               : esc(_adm('payType.single'))
             const stColors = _adminLessonHistoryStatusColors(b.status)
-            const statusBadge = `<span style="display:inline-block;margin-top:4px;font-size:12px;font-weight:600;padding:2px 7px;border-radius:20px;background:${stColors.bg};color:${stColors.c};">${esc(_adminBookingStatusLabel(b.status))}</span>`
+            const statusBadge = `<span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:${stColors.bg};color:${stColors.c};">${esc(_adminBookingStatusLabel(b.status))}</span>`
             const passIdAttr = b.user_pass_id ? esc(b.user_pass_id) : ''
             const lessonIdArg = esc(String(lessonId))
             const bookingIdArg = esc(String(b.id))
@@ -4562,7 +4562,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
               <td style="padding:10px 4px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;">${esc(u?.email || _adm('misc.dash'))}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;line-height:1.45;">${payCell}<br>${statusBadge}</td>
               <td style="padding:10px 0 10px 8px;vertical-align:top;text-align:right;">
-                <button type="button" class="btn-small danger" style="font-size:13px;padding:6px 10px;"
+                <button type="button" class="btn-small danger" style="font-size:12px;padding:6px 10px;"
                   onclick="window.adminCancelCustomerBooking?.('${bookingIdArg}','${lessonIdArg}','${paymentTypeArg}','${passIdAttr}')"
                   data-admin-cancel-booking="${esc(b.id)}"
                   data-payment-type="${esc(b.payment_type)}"
@@ -4573,7 +4573,7 @@ window.adminOpenLessonDetail = async (lessonId) => {
         </tbody>
       </table>
       </div>
-      <div style="font-size:13px;color:#9b9b9b;margin-top:12px;">${_adm('lessonDetail.footerTotal', { n: rows.length })}</div>`
+      <div style="font-size:12px;color:#9b9b9b;margin-top:12px;">${_adm('lessonDetail.footerTotal', { n: rows.length })}</div>`
     })(), 'modal-lesson-attendees')
   } catch (err) {
     console.error('[Admin] adminOpenLessonDetail:', err)

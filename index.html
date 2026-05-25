@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23FD8D40'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Svelte islands feature flags (opt-in přes localStorage). Drží se brzy v <head>,
        aby legacy DOM nikdy neprobliknul, když je flag zapnutý. -->
@@ -58,7 +58,6 @@
       --overview-section-title-gap: 18px;
       --shell-shadow: 0 20px 50px rgba(40,84,185,.18), 0 4px 16px rgba(40,84,185,.10);
       --topbar-h: 64px;
-      --font-family: 'Syne', sans-serif;
     }
 
     html,
@@ -67,8 +66,8 @@
     input,
     select,
     textarea {
-      font-family: var(--font-family);
-      font-weight: 500;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 400;
     }
 
     :is(
@@ -91,19 +90,14 @@
       .cal-picker__title,
       .danger-title,
       .cal-island__head,
-      .logo
+      .logo,
+      [id$="-title"],
+      #ep-title,
+      #kal-name,
+      #bk-name,
+      #app-loader > div:first-child,
+      #app-error > div:first-child
     ) {
-      font-family: var(--font-family);
-      font-weight: 700;
-    }
-
-    [id$="-title"],
-    #ep-title,
-    #kal-name,
-    #bk-name,
-    #app-loader > div:first-child,
-    #app-error > div:first-child {
-      font-family: var(--font-family);
       font-weight: 700;
     }
 
@@ -177,9 +171,9 @@
       height: 64px;
       gap: 12px;
     }
-    .logo { font-size: 18px; font-weight: 700; letter-spacing: .06em; flex: 1; color: var(--section-heading-accent); }
+    .logo { font-size: 17px; font-weight: 700; letter-spacing: .06em; flex: 1; color: var(--section-heading-accent); }
     .top-actions{display:flex;align-items:center;gap:10px;}
-    .lang-toggle{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+    .lang-toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
     .lang-pill{
       padding: 6px 11px;border-radius: 999px;border: 1px solid var(--primary);
       background: #fff;color: var(--primary);cursor:pointer;
@@ -189,7 +183,7 @@
     .avatar {
       width: 42px; height: 42px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 600; cursor: pointer;
+      font-size: 15px; font-weight: 600; cursor: pointer;
       border: 1px solid var(--border);
     }
     .avatar.g { background: var(--muted-surface); color: var(--avatar-guest-fg); }
@@ -197,7 +191,7 @@
     .avatar-preview {
       width: 52px; height: 52px; border-radius: 50%;
       display:flex; align-items:center; justify-content:center;
-      font-size:18px; font-weight:600; color:#fff;
+      font-size:17px; font-weight:600; color:#fff;
       border:1px solid transparent;
       background: var(--avatar-default);
       flex-shrink: 0;
@@ -220,7 +214,7 @@
       box-shadow: 0 0 0 2px var(--swatch, var(--avatar-default));
     }
     .sbtn {
-      font-size: 15px; font-weight: 600; color: var(--text);
+      font-size: 14px; font-weight: 600; color: var(--text);
       border: 1px solid var(--border); border-radius: 12px;
       padding: 9px 14px; background: transparent; cursor: pointer;
     }
@@ -239,7 +233,7 @@
         background: #fff;
       }
       .top-actions .sbtn {
-        font-size: 14px;
+        font-size: 13px;
         padding: 6px 11px;
         border-radius: 999px;
         line-height: 1.2;
@@ -261,7 +255,7 @@
     #av-menu button {
       display: block; width: 100%;
       padding: 8px 12px; text-align: left;
-      font-size: 14px; border: none; background: transparent;
+      font-size: 13px; border: none; background: transparent;
       cursor: pointer; border-radius: 10px; color: var(--text);
     }
     #av-menu button:hover { background: var(--muted-surface); }
@@ -296,7 +290,7 @@
         border: 1px solid transparent;
         background: transparent;
         padding: 7px 12px; border-radius: var(--btn-radius);
-        font-size: 16px; font-weight: 500;
+        font-size: 15px; font-weight: 500;
         letter-spacing: 0;
         color: var(--primary);
         cursor: pointer;
@@ -381,7 +375,7 @@
         border: 1px solid transparent;
         background: transparent;
         padding: 7px 12px; border-radius: var(--btn-radius);
-        font-size: 16px; font-weight: 500;
+        font-size: 15px; font-weight: 500;
         line-height: 1.22;
         color: var(--primary);
         cursor: pointer; display: block;
@@ -403,7 +397,7 @@
 
     /* ── Sekce nadpis ── */
     .sec-title {
-      font-size: 14px; font-weight: 700; letter-spacing: .08em;
+      font-size: 13px; font-weight: 700; letter-spacing: .08em;
       text-transform: uppercase; color: var(--section-heading-accent);
       margin-bottom: 12px;
     }
@@ -423,12 +417,12 @@
 
     .cab { width: 6px; height: 38px; border-radius: 3px; flex-shrink: 0; }
     .cb { flex: 1; min-width: 0; }
-    .cname { font-size: 15px; font-weight: 500; margin-bottom: 3px; }
+    .cname { font-size: 14px; font-weight: 500; margin-bottom: 3px; }
     .cmeta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .cmi { font-size: 12px; color: #6b6b6b; }
-    .badge { font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 20px; }
+    .cmi { font-size: 11px; color: #6b6b6b; }
+    .badge { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 20px; }
     .cr { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-    .cpr { font-size: 14px; font-weight: 600; }
+    .cpr { font-size: 13px; font-weight: 600; }
     /* Accordion — plynulé rozbalení přes max-height */
     .cex { max-height: 0; overflow: hidden; transition: max-height .35s ease-out; }
     .cex.on { max-height: 2200px; transition: max-height .5s ease-in; }
@@ -446,11 +440,11 @@
 
     /* ── Detail kurzu ── */
     .detail-hero { width:100%; height:220px; object-fit:cover; border-radius:var(--radius); margin-bottom:18px; display:block; }
-    .detail-hero-ph { width:100%; height:220px; background:var(--muted-surface); border-radius:var(--radius); margin-bottom:18px; display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--muted); }
+    .detail-hero-ph { width:100%; height:220px; background:var(--muted-surface); border-radius:var(--radius); margin-bottom:18px; display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--muted); }
 
     /* Krátká anotace nad dlouhým popisem (detail kurzu) */
     .detail-course-annotation {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
       line-height: 1.7;
       color: var(--primary);
@@ -470,8 +464,8 @@
     }
     .course-rich-text h2:first-child,
     .course-rich-text h3:first-child { margin-top: 0; }
-    .course-rich-text h2 { font-size: calc(1.2rem + 2px); font-weight: 700; }
-    .course-rich-text h3 { font-size: calc(1.05rem + 2px); font-weight: 700; }
+    .course-rich-text h2 { font-size: calc(1.2rem + 1px); font-weight: 700; }
+    .course-rich-text h3 { font-size: calc(1.05rem + 1px); font-weight: 700; }
     .course-rich-text ul,
     .course-rich-text ol { margin: 0.35em 0 0.5em 0; padding-left: 1.35em; list-style-position: outside; }
     .course-rich-text ul { list-style-type: disc; }
@@ -482,7 +476,7 @@
     .course-rich-text em, .course-rich-text i { font-style: italic; }
     .course-rich-text u { text-decoration: underline; text-underline-offset: 2px; }
     .course-rich-text--plain { white-space: pre-line; }
-    .detail-long-desc-wrap { font-size: 16px; margin-bottom: 20px; }
+    .detail-long-desc-wrap { font-size: 15px; margin-bottom: 20px; }
 
     /* Quill v admin modálech */
     .admin-quill-wrap .ql-toolbar.ql-snow {
@@ -494,7 +488,7 @@
       border-radius: 0 0 10px 10px;
       border-color: var(--border);
       font-family: inherit;
-      font-size: 15px;
+      font-size: 14px;
       min-height: 120px;
     }
     .admin-quill-wrap .ql-editor { min-height: 118px; line-height: 1.55; }
@@ -549,7 +543,7 @@
       border: none;
       background: rgba(255,255,255,.96);
       color: #1a1a1a;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       padding: 10px 18px;
       border-radius: var(--btn-radius);
@@ -569,7 +563,7 @@
       border: none;
       background: rgba(255,255,255,.22);
       color: #fff;
-      font-size: 30px;
+      font-size: 29px;
       line-height: 1;
       padding: 0 0 2px;
       cursor: pointer;
@@ -608,7 +602,7 @@
       margin: 4px 0 12px;
     }
     .detail-meta-pill {
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.35;
       padding: 7px 12px;
       border-radius: 999px;
@@ -630,7 +624,7 @@
       align-items: start;
       padding: 6px 0;
       border-bottom: 1px solid var(--border);
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.4;
     }
     .detail-info-row:last-child { border-bottom: none; }
@@ -646,8 +640,8 @@
       max-width: 100%;
       word-break: break-word;
     }
-    .blbl { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--section-heading-accent); margin-bottom: 6px; }
-    .blbl-sm { font-size: 11px; letter-spacing: .06em; margin-bottom: 2px; }
+    .blbl { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--section-heading-accent); margin-bottom: 6px; }
+    .blbl-sm { font-size: 10px; letter-spacing: .06em; margin-bottom: 2px; }
     .pay-opts-stack {
       display: flex;
       flex-direction: column;
@@ -670,11 +664,11 @@
       cursor: pointer;
     }
     .brow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-    .bnm { font-size: 14px; font-weight: 500; }
-    .bsb { font-size: 12px; color: #9b9b9b; }
+    .bnm { font-size: 13px; font-weight: 500; }
+    .bsb { font-size: 11px; color: #9b9b9b; }
     .btn-detail, .btn-res {
       width: 100%; padding: 9px; border-radius: var(--btn-radius); border: none;
-      font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 4px;
+      font-size: 13px; font-weight: 500; cursor: pointer; margin-top: 4px;
     }
     .btn-detail { background: #F8F8F8; color: #1a1a1a; border: 0.5px solid rgba(0,0,0,.12); }
     .btn-res { color: #fff; }
@@ -692,7 +686,7 @@
     .bk-opt-radio.on { border-width: 0; }
     #bk-resume-banner {
       display: none;
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.5;
       color: var(--primary);
       background: rgba(40, 84, 185, 0.08);
@@ -707,13 +701,13 @@
       padding: 12px 14px;
       margin-bottom: 10px;
       background: #fafafa;
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.55;
     }
     .bk-summary-row { margin-bottom: 10px; }
     .bk-summary-row:last-child { margin-bottom: 0; }
     .bk-summary-lbl {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -727,7 +721,7 @@
     #bk-change-btn {
       width: 100%;
       margin: 0 0 14px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       background: transparent;
       border: 0.5px solid rgba(0, 0, 0, 0.14);
@@ -752,7 +746,7 @@
     .cal-nav-btn {
       border: 1px solid var(--border);
       background: #fff;
-      font-size: 18px;
+      font-size: 17px;
       cursor: pointer;
       padding: 6px 10px;
       color: var(--muted);
@@ -771,7 +765,7 @@
       border: 1px solid var(--border);
       border-radius: 10px;
       background: #fff;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--text);
       cursor: pointer;
@@ -819,7 +813,7 @@
       gap: 10px;
     }
     .cal-picker__title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--text);
       text-transform: capitalize;
@@ -834,7 +828,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       background: #fff;
-      font-size: 18px;
+      font-size: 17px;
       line-height: 1;
       color: var(--muted);
       cursor: pointer;
@@ -845,7 +839,7 @@
       grid-template-columns: repeat(7, 1fr);
       gap: 2px;
       margin-bottom: 6px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--muted);
       text-align: center;
@@ -868,7 +862,7 @@
     .cal-picker__row:hover { background: var(--muted-surface); }
     .cal-picker__row.selected { background: var(--primary-100); }
     .cal-picker__day {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 500;
       color: var(--text);
       text-align: center;
@@ -937,9 +931,9 @@
       border-right: 1px solid var(--border);
     }
     .dh:last-child{ border-right:1px solid transparent; }
-    .dd { font-size: 20px; font-weight: 600; display: block; line-height:1.1; }
+    .dd { font-size: 19px; font-weight: 600; display: block; line-height:1.1; }
     .dd.td { color: var(--primary); }
-    .dn { font-size: 12px; color: #9b9b9b; text-transform: uppercase; letter-spacing:.12em; margin-top: 4px; display:block; }
+    .dn { font-size: 11px; color: #9b9b9b; text-transform: uppercase; letter-spacing:.12em; margin-top: 4px; display:block; }
 
     .cal-body{
       display:grid;
@@ -971,7 +965,7 @@
       align-items:flex-start;
       justify-content: center;
       padding: 6px 8px 0;
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
       border: none;
       box-sizing: border-box;
@@ -999,9 +993,9 @@
       position: absolute; left: 2px; right: 2px; border-radius: 5px;
       padding: 3px 4px; cursor: pointer; overflow: hidden;
     }
-    .evn { font-size: 11px; font-weight: 600; line-height: 1.2; }
-    .evt { font-size: 10px; opacity: .8; }
-    .evb { font-size: 10px; font-weight: 600; margin-top: 1px; }
+    .evn { font-size: 10px; font-weight: 600; line-height: 1.2; }
+    .evt { font-size: 9px; opacity: .8; }
+    .evb { font-size: 9px; font-weight: 600; margin-top: 1px; }
     @media (max-width: 640px) {
       :root {
         --cal-hour: 64px;
@@ -1125,16 +1119,16 @@
         padding: 6px 4px 5px;
       }
       .dd {
-        font-size: 15px;
+        font-size: 14px;
       }
       .dn {
-        font-size: 10px;
+        font-size: 9px;
         letter-spacing: .04em;
         margin-top: 2px;
       }
       .time-slot {
         padding: 5px 6px 0;
-        font-size: 12px;
+        font-size: 11px;
       }
       .ev {
         left: 1px;
@@ -1142,19 +1136,19 @@
         padding: 3px 2px;
         border-radius: 4px;
       }
-      .evn { font-size: 10.5px; line-height: 1.15; }
-      .evt, .evb { font-size: 9.5px; }
+      .evn { font-size: 9.5px; line-height: 1.15; }
+      .evt, .evb { font-size: 8.5px; }
     }
 
     /* ── Externí platba (Stripe) — druhý dialog ── */
     .ep-pay-lead {
-      font-size: 15px;
+      font-size: 14px;
       color: var(--anno);
       line-height: 1.5;
       margin-bottom: 14px;
     }
     .ep-summary {
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.55;
       padding: 12px 14px;
       border-radius: 10px;
@@ -1164,7 +1158,7 @@
     }
     .ep-line + .ep-line { margin-top: 6px; }
     .ep-no-url {
-      font-size: 14px;
+      font-size: 13px;
       color: #7a1f1f;
       margin-bottom: 12px;
       line-height: 1.45;
@@ -1193,7 +1187,7 @@
     .pop-body { padding: 16px; }
     .pop-close {
       width: 100%; padding: 10px; border: 0.5px solid rgba(0,0,0,.12);
-      border-radius: var(--btn-radius); background: transparent; font-size: 14px; cursor: pointer; margin-top: 8px;
+      border-radius: var(--btn-radius); background: transparent; font-size: 13px; cursor: pointer; margin-top: 8px;
     }
 
     /* ── Přehled (nástěnka) ── */
@@ -1201,8 +1195,8 @@
       background: #fff; border: 1px solid var(--border);
       border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
     }
-    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-    .card-meta  { font-size: 14px; color: var(--muted); }
+    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .card-meta  { font-size: 13px; color: var(--muted); }
 
     /* ── Uživatelský manuál ── */
     .manual-hero {
@@ -1225,7 +1219,7 @@
       display: block;
     }
     .manual-kicker {
-      font-size: 13px;
+      font-size: 12px;
       letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--section-heading-accent);
@@ -1233,13 +1227,13 @@
       margin-bottom: 8px;
     }
     .manual-title {
-      font-size: 26px;
+      font-size: 25px;
       line-height: 1.2;
       font-weight: 700;
       margin-bottom: 8px;
     }
     .manual-lead {
-      font-size: 16px;
+      font-size: 15px;
       color: var(--anno);
       line-height: 1.7;
       max-width: 680px;
@@ -1272,20 +1266,20 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       margin-bottom: 10px;
     }
     .manual-step-title,
     .manual-card-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       margin-bottom: 6px;
     }
     .manual-step-text,
     .manual-card-text,
     .manual-list li {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--anno);
       line-height: 1.65;
     }
@@ -1318,7 +1312,7 @@
     .manual-note {
       margin-top: 16px;
       padding: 4px 0;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--anno);
       line-height: 1.65;
     }
@@ -1327,7 +1321,7 @@
       .manual-grid {
         grid-template-columns: 1fr;
       }
-      .manual-title { font-size: 23px; }
+      .manual-title { font-size: 22px; }
     }
 
     /* ── Profile + passes + bookings (design podle screenshotů) ─ */
@@ -1348,10 +1342,10 @@
       margin-right: -12px;
       flex: 0 0 auto;
     }
-    .hello{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-    .subtle{ font-size: 15px; color: var(--muted); }
+    .hello{ font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+    .subtle{ font-size: 14px; color: var(--muted); }
     .section-h{
-      font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+      font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
       font-weight: 700;
@@ -1411,9 +1405,9 @@
       margin-bottom: 10px;
     }
     .pass-top{ display:flex; justify-content:space-between; gap:12px; align-items:center; }
-    .pass-name{ font-size: 16px; font-weight: 600; }
-    .pass-meta{ font-size: 14px; color: var(--muted); margin-top: 2px; }
-    .pass-count{ font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1.05; letter-spacing: -0.02em; flex-shrink: 0; }
+    .pass-name{ font-size: 15px; font-weight: 600; }
+    .pass-meta{ font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .pass-count{ font-size: 27px; font-weight: 700; color: var(--primary); line-height: 1.05; letter-spacing: -0.02em; flex-shrink: 0; }
     .bar{ height: 6px; background: rgba(17,24,39,.08); border-radius: 999px; overflow:hidden; margin-top: 10px;}
     /* Katalog permanentek (uživatelská sekce) */
     .pass-shop-grid {
@@ -1445,14 +1439,14 @@
     .pass-shop-title {
       flex: 1;
       min-width: 0;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
       line-height: 1.35;
       color: var(--text);
     }
     .pass-shop-price {
       flex-shrink: 0;
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 700;
       color: var(--primary);
       line-height: 1.15;
@@ -1465,7 +1459,7 @@
       margin-bottom: 10px;
     }
     .pass-shop-chip {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       padding: 7px 11px;
       border-radius: var(--radius);
@@ -1481,7 +1475,7 @@
       font-weight: 700;
     }
     .pass-shop-accent {
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.45;
       color: var(--text);
       margin-bottom: 8px;
@@ -1495,7 +1489,7 @@
       flex: 1;
     }
     .pass-shop-scope-heading {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       letter-spacing: .12em;
       text-transform: uppercase;
@@ -1510,7 +1504,7 @@
     }
     .pass-shop-tag {
       display: inline-block;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
       line-height: 1.35;
       padding: 2px 7px;
@@ -1553,8 +1547,8 @@
       color:inherit;
       font:inherit;
     }
-    .bk-title{ font-size: 16px; font-weight: 600; }
-    .bk-sub{ font-size: 14px; color: var(--muted); margin-top: 2px; }
+    .bk-title{ font-size: 15px; font-weight: 600; }
+    .bk-sub{ font-size: 13px; color: var(--muted); margin-top: 2px; }
     .bk-link:hover .bk-title,
     .bk-link:focus-visible .bk-title{
       text-decoration:underline;
@@ -1566,7 +1560,7 @@
       border-radius:10px;
     }
     .pill{
-      font-size: 14px; font-weight: 600;
+      font-size: 13px; font-weight: 600;
       padding: 7px 10px; border-radius: var(--btn-radius);
       background: rgba(17,24,39,.06); color: var(--muted);
       border: 1px solid var(--border);
@@ -1575,31 +1569,31 @@
     .pill.ok{ background: rgba(40,84,185,.10); color: var(--primary); border-color: rgba(40,84,185,.18); }
     .btn-small{
       padding: 9px 12px; border-radius: var(--btn-radius); border: 1px solid var(--border);
-      background: transparent; cursor:pointer; font-size: 15px; font-weight:600;
+      background: transparent; cursor:pointer; font-size: 14px; font-weight:600;
       white-space: nowrap;
     }
     .btn-small.danger{ color:#7A1F1F; border-color: rgba(122,31,31,.25); background: rgba(122,31,31,.06); }
 
     /* ── Nastavení (form + modal) ─────────────────────────────── */
-    .page-title{ font-size: 24px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
-    .page-sub{ font-size: 15px; color: var(--muted); margin-bottom: 18px; }
+    .page-title{ font-size: 23px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .page-sub{ font-size: 14px; color: var(--muted); margin-bottom: 18px; }
     .block-label{
-      font-size: 13px; letter-spacing:.14em; text-transform:uppercase;
+      font-size: 12px; letter-spacing:.14em; text-transform:uppercase;
       color: var(--section-heading-accent); font-weight:600; margin: 18px 0 8px;
     }
     .field{ margin-bottom: 14px; }
-    .field label{ display:block; font-size: 14px; color: var(--text); margin-bottom: 6px; }
+    .field label{ display:block; font-size: 13px; color: var(--text); margin-bottom: 6px; }
     .input, .select{
       width:100%;
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 12px 14px;
-      font-size: 16px;
+      font-size: 15px;
       background:#fff;
       outline: none;
     }
     .input:focus, .select:focus{ border-color: rgba(40,84,185,.35); box-shadow: 0 0 0 4px rgba(40,84,185,.10); }
-    .helper{ font-size: 15px; color: var(--muted); margin-bottom: 10px; }
+    .helper{ font-size: 14px; color: var(--muted); margin-bottom: 10px; }
     .btn-wide{
       display:inline-flex; align-items:center; justify-content:center;
       gap:8px;
@@ -1607,7 +1601,7 @@
       border-radius: var(--btn-radius);
       border: 1px solid var(--border);
       background: #fff;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor:pointer;
     }
@@ -1621,8 +1615,8 @@
       padding: 14px 16px;
       margin-top: 10px;
     }
-    .danger-title{ font-size: 16px; font-weight: 700; color:#5d1414; margin-bottom: 4px; }
-    .danger-text{ font-size: 15px; color: rgba(93,20,20,.85); line-height:1.5; margin-bottom: 12px; }
+    .danger-title{ font-size: 15px; font-weight: 700; color:#5d1414; margin-bottom: 4px; }
+    .danger-text{ font-size: 14px; color: rgba(93,20,20,.85); line-height:1.5; margin-bottom: 12px; }
 
     .modal{
       display:none;
@@ -1644,16 +1638,16 @@
       overflow:hidden;
     }
     .modal-body{ padding: 18px 18px 14px; }
-    .modal-title{ font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-    .modal-sub{ font-size: 15px; color: var(--muted); margin-bottom: 12px; }
+    .modal-title{ font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+    .modal-sub{ font-size: 14px; color: var(--muted); margin-bottom: 12px; }
     .modal-list{ margin: 0 0 14px; padding-left: 18px; color: var(--text); }
-    .modal-list li{ margin: 6px 0; font-size: 15px; color: var(--anno); }
+    .modal-list li{ margin: 6px 0; font-size: 14px; color: var(--anno); }
     .warn-box{
       border: 1px solid rgba(122,31,31,.25);
       background: rgba(122,31,31,.06);
       border-radius: 12px;
       padding: 12px 12px;
-      font-size: 15px;
+      font-size: 14px;
       color: rgba(93,20,20,.92);
       line-height: 1.5;
       display:flex;
@@ -1680,25 +1674,25 @@
       width: 44px; height: 44px; border-radius: 50%;
       background: #2854B9; color: #fff;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 600; flex-shrink: 0;
+      font-size: 17px; font-weight: 600; flex-shrink: 0;
     }
-    .profile-name { font-size: 16px; font-weight: 500; }
-    .profile-email { font-size: 13px; color: #6b6b6b; }
+    .profile-name { font-size: 15px; font-weight: 500; }
+    .profile-email { font-size: 12px; color: #6b6b6b; }
     .menu-item {
       display: flex; align-items: center; justify-content: space-between;
       background: #fff; border: 0.5px solid rgba(0,0,0,.08);
       border-radius: var(--btn-radius); padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
     }
-    .menu-item span { font-size: 14px; }
-    .menu-item .arr { color: #9b9b9b; font-size: 16px; }
+    .menu-item span { font-size: 13px; }
+    .menu-item .arr { color: #9b9b9b; font-size: 15px; }
     .menu-item.danger span { color: #791F1F; }
 
     /* ── Prázdný stav ── */
-    .empty { text-align: center; padding: 40px 20px; font-size: 14px; color: #9b9b9b; }
+    .empty { text-align: center; padding: 40px 20px; font-size: 13px; color: #9b9b9b; }
 
     /* ── Admin sidebar sekce ── */
     .side-section-label {
-      font-size: 12px; font-weight: 600;
+      font-size: 11px; font-weight: 600;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--section-heading-accent);
@@ -1729,8 +1723,8 @@
       padding: 14px 16px;
       text-align: center;
     }
-    .admin-stat-value { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
-    .admin-stat-label { font-size: 13px; color: var(--anno); }
+    .admin-stat-value { font-size: 23px; font-weight: 700; margin-bottom: 4px; }
+    .admin-stat-label { font-size: 12px; color: var(--anno); }
 
     /* Mobil: třetí metrika pod dvěma nahoře, přes šířku — text centrovaný z .admin-stat-card */
     @media (max-width: 599px) {
@@ -1741,7 +1735,7 @@
 
     /* ── Admin sekce nadpis (přehled, platby, sekce z buildStaffLessonsSectionHtml …) ── */
     .admin-section-title {
-      font-size: 13px; font-weight: 700; letter-spacing: .14em;
+      font-size: 12px; font-weight: 700; letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
@@ -2121,7 +2115,7 @@
     <label data-i18n="pages.avatarColour">Barva avatara</label>
     <div style="display:flex;align-items:center;gap:14px;">
       <div class="avatar-preview" id="set-avatar-preview">?</div>
-      <div class="helper" style="font-size:14px;color:#6b6b6b;line-height:1.5;" data-i18n="pages.avatarColourHint">
+      <div class="helper" style="font-size:13px;color:#6b6b6b;line-height:1.5;" data-i18n="pages.avatarColourHint">
         Vyberte barvu kolečka, která se zobrazí v horní liště u vašeho profilu.
       </div>
     </div>
@@ -2333,31 +2327,31 @@
     <div class="pop-body">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
         <div>
-          <div id="kal-name" style="font-size:18px;font-weight:600;margin-bottom:3px;"></div>
-          <div id="kal-meta" style="font-size:13px;color:#6b6b6b;"></div>
+          <div id="kal-name" style="font-size:17px;font-weight:600;margin-bottom:3px;"></div>
+          <div id="kal-meta" style="font-size:12px;color:#6b6b6b;"></div>
         </div>
-        <span id="kal-enrolled" style="display:none;font-size:11px;font-weight:600;
+        <span id="kal-enrolled" style="display:none;font-size:10px;font-weight:600;
           background:#E1F5EE;color:#085041;padding:3px 8px;border-radius:20px;">✓ PŘIHLÁŠENO</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-        <div><div id="kal-lbl-inst" class="blbl blbl-sm">Lektor</div><div id="kal-lektor" style="font-size:14px;"></div></div>
-        <div><div id="kal-lbl-dur" class="blbl blbl-sm">Délka</div><div id="kal-delka" style="font-size:14px;"></div></div>
-        <div><div id="kal-lbl-spots" class="blbl blbl-sm">Volná místa</div><div id="kal-mista" style="font-size:14px;"></div></div>
+        <div><div id="kal-lbl-inst" class="blbl blbl-sm">Lektor</div><div id="kal-lektor" style="font-size:13px;"></div></div>
+        <div><div id="kal-lbl-dur" class="blbl blbl-sm">Délka</div><div id="kal-delka" style="font-size:13px;"></div></div>
+        <div><div id="kal-lbl-spots" class="blbl blbl-sm">Volná místa</div><div id="kal-mista" style="font-size:13px;"></div></div>
       </div>
-      <button type="button" id="kal-course-detail-btn" class="btn-detail" style="padding:11px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:6px;">Detail kurzu</button>
+      <button type="button" id="kal-course-detail-btn" class="btn-detail" style="padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:6px;">Detail kurzu</button>
       <!-- Tlačítka pro přihlášeného uživatele (enrolled) -->
       <div id="kal-btns-enr" style="display:none;">
         <button type="button" class="pop-close" id="kal-cancel-booking-btn" onclick="window.cancelBookingFromPopup?.()">Stornovat rezervaci</button>
       </div>
       <!-- Tlačítka pro nepřihlášeného -->
       <div id="kal-btns-free" style="display:grid;gap:6px;">
-        <button type="button" id="kal-rez-btn" class="btn-res" style="padding:11px;border:none;font-size:15px;font-weight:500;cursor:pointer;" data-i18n="booking.btn.book">Rezervovat</button>
+        <button type="button" id="kal-rez-btn" class="btn-res" style="padding:11px;border:none;font-size:14px;font-weight:500;cursor:pointer;" data-i18n="booking.btn.book">Rezervovat</button>
       </div>
       <!-- Tlačítka pro admin / lektor správu lekce -->
       <div id="kal-btns-staff" style="display:none;gap:6px;">
-        <button type="button" id="kal-detail-btn" class="btn-detail" style="padding:11px;font-size:15px;font-weight:600;cursor:pointer;">Detail kurzu</button>
-        <button type="button" id="kal-attendees-btn" class="btn-detail" style="padding:11px;font-size:15px;font-weight:600;cursor:pointer;">Účastníci</button>
-        <button type="button" id="kal-deactivate-btn" class="btn-res" style="padding:11px;border:none;font-size:15px;font-weight:600;cursor:pointer;background:#E05C5C;">Deaktivovat</button>
+        <button type="button" id="kal-detail-btn" class="btn-detail" style="padding:11px;font-size:14px;font-weight:600;cursor:pointer;">Detail kurzu</button>
+        <button type="button" id="kal-attendees-btn" class="btn-detail" style="padding:11px;font-size:14px;font-weight:600;cursor:pointer;">Účastníci</button>
+        <button type="button" id="kal-deactivate-btn" class="btn-res" style="padding:11px;border:none;font-size:14px;font-weight:600;cursor:pointer;background:#E05C5C;">Deaktivovat</button>
       </div>
       <button type="button" class="pop-close" onclick="document.getElementById('pop-kal').style.display='none'" data-i18n="pages.popKalClose">Zavřít</button>
     </div>
@@ -2369,7 +2363,7 @@
   <div class="pop-sheet">
     <div class="pop-bar" id="bk-bar"></div>
     <div class="pop-body">
-      <div id="bk-name" style="font-size:18px;font-weight:600;margin-bottom:16px;"></div>
+      <div id="bk-name" style="font-size:17px;font-weight:600;margin-bottom:16px;"></div>
       <div id="bk-resume-banner" role="status"></div>
 
       <div id="bk-summary-wrap" style="display:none;">
@@ -2385,8 +2379,8 @@
         </div>
         <div id="bk-lesson-multi-wrap" style="display:none;margin-bottom:14px;">
           <div id="bk-lesson-checkboxes" class="input" style="width:100%;max-height:220px;overflow-y:auto;padding:10px 12px;line-height:1.5;"></div>
-          <div id="bk-pass-slot-counter" style="display:none;font-size:14px;font-weight:600;color:var(--text);margin-top:10px;"></div>
-          <div id="bk-multi-hint" style="font-size:13px;color:#6b6b6b;margin-top:8px;"></div>
+          <div id="bk-pass-slot-counter" style="display:none;font-size:13px;font-weight:600;color:var(--text);margin-top:10px;"></div>
+          <div id="bk-multi-hint" style="font-size:12px;color:#6b6b6b;margin-top:8px;"></div>
         </div>
 
         <div class="blbl" style="margin-bottom:6px;" data-i18n="booking.section.payment">Možnosti</div>
@@ -2395,7 +2389,7 @@
       </div>
 
       <button type="button" id="bk-confirm-btn" class="btn-res"
-        style="width:100%;padding:11px;border:none;font-size:15px;font-weight:500;cursor:pointer;"
+        style="width:100%;padding:11px;border:none;font-size:14px;font-weight:500;cursor:pointer;"
         onclick="window.confirmBooking?.()"
         data-i18n="booking.btn.confirmBooking">
         Potvrdit rezervaci
@@ -2409,12 +2403,12 @@
 <div class="pop-overlay" id="pop-external-pay" onclick="if(event.target===this)window.cancelExternalStripePayment?.()">
   <div class="pop-sheet" role="dialog" aria-modal="true" aria-labelledby="ep-title">
     <div class="pop-body">
-      <div id="ep-title" style="font-size:19px;font-weight:600;margin-bottom:10px;" data-i18n="payment.externalTitle">Možnosti</div>
+      <div id="ep-title" style="font-size:18px;font-weight:600;margin-bottom:10px;" data-i18n="payment.externalTitle">Možnosti</div>
       <p id="ep-lead" class="ep-pay-lead"></p>
       <div id="ep-summary" class="ep-summary" aria-live="polite"></div>
       <div id="ep-no-url" class="ep-no-url" style="display:none;"></div>
       <button type="button" id="ep-stripe-btn" class="btn-res"
-        style="width:100%;padding:11px;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;background:#635bff;color:#fff;"
+        style="width:100%;padding:11px;border:none;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;background:#635bff;color:#fff;"
         onclick="window.confirmExternalStripePayment?.()"
         data-i18n="payment.payStripe">
         Zaplatit přes Stripe
@@ -2622,7 +2616,7 @@
   display:none; z-index:10000;
   background:#1a1a1a; color:#fff;
   padding:10px 18px; border-radius:10px;
-  font-size:15px; font-weight:500;
+  font-size:14px; font-weight:500;
   box-shadow:0 4px 20px rgba(0,0,0,.22);
   max-width:320px; text-align:center;
   pointer-events:none; white-space:pre-line;
@@ -2630,19 +2624,19 @@
 
 <!-- ── App Loader (zobrazí se ihned, skryje se až po načtení dat) ── -->
 <div id="app-loader">
-  <div style="font-size:24px;font-weight:700;letter-spacing:.01em;color:#1a1a1a;">Ateliér</div>
+  <div style="font-size:23px;font-weight:700;letter-spacing:.01em;color:#1a1a1a;">Ateliér</div>
   <div class="app-spinner"></div>
 </div>
 
 <!-- ── Error screen (zobrazí se při selhání inicializace) ── -->
 <div id="app-error">
-  <div style="font-size:24px;font-weight:700;color:#1a1a1a;">Ateliér</div>
-  <div style="font-size:15px;color:#791F1F;text-align:center;max-width:280px;line-height:1.6;">
+  <div style="font-size:23px;font-weight:700;color:#1a1a1a;">Ateliér</div>
+  <div style="font-size:14px;color:#791F1F;text-align:center;max-width:280px;line-height:1.6;">
     Nepodařilo se načíst aplikaci.<br>Zkontrolujte připojení k internetu.
   </div>
   <button onclick="location.reload()"
     style="padding:10px 28px;background:#2854B9;color:#fff;border:none;border-radius:var(--btn-radius);
-           font-size:15px;font-weight:500;cursor:pointer;">
+           font-size:14px;font-weight:500;cursor:pointer;">
     Zkusit znovu
   </button>
 </div>
