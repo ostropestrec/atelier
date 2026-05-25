@@ -92,7 +92,6 @@
       .cal-picker__title,
       .danger-title,
       .cal-island__head,
-      .logo,
       [id$="-title"],
       #ep-title,
       #kal-name,
@@ -106,7 +105,6 @@
 
     /* Oranžové nadpisy — verzálky */
     :is(
-      .logo,
       .sec-title,
       .section-h,
       .admin-section-title,
@@ -188,7 +186,15 @@
       height: 64px;
       gap: 12px;
     }
-    .logo { font-size: 21px; font-weight: 700; letter-spacing: .06em; flex: 1; color: var(--section-heading-accent); }
+    .logo {
+      font-family: var(--font-body);
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: normal;
+      text-transform: none;
+      flex: 1;
+      color: var(--section-heading-accent);
+    }
     .top-actions{display:flex;align-items:center;gap:10px;}
     .lang-toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
     .lang-pill{
@@ -307,7 +313,7 @@
         border: 1px solid transparent;
         background: transparent;
         padding: 7px 12px; border-radius: var(--btn-radius);
-        font-size: 15px; font-weight: 500;
+        font-size: 14px; font-weight: 500;
         letter-spacing: 0;
         color: var(--primary);
         cursor: pointer;
@@ -392,7 +398,7 @@
         border: 1px solid transparent;
         background: transparent;
         padding: 7px 12px; border-radius: var(--btn-radius);
-        font-size: 15px; font-weight: 500;
+        font-size: 14px; font-weight: 500;
         line-height: 1.22;
         color: var(--primary);
         cursor: pointer; display: block;
@@ -1710,7 +1716,7 @@
 
     /* ── Admin sidebar sekce ── */
     .side-section-label {
-      font-size: 15px; font-weight: 700; letter-spacing: .14em;
+      font-size: 14px; font-weight: 700; letter-spacing: .14em;
       color: var(--section-heading-accent);
       padding: 2px 12px 0;
       margin: 0;
