@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep \"innerHTML\\\\|template\\\\|\\\\`\")",
+      "Bash(python3 -c ' *)",
+      "Bash(sort -k6)"
+    ]
+  }
+}
