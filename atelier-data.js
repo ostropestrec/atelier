@@ -3643,7 +3643,7 @@ async function renderCourseDetail(courseId) {
       </button>
       <div style="height:4px;background:${color};border-radius:99px;margin-bottom:16px;"></div>
 
-      <div style="font-size:22px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
+      <div class="page-title" style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${title}${restricted ? ` ${_restrictedBadgeHtml()}` : ''}</div>
 
       ${heroImg
         ? `<img src="${heroImg}" class="detail-hero" alt="${title}" />`

@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23FD8D40'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Svelte islands feature flags (opt-in přes localStorage). Drží se brzy v <head>,
        aby legacy DOM nikdy neprobliknul, když je flag zapnutý. -->
@@ -58,6 +58,7 @@
       --overview-section-title-gap: 18px;
       --shell-shadow: 0 20px 50px rgba(40,84,185,.18), 0 4px 16px rgba(40,84,185,.10);
       --topbar-h: 64px;
+      --font-heading: 'Syne', sans-serif;
     }
 
     html,
@@ -67,6 +68,40 @@
     select,
     textarea {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    :is(
+      h1, h2, h3, h4, h5, h6,
+      .page-title,
+      .sec-title,
+      .section-h,
+      .admin-section-title,
+      .manual-title,
+      .manual-kicker,
+      .manual-step-title,
+      .manual-card-title,
+      .modal-title,
+      .hello,
+      .card-title,
+      .detail-course-annotation,
+      .course-rich-text :is(h2, h3),
+      .pass-shop-title,
+      .pass-shop-scope-heading,
+      .cal-picker__title,
+      .danger-title,
+      .cal-island__head,
+      .logo
+    ) {
+      font-family: var(--font-heading);
+    }
+
+    [id$="-title"],
+    #ep-title,
+    #kal-name,
+    #bk-name,
+    #app-loader > div:first-child,
+    #app-error > div:first-child {
+      font-family: var(--font-heading);
     }
 
     body {
