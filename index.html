@@ -187,6 +187,15 @@
     }
     .sbtn.primary{ background: var(--primary); color:#fff; border-color: var(--primary); }
     @media (max-width: 1023px) {
+      .topbar {
+        z-index: 320;
+      }
+      .sidebar {
+        z-index: 310;
+      }
+      .sidebar-backdrop {
+        z-index: 280;
+      }
       .ham-btn {
         background: #fff;
       }
@@ -320,7 +329,7 @@
         flex-direction: column;
         gap: 2px;
         position: fixed; top: 0; left: 0; bottom: 0;
-        width: 260px; z-index: 300;
+        width: 260px; z-index: 310;
         background: #fff;
         padding: 18px 12px 20px; overflow-y: auto;
         transform: translateX(-100%);
@@ -347,7 +356,8 @@
     }
     .sidebar-backdrop {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.38); z-index: 299;
+      background: rgba(0,0,0,.38); z-index: 280;
+      touch-action: manipulation;
     }
     .sidebar-backdrop.on { display: block; }
 
@@ -971,15 +981,13 @@
         width: 100%;
         height: 100dvh;
         max-height: 100dvh;
-        overflow: hidden;
+        overflow: visible;
         display: flex;
         flex-direction: column;
-        z-index: 1;
       }
       html.cal-mobile-lock .topbar {
         position: sticky;
         top: 0;
-        z-index: 110;
         flex-shrink: 0;
         background: #fff;
         padding-top: env(safe-area-inset-top, 0);
@@ -989,7 +997,7 @@
       html.cal-mobile-lock .app {
         flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
         display: flex;
         flex-direction: column;
       }
@@ -1768,6 +1776,8 @@
   <button class="danger" onclick="window.signOut?.()" data-i18n="pages.signOut">Odhlásit se</button>
 </div>
 
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="window.closeSidebar?.()"></div>
+
 <div class="app">
   <aside class="sidebar" id="sidebar"></aside>
   <main class="content">
@@ -2277,9 +2287,6 @@
 <!-- ── Bottom navigation (skrytá — navigace je v sidebaru) ── -->
 <nav class="nav" id="bottom-nav"></nav>
 
-<!-- ── Mobile sidebar backdrop ── -->
-<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="window.closeSidebar?.()"></div>
-
 <!-- ── Popup: detail lekce z kalendáře ── -->
 <div class="pop-overlay" id="pop-kal" onclick="if(event.target===this)this.style.display='none'">
   <div class="pop-sheet">
@@ -2518,17 +2525,22 @@
     const backdrop = document.getElementById('sidebar-backdrop')
     const isOpen   = sidebar?.classList.contains('open')
     if (isOpen) {
-      sidebar?.classList.remove('open')
-      backdrop?.classList.remove('on')
+      window.closeSidebar?.()
     } else {
       sidebar?.classList.add('open')
       backdrop?.classList.add('on')
+      document.documentElement.classList.add('sidebar-open')
     }
   }
   window.closeSidebar = () => {
     document.getElementById('sidebar')?.classList.remove('open')
     document.getElementById('sidebar-backdrop')?.classList.remove('on')
+    document.documentElement.classList.remove('sidebar-open')
   }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') window.closeSidebar?.()
+  })
 
   // Klik mimo av-menu zavře menu
   document.addEventListener('click', e => {
