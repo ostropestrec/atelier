@@ -836,7 +836,10 @@ function subscribeToLessons() {
 }
 
 let _resumeTimer = null
+let _tabResumeSetup = false
 function setupTabResumeRefresh() {
+  if (_tabResumeSetup) return
+  _tabResumeSetup = true
   const run = () => {
     if (document.visibilityState !== 'visible') {
       console.log('[Debug] Tab není aktivní (visibility/focus událost → nic)')

@@ -730,20 +730,14 @@ function _markGhostResolved(email) {
 
 async function mergeGhostIfNeeded(authUser) {
   if (!authUser?.email) return
-  // Returning user → přeskočit (95 % loadů). Flag se nastavuje vždy po prvním úspěšném ověření.
+  // Returning user → přeskočit (95 % loadů). Flag se nastavuje jen po úspěšném průchodu.
   if (_isGhostResolved(authUser.email)) return
 
-  const { data } = await sb
-    .from('users')
-    .select('id, is_ghost')
-    .eq('email', authUser.email)
-    .single()
-
-  if (data?.is_ghost) {
-    await sb
-      .from('users')
-      .update({ is_ghost: false, id: authUser.id })
-      .eq('email', authUser.email)
+  const { error } = await sb.rpc('resolve_ghost_account')
+  if (error) {
+    console.warn('[Ghost merge] resolve_ghost_account selhala:', error.message)
+    // Záměrně NEoznačujeme jako resolved — příště se pokusí znovu.
+    return
   }
   _markGhostResolved(authUser.email)
 }
@@ -974,8 +968,8 @@ window.submitRegister = async () => {
     if (errEl) { errEl.textContent = 'Vyplňte e-mail a heslo.'; errEl.style.display = 'block' }
     return
   }
-  if (pass.length < 6) {
-    if (errEl) { errEl.textContent = 'Heslo musí mít alespoň 6 znaků.'; errEl.style.display = 'block' }
+  if (pass.length < 8) {
+    if (errEl) { errEl.textContent = 'Heslo musí mít alespoň 8 znaků.'; errEl.style.display = 'block' }
     return
   }
   if (pass !== pass2) {
@@ -1028,8 +1022,8 @@ function _authErr(msg) {
     return 'E-mail ještě nebyl potvrzen. Zkontroluj schránku.'
   if (m.includes('already registered') || m.includes('user already registered'))
     return 'Účet s tímto e-mailem již existuje. Přihlaš se.'
-  if (m.includes('password should be at least 6') || m.includes('weak password'))
-    return 'Heslo je příliš slabé. Použij alespoň 6 znaků.'
+  if (m.includes('password should be at least') || m.includes('weak password'))
+    return 'Heslo je příliš slabé. Použij alespoň 8 znaků.'
   if (m.includes('rate limit') || m.includes('too many requests'))
     return 'Příliš mnoho pokusů. Zkus to za chvíli.'
   if (m.includes('signup is disabled'))

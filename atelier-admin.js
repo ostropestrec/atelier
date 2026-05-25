@@ -1567,11 +1567,11 @@ function _mupAddFormHtml() {
             <select id="mup-add-pass-id" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;">
               ${_mupAvailablePasses.map((p, idx) => `
                 <option value="${esc(p.id)}" ${idx === 0 ? 'selected' : ''}>
-                  ${_adm('customers.passLine', {
+                  ${esc(_adm('customers.passLine', {
                     name: loc(p.name) || _adm('misc.pass'),
                     entries: Number(p.entries_total) || 0,
                     price: fmtPrice(p.price),
-                  })}
+                  }))}
                 </option>`).join('')}
             </select>
           </div>
@@ -3875,6 +3875,7 @@ window.saveNewCourse = async () => {
   if (!minPart || minPart < 1 || minPart > capacity) {
     showErr(errEl, _adm('courseModal.errMinParticipants')); return
   }
+  if (![6, 24, 48].includes(cancelH)) { showErr(errEl, _adm('courseModal.errCancellation')); return }
   if (selectedDays.length === 0) { showErr(errEl, _adm('courseModal.errPickWeekday')); return }
   if (!timeFrom || !timeTo)       { showErr(errEl, _adm('courseModal.errTimeRange')); return }
   if (timeFrom >= timeTo)         { showErr(errEl, _adm('courseModal.errTimeOrder')); return }
