@@ -1409,20 +1409,39 @@
     /* ── Profile + passes + bookings (design podle screenshotů) ─ */
     .profile-head{
       margin-bottom: 0;
+      position: relative;
       display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      align-items: flex-end;
       gap: 16px;
     }
-    .profile-head-text{ min-width: 0; }
-    .profile-head-art{
-      width: clamp(260px, 58vw, 420px);
-      max-width: 68%;
-      height: auto;
-      object-fit: contain;
-      margin-top: -92px;
-      margin-right: -12px;
-      flex: 0 0 auto;
+    .profile-head-text{
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+      max-width: min(100%, 480px);
+    }
+    #nastenka-content .profile-head--clouds{
+      margin-bottom: var(--overview-section-gap);
+      padding: 4px 0 16px;
+      min-height: clamp(108px, 30vw, 200px);
+      background-image: url('./assets/atelier-overview-clouds.png');
+      background-repeat: no-repeat;
+      background-position: right 28px;
+      background-size: auto min(100%, 220px);
+    }
+    @media (max-width: 1023px) {
+      #nastenka-content .profile-head--clouds{
+        margin-left: calc(-1 * max(14px, env(safe-area-inset-left, 0px)));
+        margin-right: calc(-1 * max(14px, env(safe-area-inset-right, 0px)));
+        padding-left: max(14px, env(safe-area-inset-left, 0px));
+        padding-right: max(14px, env(safe-area-inset-right, 0px));
+        min-height: clamp(150px, 44vw, 240px);
+        background-position: center 40px;
+        background-size: min(96vw, 100%) auto;
+      }
+      #nastenka-content .profile-head-text{
+        max-width: 100%;
+      }
     }
     .hello{ margin-bottom: 4px; }
     .subtle{ font-size: 14px; color: var(--muted); }
@@ -1433,7 +1452,7 @@
     #screen-nastenka > .sec-title{
       margin-bottom: 24px;
     }
-    #nastenka-content .profile-head + .section-h{ margin-top: 0; }
+    #nastenka-content .profile-head--clouds + .section-h{ margin-top: 0; }
     #nastenka-content .card-meta{ margin-top: 12px; margin-bottom: 8px; }
     #nastenka-content .section-h + .empty,
     #nastenka-content .section-h + .nastenka-cards-2col{ margin-bottom: 4px; }

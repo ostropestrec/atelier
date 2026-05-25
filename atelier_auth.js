@@ -1744,12 +1744,11 @@ export function buildUserOverviewHtml(user) {
   const helloName = first || user.name || t(locale, 'dashboard.userYou')
 
   return `
-    <div class="profile-head">
+    <div class="profile-head profile-head--clouds">
       <div class="profile-head-text">
         <div class="hello">${escapeHtml(t(locale, 'dashboard.hello', { name: helloName }))}</div>
         <div class="subtle">${escapeHtml(user.email || '')}</div>
       </div>
-      <img class="profile-head-art" src="./assets/atelier-overview-clouds.png" alt="" loading="lazy" aria-hidden="true" />
     </div>
 
     <div class="section-h">${escapeHtml(t(locale, 'dashboard.sectionPasses'))}</div>
