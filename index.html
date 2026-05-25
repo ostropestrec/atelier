@@ -289,9 +289,16 @@
       box-shadow: 0 0 0 2px var(--swatch, var(--avatar-default));
     }
     .sbtn {
-      font-size: 14px; font-weight: 600; color: var(--text);
-      border: 1px solid var(--border); border-radius: 12px;
-      padding: 9px 14px; background: transparent; cursor: pointer;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+      white-space: nowrap;
+      cursor: pointer;
     }
     .sbtn.primary{ background: var(--primary); color:#fff; border-color: var(--primary); }
     @media (max-width: 1023px) {
@@ -319,17 +326,10 @@
         flex-shrink: 0;
         gap: 6px;
       }
-      .lang-pill {
+      .lang-pill,
+      .top-actions .sbtn {
         padding: 5px 9px;
         font-size: 12px;
-      }
-      .top-actions .sbtn {
-        font-size: 12px;
-        padding: 5px 10px;
-        border-radius: 999px;
-        line-height: 1.2;
-        white-space: nowrap;
-        background: #fff;
       }
       .top-actions .avatar {
         width: 36px;
