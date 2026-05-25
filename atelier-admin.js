@@ -6,7 +6,7 @@ import { sb } from './atelier-supabase.js'
 import { currentUser, userPasses, myBookings, canUserCancelBooking } from './atelier_auth.js'
 import { sanitizeCourseRichText } from './atelier-sanitize.js'
 import { normalizeCourseRecord, courseImageUrls } from './atelier-data.js'
-import { t } from './translations.js'
+import { t, tWithParticipants } from './translations.js'
 import {
   BLOCKING_PARTICIPATION_STATUSES,
   PARTICIPATION_STATUS,
@@ -16,8 +16,13 @@ function _adminLocale() {
   return window.__uiLang === 'en' ? 'en' : 'cs'
 }
 /** @param {Record<string, string | number>} [params] */
-function _adm(key, params) {
-  return t(_adminLocale(), 'admin.' + key, params)
+function _adm(key, params = {}) {
+  const loc = _adminLocale()
+  const fullKey = 'admin.' + key
+  if (params.n !== undefined && params.n !== null && String(params.n) !== '') {
+    return tWithParticipants(loc, fullKey, Number(params.n), params)
+  }
+  return t(loc, fullKey, params)
 }
 function _adminFmtLocaleTag() {
   return _adminLocale() === 'en' ? 'en-GB' : 'cs-CZ'

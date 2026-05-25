@@ -19,7 +19,7 @@ import {
   saveBookingReturn,
   resumeBookingAfterAuth,
 } from './atelier_auth.js'
-import { t, UI_LANG_STORAGE_KEY } from './translations.js'
+import { participantsWord, t, UI_LANG_STORAGE_KEY } from './translations.js'
 import { EVENTS, emit } from './atelier-events.js'
 import {
   BLOCKING_PARTICIPATION_STATUSES,
@@ -54,6 +54,16 @@ function _locale() {
 
 function _tp(path, params) {
   return t(_locale(), path, params)
+}
+
+/** Překlad s {{n}} a skloňováním {{participantsWord}} (čeština: účastník / účastníci / účastníků). */
+function _tpCount(path, n, extra = {}) {
+  const loc = _locale()
+  return t(loc, path, {
+    ...extra,
+    n,
+    participantsWord: participantsWord(loc, n),
+  })
 }
 
 function _currentRole() {
@@ -266,7 +276,7 @@ function _refreshCardPassSlotsRow(courseId) {
 function _syncCardPrimaryButton(courseId) {
   const st = window._cardState?.[courseId] ?? {}
   const label = st.paymentType === 'buy-pass'
-    ? _tp('booking.btn.buyPass')
+    ? _tp('booking.btn.buyPassAndReserve')
     : _tp('booking.btn.continueToBooking')
   _eachBookingPayScope(courseId, scope => {
     const btn = _bookingPayEl('res-btn', courseId, scope)
@@ -597,7 +607,7 @@ function _kurzyCardCapacityMetaHtml(course) {
   const n = Number(course?.capacity_default) || 0
   if (n < 1) return ''
   const key = course?.is_workshop ? 'courses.capacityAccordionWorkshop' : 'courses.capacityAccordion'
-  return `<span class="cmi">${_escHtml(_tp(key, { n }))}</span>`
+  return `<span class="cmi">${_escHtml(_tpCount(key, n))}</span>`
 }
 
 function _detailInfoTableRow(label, value, valStyle = '') {
@@ -639,13 +649,13 @@ function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capa
     cap > 0
       ? _detailMetaBadge(
           _tp('courses.detailBadgeMaxLabel'),
-          _tp('courses.detailBadgeParticipantsCount', { n: cap }),
+          _tpCount('courses.detailBadgeParticipantsCount', cap),
           capColor,
         )
       : '',
     _detailMetaBadge(
       _tp('courses.detailBadgeMinLabel'),
-      _tp('courses.detailBadgeParticipantsCount', { n: minP }),
+      _tpCount('courses.detailBadgeParticipantsCount', minP),
       capColor,
     ),
   ].filter(Boolean)

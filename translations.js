@@ -272,7 +272,8 @@ export const UI_TRANSLATIONS = {
         /** {{price}} — fmtPrice */
         buyPassAndBook: 'Zakoupit a rezervovat můj první termín · {{price}}',
         cancel: 'Zrušit',
-        buyPass: 'Koupit permanentku a rezervovat',
+        buyPass: 'Koupit permanentku',
+        buyPassAndReserve: 'Koupit permanentku a rezervovat',
         continueToBooking: 'Pokračovat k rezervaci',
         booking: 'Rezervuji…',
         buying: 'Kupuji…',
@@ -360,8 +361,8 @@ export const UI_TRANSLATIONS = {
       optionFullSuffix: 'plno',
       backToCourses: 'Zpět na kurzy',
       capacitySpots: 'míst',
-      capacityAccordion: 'Kapacita: {{n}} účastníků na lekci',
-      capacityAccordionWorkshop: 'Kapacita: {{n}} účastníků',
+      capacityAccordion: 'Kapacita: {{n}} {{participantsWord}} na lekci',
+      capacityAccordionWorkshop: 'Kapacita: {{n}} {{participantsWord}}',
       lessonCapacity: 'Kapacita lekce',
       minParticipants: 'Minimální počet účastníků',
       detailBadgeInstructor: 'Lektorka',
@@ -369,7 +370,7 @@ export const UI_TRANSLATIONS = {
       detailBadgeDuration: 'Délka',
       detailBadgeMaxLabel: 'Max.',
       detailBadgeMinLabel: 'Min.',
-      detailBadgeParticipantsCount: '{{n}} účastníků',
+      detailBadgeParticipantsCount: '{{n}} {{participantsWord}}',
       occupied: 'obsazeno',
       spotsFree: 'volných',
       spotsFreeOfTotal: '{{free}} volných z {{total}} míst',
@@ -721,7 +722,7 @@ export const UI_TRANSLATIONS = {
         errTimeOrder: 'Čas do musí být po čase od.',
         confirmRescheduleWithParticipants:
           'Na lekci jsou přihlášení účastníci ({{n}}). Po změně termínu jim odešleme e-mailové upozornění. Pokračovat?',
-        toastRescheduled: 'Termín byl změněn a e-mail byl zařazen pro {{n}} účastníků.',
+        toastRescheduled: 'Termín byl změněn a e-mail byl zařazen pro {{n}} {{participantsWord}}.',
         errRescheduleNoRpc:
           'Změnu termínu s účastníky nelze uložit, dokud není v Supabase nasazený SQL patch admin_reschedule_lesson.',
         multiSessions: 'Workshop má více setkání',
@@ -794,7 +795,7 @@ export const UI_TRANSLATIONS = {
         messageMissingBody: 'Vyplňte text zprávy.',
         messageNotAuthenticated: 'Pro odeslání zprávy se prosím přihlaste.',
         messageForbidden: 'Zprávu účastníkům této lekce může poslat pouze její lektor nebo admin.',
-        messageQueued: 'Zpráva byla zařazena k odeslání pro {{n}} účastníků.',
+        messageQueued: 'Zpráva byla zařazena k odeslání pro {{n}} {{participantsWord}}.',
         messageQueuedNone: 'Zpráva nebyla zařazena — lekce nemá žádné aktivní účastníky s e-mailem.',
         messageQueueFail: 'Zprávu se nepodařilo zařadit k odeslání: {{msg}}',
       },
@@ -1112,7 +1113,8 @@ export const UI_TRANSLATIONS = {
         confirmAndPay: 'Confirm and pay {{price}}',
         buyPassAndBook: 'Buy a pass & book my first session · {{slot}} · {{price}}',
         cancel: 'Cancel',
-        buyPass: 'Buy a pass & book',
+        buyPass: 'Buy a pass',
+        buyPassAndReserve: 'Buy a pass & book',
         continueToBooking: 'Continue to booking',
         booking: 'Booking…',
         buying: 'Buying…',
@@ -1199,8 +1201,8 @@ export const UI_TRANSLATIONS = {
       optionFullSuffix: 'full',
       backToCourses: 'Back to courses',
       capacitySpots: 'capacity',
-      capacityAccordion: 'Capacity: {{n}} participants per session',
-      capacityAccordionWorkshop: 'Capacity: {{n}} participants',
+      capacityAccordion: 'Capacity: {{n}} {{participantsWord}} per session',
+      capacityAccordionWorkshop: 'Capacity: {{n}} {{participantsWord}}',
       lessonCapacity: 'Session capacity',
       minParticipants: 'Minimum participants',
       detailBadgeInstructor: 'Instructor',
@@ -1208,7 +1210,7 @@ export const UI_TRANSLATIONS = {
       detailBadgeDuration: 'Duration',
       detailBadgeMaxLabel: 'Max.',
       detailBadgeMinLabel: 'Min.',
-      detailBadgeParticipantsCount: '{{n}} participants',
+      detailBadgeParticipantsCount: '{{n}} {{participantsWord}}',
       occupied: 'occupied',
       spotsFree: 'free',
       spotsFreeOfTotal: '{{free}} of {{total}} places',
@@ -1561,7 +1563,7 @@ export const UI_TRANSLATIONS = {
         errTimeOrder: 'End time must be after start time.',
         confirmRescheduleWithParticipants:
           'There are enrolled participants on this lesson ({{n}}). After changing the time, we will send them an email notification. Continue?',
-        toastRescheduled: 'Lesson time was changed and email was queued for {{n}} participants.',
+        toastRescheduled: 'Lesson time was changed and email was queued for {{n}} {{participantsWord}}.',
         errRescheduleNoRpc:
           'Changing a lesson time with participants cannot be saved until the admin_reschedule_lesson SQL patch is deployed in Supabase.',
         multiSessions: 'Workshop has multiple sessions',
@@ -1636,7 +1638,7 @@ export const UI_TRANSLATIONS = {
         messageMissingBody: 'Enter the message text.',
         messageNotAuthenticated: 'Please sign in to send the message.',
         messageForbidden: 'Only this lesson’s instructor or an admin can message its attendees.',
-        messageQueued: 'Message queued for {{n}} attendees.',
+        messageQueued: 'Message queued for {{n}} {{participantsWord}}.',
         messageQueuedNone: 'No message was queued — this lesson has no active attendees with an email address.',
         messageQueueFail: 'Could not queue the message: {{msg}}',
       },
@@ -1700,6 +1702,34 @@ export const UI_TRANSLATIONS = {
 }
 
 const LOCALE_FALLBACK = 'cs'
+
+/**
+ * Čeština: 1 účastník · 2–4 účastníci · 5+ (a 12–14) účastníků.
+ * @param {'cs' | 'en'} locale
+ * @param {number} n
+ */
+export function participantsWord(locale, n) {
+  const loc = locale === 'en' ? 'en' : 'cs'
+  const num = Math.abs(Math.trunc(Number(n))) || 0
+  if (loc === 'en') return num === 1 ? 'participant' : 'participants'
+  if (num === 1) return 'účastník'
+  const mod10 = num % 10
+  const mod100 = num % 100
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'účastníci'
+  return 'účastníků'
+}
+
+/**
+ * Překlad s {{n}} a automatickým {{participantsWord}} (skloňování účastník/účastníci/účastníků).
+ */
+export function tWithParticipants(locale, path, n, params = {}) {
+  const loc = locale === 'en' ? 'en' : 'cs'
+  return t(loc, path, {
+    ...params,
+    n,
+    participantsWord: participantsWord(loc, n),
+  })
+}
 
 /**
  * @param {'cs' | 'en'} locale
