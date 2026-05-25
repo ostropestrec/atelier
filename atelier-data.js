@@ -602,10 +602,10 @@ function _kurzyCardCapacityMetaHtml(course) {
 
 function _detailInfoTableRow(label, value, valStyle = '') {
   const valAttr = valStyle ? ` style="${valStyle}"` : ''
-  return `<tr class="detail-info-row">
-    <td class="lbl">${label}</td>
-    <td class="val"${valAttr}>${_escHtml(String(value ?? '—'))}</td>
-  </tr>`
+  return `<div class="detail-info-row" role="row">
+    <div class="lbl" role="cell">${label}</div>
+    <div class="val" role="cell"${valAttr}>${_escHtml(String(value ?? '—'))}</div>
+  </div>`
 }
 
 function _isPastLesson(lesson) {
@@ -2753,8 +2753,7 @@ async function renderCourseDetail(courseId) {
   }).join('')
 
   const detailInfoTableHtml = `
-      <table class="detail-info-table" style="margin-top:12px;margin-bottom:16px;">
-        <tbody>
+      <div class="detail-info-table" role="table" style="margin-top:12px;margin-bottom:16px;">
           ${_detailInfoTableRow(_tp('courses.instructor'), ownerName ?? '—')}
           ${scheduleDays ? _detailInfoTableRow(_tp('courses.scheduleLabel'), scheduleDays) : ''}
           ${_detailInfoTableRow(_tp('kal.duration'), durationVal)}
@@ -2763,8 +2762,7 @@ async function renderCourseDetail(courseId) {
           ${_detailInfoTableRow(_tp('booking.payment.singleSession'), singleEntryVal, `color:${color};`)}
           ${passRowsHtml}
           ${_detailInfoTableRow(_tp('courses.freeCancellation'), `${course.cancellation_hours}h ${_tp('courses.ahead')}`)}
-        </tbody>
-      </table>`
+      </div>`
 
   el.innerHTML = `
     <div style="max-width:760px;">
