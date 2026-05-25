@@ -115,7 +115,7 @@
       letter-spacing: normal;
     }
 
-    /* Nadpis 2 — modrý sekční */
+    /* Nadpis 2 — oranžový sekční */
     :is(
       .sec-title,
       .section-h,
@@ -128,7 +128,7 @@
       line-height: 1.12;
       text-transform: none;
       letter-spacing: normal;
-      color: var(--primary);
+      color: var(--section-heading-accent);
     }
 
     /* Nadpis 3 — oranžový podnadpis */
@@ -1434,10 +1434,11 @@
         padding-left: max(14px, env(safe-area-inset-left, 0px));
         padding-right: max(14px, env(safe-area-inset-right, 0px));
         padding-top: 0;
-        padding-bottom: 0;
-        min-height: clamp(130px, 38vw, 200px);
-        background-position: center calc(100% + 40px);
-        background-size: 94% auto;
+        padding-bottom: min(50vw, 260px);
+        min-height: 0;
+        overflow: visible;
+        background-position: center bottom;
+        background-size: 100% auto;
       }
     }
     .hello{ margin-bottom: 4px; }
@@ -1792,11 +1793,11 @@
       line-height: 1.3;
       letter-spacing: normal;
       text-transform: none;
-      color: var(--muted);
+      color: var(--section-heading-accent);
       padding: 2px 12px 0;
       margin: 0;
     }
-    /* Oddělení „SPRÁVA“: mezera nad nadpisem + větší mezera pod nadpisem před odkazy */
+    /* Oddělení „SPRÁVA“: mezera nad popiskem + větší mezera pod ním před odkazy */
     .side-section-label.side-section-label--sep {
       margin-top: 48px;
       margin-bottom: 14px;
