@@ -608,28 +608,46 @@ function _detailInfoTableRow(label, value, valStyle = '') {
   </div>`
 }
 
-function _detailMetaBadge(label, value, color) {
+/** Barvy meta štítků v detailu kurzu — každá buňka jiná. */
+const _DETAIL_META_PILL_COLORS = {
+  instructor: '#5B4FCF',
+  schedule: '#C45C26',
+  duration: '#1A8F7A',
+  max: '#B45309',
+  min: '#BE4B6A',
+}
+
+function _detailMetaBadge(label, value, accentColor) {
   const v = value != null && String(value).trim() !== '' ? String(value).trim() : ''
-  if (!v || v === '—') return ''
-  const pillStyle = `background:${color}1a;border:1.5px solid ${color}45;`
-  if (!label) {
-    return `<span class="detail-meta-pill detail-meta-pill--solo" style="${pillStyle}color:${color};">${_escHtml(v)}</span>`
-  }
+  if (!v || v === '—' || !label) return ''
+  const c = accentColor || '#2854B9'
+  const pillStyle = `background:${c}18;border:1px solid ${c}40;`
   return `<span class="detail-meta-pill" style="${pillStyle}">
-    <span class="dml">${_escHtml(label)}:</span> <span class="dmv" style="color:${color};">${_escHtml(v)}</span>
+    <span class="dml">${_escHtml(label)}:</span> <span class="dmv" style="color:${c};">${_escHtml(v)}</span>
   </span>`
 }
 
-function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capacity, minParticipants, color }) {
+function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capacity, minParticipants }) {
   const cap = Number(capacity) || 0
   const minP = Math.max(1, Number(minParticipants ?? 1))
-  const c = color || '#2854B9'
   const pills = [
-    _detailMetaBadge(null, ownerName, c),
-    scheduleDays ? _detailMetaBadge(_tp('courses.detailBadgeSchedule'), scheduleDays, c) : '',
-    durationVal && durationVal !== '—' ? _detailMetaBadge(_tp('courses.detailBadgeDuration'), durationVal, c) : '',
-    cap > 0 ? _detailMetaBadge(null, _tp('courses.detailBadgeMaxParticipants', { n: cap }), c) : '',
-    _detailMetaBadge(null, _tp('courses.detailBadgeMinParticipants', { n: minP }), c),
+    _detailMetaBadge(_tp('courses.detailBadgeInstructor'), ownerName, _DETAIL_META_PILL_COLORS.instructor),
+    scheduleDays ? _detailMetaBadge(_tp('courses.detailBadgeSchedule'), scheduleDays, _DETAIL_META_PILL_COLORS.schedule) : '',
+    durationVal && durationVal !== '—'
+      ? _detailMetaBadge(_tp('courses.detailBadgeDuration'), durationVal, _DETAIL_META_PILL_COLORS.duration)
+      : '',
+    cap > 0
+      ? _detailMetaBadge(
+          _tp('courses.detailBadgeMaxLabel'),
+          _tp('courses.detailBadgeParticipantsCount', { n: cap }),
+          _DETAIL_META_PILL_COLORS.max,
+        )
+      : '',
+    _detailMetaBadge(
+      _tp('courses.detailBadgeMinLabel'),
+      _tp('courses.detailBadgeParticipantsCount', { n: minP }),
+      _DETAIL_META_PILL_COLORS.min,
+    ),
   ].filter(Boolean)
   if (!pills.length) return ''
   return `<div class="detail-meta-pills">${pills.join('')}</div>`
@@ -2785,7 +2803,6 @@ async function renderCourseDetail(courseId) {
     durationVal,
     capacity: course.capacity_default,
     minParticipants: course.min_participants,
-    color,
   })
 
   const detailInfoTableHtml = `
