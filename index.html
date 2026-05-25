@@ -711,6 +711,7 @@
       border-radius: var(--radius);
       overflow: hidden;
     }
+    .cal-scroll { display: block; }
 
     .cal-head{
       display:grid;
@@ -775,10 +776,30 @@
     .evb { font-size: 8px; font-weight: 600; margin-top: 1px; }
     @media (max-width: 640px) {
       :root { --cal-hour: 64px; }
-      .cal-head,
-      .cal-body {
-        grid-template-columns: 34px repeat(7, minmax(0, 1fr));
+      .cal-ctrl button { display: none; }
+      .cal-ctrl { justify-content: center; }
+      .cal-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        scroll-behavior: smooth;
+        touch-action: pan-x pan-y;
       }
+      .cal-scroll .cal-head,
+      .cal-scroll .cal-body {
+        width: max-content;
+        min-width: 100%;
+        grid-template-columns: 34px repeat(7, 76px);
+      }
+      .cal-scroll .time-col,
+      .cal-scroll .cal-head .corner {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #E8EEF9;
+        box-shadow: 2px 0 6px rgba(17, 24, 39, .06);
+      }
+      .cal-scroll .cal-head .corner { z-index: 3; }
       .dh {
         padding: 6px 1px 5px;
       }
@@ -1845,26 +1866,28 @@
     <button onclick="calNext()">›</button>
   </div>
   <div class="cal-wrap" id="cal-wrap">
-    <div class="cal-head">
-      <div class="corner"></div>
-      <div class="dh"><span class="dd" id="dd0"></span><span class="dn" id="dn0"></span></div>
-      <div class="dh"><span class="dd" id="dd1"></span><span class="dn" id="dn1"></span></div>
-      <div class="dh"><span class="dd" id="dd2"></span><span class="dn" id="dn2"></span></div>
-      <div class="dh"><span class="dd" id="dd3"></span><span class="dn" id="dn3"></span></div>
-      <div class="dh"><span class="dd" id="dd4"></span><span class="dn" id="dn4"></span></div>
-      <div class="dh"><span class="dd" id="dd5"></span><span class="dn" id="dn5"></span></div>
-      <div class="dh"><span class="dd" id="dd6"></span><span class="dn" id="dn6"></span></div>
-    </div>
+    <div class="cal-scroll" id="cal-scroll">
+      <div class="cal-head">
+        <div class="corner"></div>
+        <div class="dh"><span class="dd" id="dd0"></span><span class="dn" id="dn0"></span></div>
+        <div class="dh"><span class="dd" id="dd1"></span><span class="dn" id="dn1"></span></div>
+        <div class="dh"><span class="dd" id="dd2"></span><span class="dn" id="dn2"></span></div>
+        <div class="dh"><span class="dd" id="dd3"></span><span class="dn" id="dn3"></span></div>
+        <div class="dh"><span class="dd" id="dd4"></span><span class="dn" id="dn4"></span></div>
+        <div class="dh"><span class="dd" id="dd5"></span><span class="dn" id="dn5"></span></div>
+        <div class="dh"><span class="dd" id="dd6"></span><span class="dn" id="dn6"></span></div>
+      </div>
 
-    <div class="cal-body">
-      <div class="time-col" id="cal-times"></div>
-      <div class="day-col" id="col-po"></div>
-      <div class="day-col" id="col-ut"></div>
-      <div class="day-col" id="col-st"></div>
-      <div class="day-col" id="col-ct"></div>
-      <div class="day-col" id="col-pa"></div>
-      <div class="day-col" id="col-so"></div>
-      <div class="day-col" id="col-ne"></div>
+      <div class="cal-body">
+        <div class="time-col" id="cal-times"></div>
+        <div class="day-col" id="col-po"></div>
+        <div class="day-col" id="col-ut"></div>
+        <div class="day-col" id="col-st"></div>
+        <div class="day-col" id="col-ct"></div>
+        <div class="day-col" id="col-pa"></div>
+        <div class="day-col" id="col-so"></div>
+        <div class="day-col" id="col-ne"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2162,6 +2185,73 @@
   }
 
   ensureCalendarSkeleton()
+
+  // Mobilní kalendář: horizontální scroll dnů + přejetí pro předchozí/další týden
+  ;(function initCalMobileNav() {
+    const wrap = document.getElementById('cal-wrap')
+    const scroll = document.getElementById('cal-scroll')
+    if (!wrap || !scroll || wrap.dataset.calTouch === '1') return
+    wrap.dataset.calTouch = '1'
+
+    const mq = window.matchMedia('(max-width: 640px)')
+    const SWIPE_MIN = 48
+    const SWIPE_RATIO = 1.35
+    let startX = 0
+    let startY = 0
+    let active = false
+    let swipeLock = false
+
+    function hasHOverflow() {
+      return scroll.scrollWidth > scroll.clientWidth + 2
+    }
+
+    window.scrollCalMobileToToday = () => {
+      if (!mq.matches) return
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const ws = new Date(window.AppState?.weekStart ?? today)
+      ws.setHours(0, 0, 0, 0)
+      const we = new Date(ws)
+      we.setDate(we.getDate() + 6)
+      if (today < ws || today > we) {
+        scroll.scrollLeft = 0
+        return
+      }
+      const dayIdx = (today.getDay() + 6) % 7
+      const dh = scroll.querySelectorAll('.dh')[dayIdx]
+      if (!dh) return
+      const stickyW = 34
+      scroll.scrollLeft = Math.max(0, dh.offsetLeft - stickyW - 6)
+    }
+
+    scroll.addEventListener('touchstart', e => {
+      if (!mq.matches || e.touches.length !== 1) return
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+      active = true
+    }, { passive: true })
+
+    scroll.addEventListener('touchend', async e => {
+      if (!active || !mq.matches || swipeLock) return
+      active = false
+      const t = e.changedTouches[0]
+      const dx = t.clientX - startX
+      const dy = t.clientY - startY
+      if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * SWIPE_RATIO) return
+
+      const overflow = hasHOverflow()
+      const atStart = scroll.scrollLeft <= 2
+      const atEnd = scroll.scrollLeft >= scroll.scrollWidth - scroll.clientWidth - 2
+
+      if (dx < 0 && (!overflow || atEnd)) {
+        swipeLock = true
+        try { await window.calNext?.() } finally { setTimeout(() => { swipeLock = false }, 400) }
+      } else if (dx > 0 && (!overflow || atStart)) {
+        swipeLock = true
+        try { await window.calPrev?.() } finally { setTimeout(() => { swipeLock = false }, 400) }
+      }
+    }, { passive: true })
+  })()
 
   // Zavřít všechny popupy
   window.closeAll = () => {

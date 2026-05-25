@@ -1075,6 +1075,8 @@ export function renderKalendar() {
     }
     col.appendChild(el)
   })
+
+  window.scrollCalMobileToToday?.()
 }
 
 const SCHEDULE_DAY_LABELS = {
