@@ -689,7 +689,12 @@
     #bk-change-btn:hover { background: #f5f5f5; }
 
     /* ── Kalendář ── */
-    :root{ --cal-hour: 56px; }
+    :root{
+      --cal-hour: 56px;
+      --cal-time-col: 72px;
+      --topbar-h: 64px;
+      --cal-ctrl-h: 52px;
+    }
     .cal-ctrl {
       display: flex; align-items: center; justify-content: space-between;
       gap: 10px;
@@ -827,19 +832,39 @@
       background: #fff;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
     }
-    .cal-scroll { display: block; }
+    .cal-head-pane {
+      flex-shrink: 0;
+      z-index: 4;
+    }
+    .cal-hscroll {
+      overflow: visible;
+    }
+    .cal-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: visible;
+    }
 
     .cal-head{
       display:grid;
-      grid-template-columns: 64px repeat(7, 1fr);
+      grid-template-columns: var(--cal-time-col) repeat(7, 1fr);
       border-bottom: 1px solid var(--border);
       background: #fff;
+      position: sticky;
+      top: var(--topbar-h);
+      z-index: 4;
     }
     .cal-head .corner{
+      position: sticky;
+      left: 0;
+      z-index: 5;
       border-right: 1px solid var(--border);
       background: #fff;
+      box-shadow: 2px 0 6px rgba(17, 24, 39, .06);
     }
     .dh {
       text-align: center;
@@ -853,7 +878,7 @@
 
     .cal-body{
       display:grid;
-      grid-template-columns: 64px repeat(7, 1fr);
+      grid-template-columns: var(--cal-time-col) repeat(7, 1fr);
     }
     .time-col{
       border-right: 1px solid var(--border);
@@ -863,11 +888,12 @@
       height: var(--cal-hour);
       display:flex;
       align-items:flex-start;
-      justify-content:flex-end;
-      padding: 6px 10px 0 0;
+      justify-content: center;
+      padding: 6px 8px 0;
       font-size: 11px;
       color: var(--muted);
       border-bottom: 1px solid rgba(17,24,39,.06);
+      box-sizing: border-box;
     }
     .time-slot:last-child{ border-bottom:none; }
 
@@ -893,7 +919,10 @@
     .evt { font-size: 8px; opacity: .8; }
     .evb { font-size: 8px; font-weight: 600; margin-top: 1px; }
     @media (max-width: 640px) {
-      :root { --cal-hour: 64px; }
+      :root {
+        --cal-hour: 64px;
+        --cal-time-col: 48px;
+      }
       #screen-kalendar {
         padding-left: 0;
         padding-right: 0;
@@ -909,31 +938,45 @@
         border-left: none;
         border-right: none;
         border-radius: 0;
+        max-height: calc(100dvh - var(--topbar-h) - var(--cal-ctrl-h) - 12px);
+        overflow: hidden;
       }
-      .cal-scroll {
+      #screen-kalendar .cal-head {
+        position: static;
+        top: auto;
+      }
+      .cal-hscroll {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-x: contain;
+        scrollbar-width: none;
+      }
+      .cal-hscroll::-webkit-scrollbar { display: none; }
+      .cal-hscroll .cal-head {
+        width: max-content;
+        min-width: 100%;
+        grid-template-columns: var(--cal-time-col) repeat(7, 76px);
+      }
+      .cal-scroll {
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
         scroll-behavior: smooth;
         touch-action: pan-x pan-y;
       }
-      .cal-scroll .cal-head,
       .cal-scroll .cal-body {
         width: max-content;
         min-width: 100%;
-        grid-template-columns: 34px repeat(7, 76px);
+        grid-template-columns: var(--cal-time-col) repeat(7, 76px);
       }
-      .cal-scroll .time-col,
-      .cal-scroll .cal-head .corner {
+      .cal-scroll .time-col {
         position: sticky;
         left: 0;
         z-index: 2;
-        background: #fff;
         box-shadow: 2px 0 6px rgba(17, 24, 39, .06);
       }
-      .cal-scroll .cal-head .corner { z-index: 3; }
       .dh {
-        padding: 6px 1px 5px;
+        padding: 6px 4px 5px;
       }
       .dd {
         font-size: 13px;
@@ -944,8 +987,8 @@
         margin-top: 2px;
       }
       .time-slot {
-        padding: 5px 3px 0 0;
-        font-size: 9px;
+        padding: 5px 6px 0;
+        font-size: 10px;
       }
       .ev {
         left: 1px;
@@ -2016,18 +2059,21 @@
     <div class="cal-picker__weeks" id="cal-picker-weeks"></div>
   </div>
   <div class="cal-wrap" id="cal-wrap">
-    <div class="cal-scroll" id="cal-scroll">
-      <div class="cal-head">
-        <div class="corner"></div>
-        <div class="dh"><span class="dd" id="dd0"></span><span class="dn" id="dn0"></span></div>
-        <div class="dh"><span class="dd" id="dd1"></span><span class="dn" id="dn1"></span></div>
-        <div class="dh"><span class="dd" id="dd2"></span><span class="dn" id="dn2"></span></div>
-        <div class="dh"><span class="dd" id="dd3"></span><span class="dn" id="dn3"></span></div>
-        <div class="dh"><span class="dd" id="dd4"></span><span class="dn" id="dn4"></span></div>
-        <div class="dh"><span class="dd" id="dd5"></span><span class="dn" id="dn5"></span></div>
-        <div class="dh"><span class="dd" id="dd6"></span><span class="dn" id="dn6"></span></div>
+    <div class="cal-head-pane">
+      <div class="cal-hscroll" id="cal-head-scroll">
+        <div class="cal-head">
+          <div class="corner"></div>
+          <div class="dh"><span class="dd" id="dd0"></span><span class="dn" id="dn0"></span></div>
+          <div class="dh"><span class="dd" id="dd1"></span><span class="dn" id="dn1"></span></div>
+          <div class="dh"><span class="dd" id="dd2"></span><span class="dn" id="dn2"></span></div>
+          <div class="dh"><span class="dd" id="dd3"></span><span class="dn" id="dn3"></span></div>
+          <div class="dh"><span class="dd" id="dd4"></span><span class="dn" id="dn4"></span></div>
+          <div class="dh"><span class="dd" id="dd5"></span><span class="dn" id="dn5"></span></div>
+          <div class="dh"><span class="dd" id="dd6"></span><span class="dn" id="dn6"></span></div>
+        </div>
       </div>
-
+    </div>
+    <div class="cal-scroll" id="cal-scroll">
       <div class="cal-body">
         <div class="time-col" id="cal-times"></div>
         <div class="day-col" id="col-po"></div>
@@ -2340,6 +2386,7 @@
   ;(function initCalMobileNav() {
     const wrap = document.getElementById('cal-wrap')
     const scroll = document.getElementById('cal-scroll')
+    const headScroll = document.getElementById('cal-head-scroll')
     if (!wrap || !scroll || wrap.dataset.calTouch === '1') return
     wrap.dataset.calTouch = '1'
 
@@ -2350,6 +2397,26 @@
     let startY = 0
     let active = false
     let swipeLock = false
+    let syncScroll = false
+
+    function setHScrollLeft(left) {
+      scroll.scrollLeft = left
+      if (headScroll) headScroll.scrollLeft = left
+    }
+
+    function syncHScrollFrom(source) {
+      if (syncScroll) return
+      syncScroll = true
+      const left = source.scrollLeft
+      if (source !== scroll) scroll.scrollLeft = left
+      if (headScroll && source !== headScroll) headScroll.scrollLeft = left
+      syncScroll = false
+    }
+
+    headScroll?.addEventListener('scroll', () => syncHScrollFrom(headScroll), { passive: true })
+    scroll.addEventListener('scroll', () => {
+      if (mq.matches && headScroll) syncHScrollFrom(scroll)
+    }, { passive: true })
 
     function hasHOverflow() {
       return scroll.scrollWidth > scroll.clientWidth + 2
@@ -2364,14 +2431,15 @@
       const we = new Date(ws)
       we.setDate(we.getDate() + 6)
       if (today < ws || today > we) {
-        scroll.scrollLeft = 0
+        setHScrollLeft(0)
         return
       }
       const dayIdx = (today.getDay() + 6) % 7
-      const dh = scroll.querySelectorAll('.dh')[dayIdx]
+      const dh = document.querySelector('.cal-head .dh:nth-child(' + (dayIdx + 2) + ')')
       if (!dh) return
-      const stickyW = 34
-      scroll.scrollLeft = Math.max(0, dh.offsetLeft - stickyW - 6)
+      const corner = document.querySelector('.cal-head .corner')
+      const stickyW = corner?.offsetWidth ?? 48
+      setHScrollLeft(Math.max(0, dh.offsetLeft - stickyW - 6))
     }
 
     scroll.addEventListener('touchstart', e => {
