@@ -707,7 +707,7 @@ function buildAdminCustomerHistoryModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:19px;font-weight:500;" id="mch-title">${esc(_adm('customers.historyModalTitle'))}</div>
+          <div style="font-size:19px;font-weight:600;" id="mch-title">${esc(_adm('customers.historyModalTitle'))}</div>
         </div>
         <div id="mch-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
         <div style="display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);">
@@ -1455,7 +1455,7 @@ function buildAdminCustomerPassesModal() {
       <div id="mup-panel" style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:min(860px, calc(100vw - 32px));max-width:860px;overflow:hidden;margin:auto;">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:19px;font-weight:500;" id="mup-title">${esc(_adm('misc.pass'))}</div>
+          <div style="font-size:19px;font-weight:600;" id="mup-title">${esc(_adm('misc.pass'))}</div>
         </div>
         <div id="mup-body" style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 160px);"></div>
         <div id="mup-error" style="display:none;margin:0 18px 12px;font-size:13px;color:#791F1F;background:#FCEBEB;
@@ -2551,7 +2551,7 @@ function _passCard(pass, courseMap) {
             </div>` : `<div style="font-size:12px;color:#9b9b9b;">${esc(_adm('passesPage.notLinked'))}</div>`}
         </div>
         <div style="text-align:left;flex-shrink:0;">
-          <div style="font-size:19px;font-weight:500;color:${ph};margin-bottom:10px;text-align:left;">${fmtPrice(pass.price)}</div>
+          <div style="font-size:19px;font-weight:600;color:${ph};margin-bottom:10px;text-align:left;">${fmtPrice(pass.price)}</div>
           <div style="display:flex;gap:8px;">
             <button class="btn-small" onclick="window.openPassModal?.('${esc(pass.id)}')">${esc(_adm('btn.edit'))}</button>
             <button class="btn-small danger" onclick="window.adminDeletePass?.('${esc(pass.id)}')">${esc(_adm('btn.delete'))}</button>
@@ -2578,7 +2578,7 @@ function buildPassModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:480px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:19px;font-weight:500;" id="mp-title">${esc(_adm('passesPage.modalTitleNew'))}</div>
+          <div style="font-size:19px;font-weight:600;" id="mp-title">${esc(_adm('passesPage.modalTitleNew'))}</div>
         </div>
         <div style="padding:14px 18px;overflow-y:auto;max-height:calc(100vh - 140px);">
           <input type="hidden" id="mp-id" />
@@ -3072,7 +3072,7 @@ function buildWorkshopModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:520px;overflow:hidden;margin:auto;max-height:90vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:19px;font-weight:500;" id="mw-title">Nový workshop</div>
+          <div style="font-size:19px;font-weight:600;" id="mw-title">Nový workshop</div>
         </div>
         <div style="padding:14px 18px;overflow-y:auto;flex:1;">
           <input type="hidden" id="mw-id" />
@@ -3530,7 +3530,7 @@ function buildCourseModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:520px;overflow:hidden;margin:auto;max-height:90vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;">
-          <div style="font-size:19px;font-weight:500;" id="mc-title">Nový kurz</div>
+          <div style="font-size:19px;font-weight:600;" id="mc-title">Nový kurz</div>
         </div>
         <div style="padding:14px 18px;overflow-y:auto;flex:1;">
           <input type="hidden" id="mc-id" />
@@ -4246,7 +4246,7 @@ function buildLessonAttendeesModal() {
       <div style="background:#fff;border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);
         width:100%;max-width:520px;overflow:hidden;margin:auto;" onclick="event.stopPropagation()">
         <div style="padding:18px 18px 4px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div id="mla-title" style="font-size:19px;font-weight:500;">${esc(_adm('lessonDetail.title'))}</div>
+          <div id="mla-title" style="font-size:19px;font-weight:600;">${esc(_adm('lessonDetail.title'))}</div>
           <button type="button" onclick="window.closeLessonAttendeesModal?.()"
             style="border:none;background:transparent;font-size:21px;line-height:1;cursor:pointer;color:#6b6b6b;padding:0 4px;">×</button>
         </div>
