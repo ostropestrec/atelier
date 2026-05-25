@@ -272,7 +272,7 @@ export const UI_TRANSLATIONS = {
         /** {{price}} — fmtPrice */
         buyPassAndBook: 'Zakoupit a rezervovat můj první termín · {{price}}',
         cancel: 'Zrušit',
-        buyPass: 'Koupit permanentku',
+        buyPass: 'Koupit permanentku a rezervovat',
         continueToBooking: 'Pokračovat k rezervaci',
         booking: 'Rezervuji…',
         buying: 'Kupuji…',
@@ -1111,7 +1111,7 @@ export const UI_TRANSLATIONS = {
         confirmAndPay: 'Confirm and pay {{price}}',
         buyPassAndBook: 'Buy a pass & book my first session · {{slot}} · {{price}}',
         cancel: 'Cancel',
-        buyPass: 'Buy a pass',
+        buyPass: 'Buy a pass & book',
         continueToBooking: 'Continue to booking',
         booking: 'Booking…',
         buying: 'Buying…',

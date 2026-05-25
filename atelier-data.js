@@ -608,45 +608,45 @@ function _detailInfoTableRow(label, value, valStyle = '') {
   </div>`
 }
 
-/** Barvy meta štítků v detailu kurzu — každá buňka jiná. */
+/** Barvy meta štítků v detailu kurzu (lektor | termíny+délka | max+min). */
 const _DETAIL_META_PILL_COLORS = {
   instructor: '#5B4FCF',
-  schedule: '#C45C26',
-  duration: '#1A8F7A',
-  max: '#B45309',
-  min: '#BE4B6A',
+  scheduleDuration: '#C45C26',
+  capacity: '#B45309',
 }
 
 function _detailMetaBadge(label, value, accentColor) {
   const v = value != null && String(value).trim() !== '' ? String(value).trim() : ''
   if (!v || v === '—' || !label) return ''
   const c = accentColor || '#2854B9'
-  const pillStyle = `background:${c}18;border:1px solid ${c}40;`
+  const pillStyle = `background:${c}18;border:1px solid ${c}40;color:${c};`
   return `<span class="detail-meta-pill" style="${pillStyle}">
-    <span class="dml">${_escHtml(label)}:</span> <span class="dmv" style="color:${c};">${_escHtml(v)}</span>
+    <span class="dml">${_escHtml(label)}:</span> <span class="dmv">${_escHtml(v)}</span>
   </span>`
 }
 
 function _buildDetailMetaBadgesHtml({ ownerName, scheduleDays, durationVal, capacity, minParticipants }) {
   const cap = Number(capacity) || 0
   const minP = Math.max(1, Number(minParticipants ?? 1))
+  const sd = _DETAIL_META_PILL_COLORS.scheduleDuration
+  const capColor = _DETAIL_META_PILL_COLORS.capacity
   const pills = [
     _detailMetaBadge(_tp('courses.detailBadgeInstructor'), ownerName, _DETAIL_META_PILL_COLORS.instructor),
-    scheduleDays ? _detailMetaBadge(_tp('courses.detailBadgeSchedule'), scheduleDays, _DETAIL_META_PILL_COLORS.schedule) : '',
+    scheduleDays ? _detailMetaBadge(_tp('courses.detailBadgeSchedule'), scheduleDays, sd) : '',
     durationVal && durationVal !== '—'
-      ? _detailMetaBadge(_tp('courses.detailBadgeDuration'), durationVal, _DETAIL_META_PILL_COLORS.duration)
+      ? _detailMetaBadge(_tp('courses.detailBadgeDuration'), durationVal, sd)
       : '',
     cap > 0
       ? _detailMetaBadge(
           _tp('courses.detailBadgeMaxLabel'),
           _tp('courses.detailBadgeParticipantsCount', { n: cap }),
-          _DETAIL_META_PILL_COLORS.max,
+          capColor,
         )
       : '',
     _detailMetaBadge(
       _tp('courses.detailBadgeMinLabel'),
       _tp('courses.detailBadgeParticipantsCount', { n: minP }),
-      _DETAIL_META_PILL_COLORS.min,
+      capColor,
     ),
   ].filter(Boolean)
   if (!pills.length) return ''
