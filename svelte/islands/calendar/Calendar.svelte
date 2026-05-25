@@ -111,7 +111,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Permanent Marker', cursive;
+    font-weight: 400;
     font-size: 18px;
     font-weight: 600;
   }
