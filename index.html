@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23FD8D40'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Wittgenstein:wght@500&display=swap" rel="stylesheet">
 
   <!-- Svelte islands feature flags (opt-in přes localStorage). Drží se brzy v <head>,
        aby legacy DOM nikdy neprobliknul, když je flag zapnutý. -->
@@ -58,6 +58,7 @@
       --overview-section-title-gap: 18px;
       --shell-shadow: 0 20px 50px rgba(40,84,185,.18), 0 4px 16px rgba(40,84,185,.10);
       --topbar-h: 64px;
+      --font-heading: 'Wittgenstein', serif;
     }
 
     html,
@@ -98,7 +99,8 @@
       #app-loader > div:first-child,
       #app-error > div:first-child
     ) {
-      font-weight: 700;
+      font-family: var(--font-heading);
+      font-weight: 500;
     }
 
     body {
@@ -171,7 +173,7 @@
       height: 64px;
       gap: 12px;
     }
-    .logo { font-size: 17px; font-weight: 700; letter-spacing: .06em; flex: 1; color: var(--section-heading-accent); }
+    .logo { font-size: 17px; font-weight: 500; letter-spacing: .06em; flex: 1; color: var(--section-heading-accent); }
     .top-actions{display:flex;align-items:center;gap:10px;}
     .lang-toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
     .lang-pill{
@@ -397,7 +399,7 @@
 
     /* ── Sekce nadpis ── */
     .sec-title {
-      font-size: 13px; font-weight: 700; letter-spacing: .08em;
+      font-size: 13px; font-weight: 500; letter-spacing: .08em;
       text-transform: uppercase; color: var(--section-heading-accent);
       margin-bottom: 12px;
     }
@@ -445,7 +447,7 @@
     /* Krátká anotace nad dlouhým popisem (detail kurzu) */
     .detail-course-annotation {
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 500;
       line-height: 1.7;
       color: var(--primary);
       margin: 22px 0 24px;
@@ -464,8 +466,8 @@
     }
     .course-rich-text h2:first-child,
     .course-rich-text h3:first-child { margin-top: 0; }
-    .course-rich-text h2 { font-size: calc(1.2rem + 1px); font-weight: 700; }
-    .course-rich-text h3 { font-size: calc(1.05rem + 1px); font-weight: 700; }
+    .course-rich-text h2 { font-size: calc(1.2rem + 1px); font-weight: 500; }
+    .course-rich-text h3 { font-size: calc(1.05rem + 1px); font-weight: 500; }
     .course-rich-text ul,
     .course-rich-text ol { margin: 0.35em 0 0.5em 0; padding-left: 1.35em; list-style-position: outside; }
     .course-rich-text ul { list-style-type: disc; }
@@ -1195,7 +1197,7 @@
       background: #fff; border: 1px solid var(--border);
       border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
     }
-    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .card-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
     .card-meta  { font-size: 13px; color: var(--muted); }
 
     /* ── Uživatelský manuál ── */
@@ -1223,13 +1225,13 @@
       letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--section-heading-accent);
-      font-weight: 700;
+      font-weight: 500;
       margin-bottom: 8px;
     }
     .manual-title {
       font-size: 25px;
       line-height: 1.2;
-      font-weight: 700;
+      font-weight: 500;
       margin-bottom: 8px;
     }
     .manual-lead {
@@ -1273,7 +1275,7 @@
     .manual-step-title,
     .manual-card-title {
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 500;
       margin-bottom: 6px;
     }
     .manual-step-text,
@@ -1342,13 +1344,13 @@
       margin-right: -12px;
       flex: 0 0 auto;
     }
-    .hello{ font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+    .hello{ font-size: 21px; font-weight: 500; margin-bottom: 4px; }
     .subtle{ font-size: 14px; color: var(--muted); }
     .section-h{
       font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
-      font-weight: 700;
+      font-weight: 500;
     }
     #screen-nastenka > .sec-title{
       margin-bottom: 24px;
@@ -1440,7 +1442,7 @@
       flex: 1;
       min-width: 0;
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 500;
       line-height: 1.35;
       color: var(--text);
     }
@@ -1575,7 +1577,7 @@
     .btn-small.danger{ color:#7A1F1F; border-color: rgba(122,31,31,.25); background: rgba(122,31,31,.06); }
 
     /* ── Nastavení (form + modal) ─────────────────────────────── */
-    .page-title{ font-size: 23px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .page-title{ font-size: 23px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
     .page-sub{ font-size: 14px; color: var(--muted); margin-bottom: 18px; }
     .block-label{
       font-size: 12px; letter-spacing:.14em; text-transform:uppercase;
@@ -1615,7 +1617,7 @@
       padding: 14px 16px;
       margin-top: 10px;
     }
-    .danger-title{ font-size: 15px; font-weight: 700; color:#5d1414; margin-bottom: 4px; }
+    .danger-title{ font-size: 15px; font-weight: 500; color:#5d1414; margin-bottom: 4px; }
     .danger-text{ font-size: 14px; color: rgba(93,20,20,.85); line-height:1.5; margin-bottom: 12px; }
 
     .modal{
@@ -1638,7 +1640,7 @@
       overflow:hidden;
     }
     .modal-body{ padding: 18px 18px 14px; }
-    .modal-title{ font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+    .modal-title{ font-size: 19px; font-weight: 500; margin-bottom: 6px; }
     .modal-sub{ font-size: 14px; color: var(--muted); margin-bottom: 12px; }
     .modal-list{ margin: 0 0 14px; padding-left: 18px; color: var(--text); }
     .modal-list li{ margin: 6px 0; font-size: 14px; color: var(--anno); }
@@ -1735,7 +1737,7 @@
 
     /* ── Admin sekce nadpis (přehled, platby, sekce z buildStaffLessonsSectionHtml …) ── */
     .admin-section-title {
-      font-size: 12px; font-weight: 700; letter-spacing: .14em;
+      font-size: 12px; font-weight: 500; letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--section-heading-accent);
       margin: var(--overview-section-gap) 0 var(--overview-section-title-gap);
@@ -2624,13 +2626,13 @@
 
 <!-- ── App Loader (zobrazí se ihned, skryje se až po načtení dat) ── -->
 <div id="app-loader">
-  <div style="font-size:23px;font-weight:700;letter-spacing:.01em;color:#1a1a1a;">Ateliér</div>
+  <div style="font-size:23px;font-weight:500;letter-spacing:.01em;color:#1a1a1a;">Ateliér</div>
   <div class="app-spinner"></div>
 </div>
 
 <!-- ── Error screen (zobrazí se při selhání inicializace) ── -->
 <div id="app-error">
-  <div style="font-size:23px;font-weight:700;color:#1a1a1a;">Ateliér</div>
+  <div style="font-size:23px;font-weight:500;color:#1a1a1a;">Ateliér</div>
   <div style="font-size:14px;color:#791F1F;text-align:center;max-width:280px;line-height:1.6;">
     Nepodařilo se načíst aplikaci.<br>Zkontrolujte připojení k internetu.
   </div>
