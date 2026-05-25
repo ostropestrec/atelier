@@ -268,9 +268,9 @@ export const UI_TRANSLATIONS = {
       },
       btn: {
         confirmBooking: 'Potvrdit rezervaci',
-        confirmAndPay: 'Potvrdit a zaplatit {{price}}',
-        /** {{slot}}, {{price}} — fmtPrice */
-        buyPassAndBook: 'Koupit a zarezervovat můj první termín · {{slot}} · {{price}}',
+        confirmAndPay: 'Zakoupit · {{price}}',
+        /** {{price}} — fmtPrice */
+        buyPassAndBook: 'Zakoupit a rezervovat můj první termín · {{price}}',
         cancel: 'Zrušit',
         buyPass: 'Koupit permanentku',
         continueToBooking: 'Pokračovat k rezervaci',

@@ -304,11 +304,7 @@ function _syncPopupPrimaryButton() {
     const buyPassMetaEl = payEl.querySelector('.bk-opt-sel[data-buy-pass-template-id]')
     const passPriceNum = Number(buyPassMetaEl?.dataset.buyPassPrice ?? 0)
     const passPriceTxt = fmtPrice(passPriceNum)
-    const les = _bkSelectedLessonForPopupSingleSelect()
-    const slot = les
-      ? _fmtBkLessonLine(les)
-      : _tp('booking.slot.selectPrompt')
-    btn.textContent = _tp('booking.btn.buyPassAndBook', { slot, price: passPriceTxt })
+    btn.textContent = _tp('booking.btn.buyPassAndBook', { price: passPriceTxt })
     return
   }
 
