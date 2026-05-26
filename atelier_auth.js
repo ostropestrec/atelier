@@ -1751,7 +1751,7 @@ export function buildUserOverviewHtml(user) {
       </div>
     </div>
 
-    <div class="section-h">${escapeHtml(t(locale, 'dashboard.sectionPasses'))}</div>
+    <div class="overview-section-h">${escapeHtml(t(locale, 'dashboard.sectionPasses'))}</div>
     ${passHtml ? `<div class="nastenka-cards-2col">${passHtml}</div>` : `<div class="empty">${escapeHtml(t(locale, 'dashboard.emptyPasses'))}</div>`}
     ${passHtml ? `
       <div class="card-meta" style="margin-top:10px;">
@@ -1759,7 +1759,7 @@ export function buildUserOverviewHtml(user) {
       </div>
     ` : ''}
 
-    <div class="section-h">${escapeHtml(t(locale, 'dashboard.sectionBookings'))}</div>
+    <div class="overview-section-h">${escapeHtml(t(locale, 'dashboard.sectionBookings'))}</div>
     ${bookingsHtml ? `<div class="nastenka-cards-2col">${bookingsHtml}</div>` : `<div class="empty">${escapeHtml(t(locale, 'dashboard.emptyBookings'))}</div>`}
   `
 }
