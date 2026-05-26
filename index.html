@@ -1415,21 +1415,25 @@
       z-index: 1;
       min-width: 0;
     }
-    /* Mraky pod nadpisem Přehled — v ::after, aby neodsazovaly sekci permanentek */
+    #screen-nastenka,
+    #nastenka-content{
+      overflow: visible;
+    }
+    /* Mraky pod nadpisem Přehled — v ::after, celý obrázek bez ořezu */
     #nastenka-content .profile-head--clouds{
-      margin-bottom: 20px;
+      margin-bottom: 0;
       padding: 0;
-      min-height: 0;
+      min-height: clamp(168px, 24vw, 260px);
       overflow: visible;
       background: none;
     }
     #nastenka-content .profile-head--clouds::after{
       content: '';
       position: absolute;
-      right: -12px;
-      bottom: -28px;
-      width: min(72%, 420px);
-      height: clamp(130px, 34vw, 240px);
+      top: 44px;
+      right: -16px;
+      bottom: 0;
+      width: min(58%, 400px);
       background-image: url('./assets/atelier-overview-clouds.png');
       background-repeat: no-repeat;
       background-position: right bottom;
@@ -1437,28 +1441,34 @@
       z-index: 0;
       pointer-events: none;
     }
+    #nastenka-content .profile-head--clouds + .overview-section-h{
+      margin-top: 56px;
+    }
+    #nastenka-content .overview-section-h:not(:first-of-type){
+      margin-top: calc(var(--overview-section-gap) + 28px);
+    }
     @media (max-width: 1023px) {
       #nastenka-content .profile-head--clouds{
         width: 100vw;
         max-width: 100vw;
         margin-left: calc(50% - 50vw);
-        margin-bottom: 16px;
+        min-height: clamp(200px, 52vw, 300px);
         box-sizing: border-box;
         padding-left: max(14px, env(safe-area-inset-left, 0px));
         padding-right: max(14px, env(safe-area-inset-right, 0px));
       }
       #nastenka-content .profile-head--clouds::after{
+        top: 56px;
         left: 50%;
         right: auto;
+        bottom: 0;
         transform: translateX(-50%);
-        width: 100vw;
-        bottom: -56px;
-        height: clamp(150px, 44vw, 270px);
+        width: 96vw;
         background-position: center bottom;
-        background-size: 100% auto;
+        background-size: contain;
       }
       #nastenka-content .profile-head--clouds + .overview-section-h{
-        margin-top: 12px;
+        margin-top: 40px;
       }
     }
     .hello{ margin-bottom: 4px; }
@@ -1470,8 +1480,7 @@
     #screen-nastenka > .sec-title{
       margin-bottom: 24px;
     }
-    #nastenka-content .profile-head--clouds + .overview-section-h{
-      margin-top: 0;
+    #nastenka-content .overview-section-h{
       position: relative;
       z-index: 1;
     }
